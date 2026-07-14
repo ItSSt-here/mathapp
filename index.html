@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>קרב הטירות</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="card">
+  <div class="level-info" id="levelInfo"></div>
+  <h1>קרב הטירות</h1>
+
+  <div class="exercise">
+    <span class="question-wrap">
+      <span id="questionText"></span>
+      <span class="answer-reveal" id="answerReveal"></span>
+    </span>
+  </div>
+  <div id="answerHome">
+    <input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" id="answer" autofocus>
+  </div>
+  <!-- Second blank, only used for fraction exercises where both the
+       numerator and denominator are hidden; parked here (hidden) otherwise. -->
+  <div id="answer2Home" style="display:none;">
+    <input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" id="answer2">
+  </div>
+  <button class="check-btn" id="checkBtn">בדוק</button>
+  <div class="feedback" id="feedback"></div>
+
+  <div class="stats-row">
+    <div class="coins" id="coins">מטבעות: 0</div>
+    <div class="battle-timer" id="battleTimer">0:00</div>
+    <button class="swap-btn" id="swapBtn">החלף שאלה (עלות: 15 מטבעות)</button>
+  </div>
+
+  <hr>
+
+  <div class="castle-row">
+    <div class="castle-block enemy">
+      <div class="castle-label">האויב</div>
+      <div class="hp-bar-container"><div class="hp-bar-fill enemy" id="enemyHpFill"></div></div>
+      <div class="hp-text" id="enemyHpText"></div>
+    </div>
+
+    <div class="battlefield" id="battlefield">
+      <div class="battlefield-clouds">
+        <div class="cloud cloud-1"></div>
+        <div class="cloud cloud-2"></div>
+        <div class="cloud cloud-3"></div>
+      </div>
+      <div class="battlefield-ground"></div>
+
+      <div class="castle-graphic enemy" id="enemyCastleGraphic">
+        <img class="castle-img" id="enemyCastleImg" alt="">
+        <div class="cg-smoke cg-smoke-1"></div>
+        <div class="cg-smoke cg-smoke-2"></div>
+      </div>
+
+      <div class="castle-graphic player" id="playerCastleGraphic">
+        <img class="castle-img" id="playerCastleImg" alt="">
+        <div class="cg-smoke cg-smoke-1"></div>
+        <div class="cg-smoke cg-smoke-2"></div>
+      </div>
+
+      <div class="soldiers-layer" id="soldiersLayer"></div>
+    </div>
+
+    <div class="castle-block player">
+      <div class="castle-label">אתה</div>
+      <div class="hp-bar-container"><div class="hp-bar-fill" id="playerHpFill"></div></div>
+      <div class="hp-text" id="playerHpText"></div>
+      <button class="buy-btn" id="buyBtn">קנה חייל (20)</button>
+    </div>
+  </div>
+
+  <div class="surrender-row">
+    <button class="surrender-btn" id="surrenderBtn">אני נכנע 🏳️</button>
+  </div>
+</div>
+
+<div class="overlay show" id="modeOverlay">
+  <div class="overlay-card">
+    <div class="overlay-title" style="color:#4a3fd1;">קרב טירות ⚔️</div>
+    <p class="overlay-text">באיזה סוג תרגילים תרצו לתרגל?</p>
+
+    <div class="postgame-buttons">
+      <button class="restart-btn" id="modeMultiplyBtn">לוח הכפל</button>
+      <button class="restart-btn" id="modeFractionsBtn">שברים</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="startOverlay">
+  <div class="overlay-card">
+    <div class="overlay-title" style="color:#4a3fd1;">קרב טירות ⚔️</div>
+    <p class="overlay-text">פתרו תרגילים כדי להרוויח מטבעות, קנו חיילים והפילו את טירת האויב לפני שהוא מפיל את שלכם!</p>
+
+    <div class="difficulty-pickers-row">
+      <div class="difficulty-picker">
+        <div class="diff-title">מהירות</div>
+        <button class="diff-arrow-btn" id="diffUpBtn">▲</button>
+        <div class="diff-label" id="diffLabel"></div>
+        <button class="diff-arrow-btn" id="diffDownBtn">▼</button>
+      </div>
+
+      <div class="difficulty-picker">
+        <div class="diff-title">קושי תרגילים</div>
+        <button class="diff-arrow-btn" id="exDiffUpBtn">▲</button>
+        <div class="diff-label" id="exDiffLabel"></div>
+        <button class="diff-arrow-btn" id="exDiffDownBtn">▼</button>
+      </div>
+    </div>
+
+    <div class="postgame-buttons">
+      <button class="home-btn" id="backToModeBtn">חזרה</button>
+      <button class="restart-btn" id="startBtn">התחל משחק</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="overlay-card">
+    <div class="overlay-title" id="overlayTitle"></div>
+    <p class="overlay-level-info" id="overlayLevelInfo"></p>
+    <p class="overlay-battle-time" id="overlayBattleTime"></p>
+    <p class="overlay-text">לשחק שוב?</p>
+    <div class="postgame-buttons">
+      <button class="restart-btn" id="restartBtn">שחק שוב</button>
+      <button class="restart-btn" id="changeDifficultyBtn">שנה קושי</button>
+      <button class="home-btn" id="changeModeBtn">שנה נושא</button>
+    </div>
+  </div>
+</div>
+
+<!-- Off-screen but genuinely laid-out/painted copies of every soldier sprite
+     frame, so the browser pays the first-paint cost for each (image, size,
+     side-mirroring) combination once up front instead of live during play
+     (see preloadSoldierSprites() in render.js). -->
+<div id="spritePreload" style="position:fixed; left:-9999px; top:-9999px; width:1px; height:1px; overflow:hidden;" aria-hidden="true"></div>
+
+<script src="js/config.js"></script>
+<script src="js/helpers.js"></script>
+<script src="js/exercise.js"></script>
+<script src="js/combat.js"></script>
+<script src="js/render.js"></script>
+<script src="js/main.js"></script>
+
+</body>
+</html>

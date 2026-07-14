@@ -1,0 +1,666 @@
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  background: linear-gradient(180deg, #bfe3ff 0%, #eaf6ff 55%, #f5f0e0 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  margin: 0;
+}
+
+.card {
+  background: linear-gradient(180deg, #ffffff, #f6f8ff);
+  border: 3px solid #d3ddf7;
+  border-radius: 24px;
+  box-shadow: 0 12px 32px rgba(30, 50, 100, 0.2);
+  padding: 26px 30px;
+  text-align: center;
+  width: 1200px;
+  max-width: 95vw;
+}
+
+h1 {
+  display: inline-block;
+  font-size: 22px;
+  margin: 0 0 22px;
+  color: white;
+  background: linear-gradient(135deg, #5b7cfa, #4a3fd1);
+  padding: 8px 26px;
+  border-radius: 30px;
+  letter-spacing: 1px;
+  box-shadow: 0 4px 10px rgba(74, 63, 209, 0.35);
+}
+
+.level-info {
+  font-size: 13px;
+  color: #777;
+  margin: 0 0 10px;
+}
+
+.overlay-level-info {
+  font-size: 13px;
+  color: #777;
+  margin: -10px 0 18px;
+}
+
+/* Exercise (now above the battlefield) */
+.exercise {
+  font-size: 46px;
+  font-weight: bold;
+  color: #2b3a67;
+  margin-bottom: 16px;
+  direction: ltr; /* keep "a × b = c" in the correct left-to-right order despite the RTL page */
+}
+
+/* Sized to fit only the question, so revealing the answer doesn't recenter it */
+.question-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.answer-reveal {
+  position: absolute;
+  top: 0;
+  left: 100%;
+  margin-left: 12px;
+  white-space: nowrap;
+}
+
+input {
+  font-size: 26px;
+  width: 90px;
+  text-align: center;
+  padding: 6px;
+  border: 2px solid #ccc;
+  border-radius: 10px;
+  margin-bottom: 16px;
+}
+
+input:focus {
+  outline: none;
+  border-color: #4a6cf7;
+}
+
+/* Swap-question reveal in fraction mode: the blank itself shows the answer
+   in red instead of a floating "= X" next to the equation. Overrides the
+   browser's default disabled-input graying so the red actually shows. */
+input.answer-revealed:disabled {
+  color: #e0433d;
+  -webkit-text-fill-color: #e0433d;
+  opacity: 1;
+  border-color: #e0433d;
+}
+
+/* Fraction exercise: "(b*c)/(b*a) = [answer]/a" laid out as two stacked
+   fraction blocks joined by an "=" sign, all vertically centered together. */
+.frac-eq {
+  display: inline-flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.frac-block {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.frac-num, .frac-den {
+  font-size: 40px;
+  line-height: 1.2;
+  padding: 0 4px;
+}
+
+.frac-bar {
+  width: 100%;
+  height: 3px;
+  background: #2b3a67;
+  margin: 4px 0;
+}
+
+.frac-op {
+  font-size: 40px;
+}
+
+.fraction-answer-input {
+  width: 50px !important;
+  font-size: 30px !important;
+  padding: 4px !important;
+  margin: 0 !important;
+}
+
+button.check-btn {
+  font-size: 18px;
+  padding: 9px 28px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #6685ff, #4a6cf7);
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 3px 0 #3349b0;
+  transition: transform 0.1s ease;
+}
+
+button.check-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #3349b0;
+}
+
+.swap-btn {
+  font-size: 13px;
+  padding: 9px 16px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #ffb347, #ff8c1a);
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 3px 0 #cc6f00;
+  transition: transform 0.1s ease;
+}
+
+.swap-btn:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #cc6f00;
+}
+
+.swap-btn:disabled {
+  background: #b7b7b7;
+  box-shadow: 0 3px 0 #8f8f8f;
+  cursor: not-allowed;
+}
+
+.feedback {
+  margin-top: 14px;
+  font-size: 20px;
+  font-weight: bold;
+  min-height: 26px;
+}
+
+.correct { color: #2e9e4f; }
+.incorrect { color: #e0433d; }
+
+/* Coins & buy */
+.stats-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 6px 0 16px;
+}
+
+.coins {
+  font-size: 21px;
+  font-weight: bold;
+  color: #b8860b;
+}
+
+.coins.negative {
+  color: #e0433d;
+}
+
+.battle-timer {
+  font-size: 16px;
+  font-weight: bold;
+  color: #2b3a67;
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+.buy-btn {
+  font-size: 12px;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #48c26e, #2e9e4f);
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 3px 0 #1f7638;
+  transition: transform 0.1s ease;
+  margin-top: 10px;
+  white-space: nowrap;
+}
+
+.buy-btn:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #1f7638;
+}
+
+.buy-btn:disabled {
+  background: #b7b7b7;
+  box-shadow: 0 3px 0 #8f8f8f;
+  cursor: not-allowed;
+}
+
+hr {
+  border: none;
+  border-top: 1px dashed #dde3f5;
+  margin: 0 0 18px;
+}
+
+/* Battlefield (now at the bottom) */
+.castle-row {
+  direction: ltr;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.castle-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 90px;
+  flex-shrink: 0;
+}
+
+.castle-label {
+  font-size: 12px;
+  color: #666;
+  margin-top: 6px;
+  font-weight: bold;
+}
+
+.hp-bar-container {
+  width: 68px;
+  height: 10px;
+  background: #e2e2e2;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-top: 6px;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.25);
+}
+
+.hp-bar-fill {
+  height: 100%;
+  background: linear-gradient(180deg, #5cc077, #2e9e4f);
+  transition: width 0.2s linear;
+}
+
+.hp-bar-fill.enemy {
+  background: linear-gradient(180deg, #f1685f, #e0433d);
+}
+
+.hp-text {
+  font-size: 11px;
+  color: #777;
+  margin-top: 3px;
+}
+
+.battlefield {
+  direction: ltr;
+  position: relative;
+  flex: 1;
+  height: 140px;
+  margin: 0;
+  background-image: url('assets/background/sky-mountains.png');
+  background-size: cover;
+  background-position: center 20%;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 3px solid #5a9440;
+  box-shadow: inset 0 4px 10px rgba(0,0,0,0.15);
+}
+
+/* ---------- Background depth: sprite ground tile + slowly drifting clouds
+   sit behind the castles/soldiers, giving the sky some parallax-style
+   layering for very little cost. ---------- */
+.battlefield-ground {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 34px;
+  background-image: url('assets/background/ground-tile-grass.png');
+  background-size: 128px 34px;
+  background-repeat: repeat-x;
+}
+
+.battlefield-clouds {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 70px;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.cloud {
+  position: absolute;
+  background: rgba(222, 230, 240, 0.96);
+  border-radius: 40px;
+  filter: drop-shadow(0 1px 3px rgba(50, 65, 90, 0.45));
+}
+
+.cloud::before,
+.cloud::after {
+  content: '';
+  position: absolute;
+  background: inherit;
+  border-radius: 50%;
+}
+
+.cloud-1 {
+  top: 10px;
+  width: 70px;
+  height: 26px;
+  animation: driftCloud 70s linear infinite;
+}
+.cloud-1::before { width: 36px; height: 36px; top: -18px; left: 8px; }
+.cloud-1::after  { width: 29px; height: 29px; top: -13px; left: 36px; }
+
+.cloud-2 {
+  top: 28px;
+  width: 52px;
+  height: 21px;
+  animation: driftCloud 95s linear infinite;
+  animation-delay: -30s;
+}
+.cloud-2::before { width: 26px; height: 26px; top: -13px; left: 5px; }
+.cloud-2::after  { width: 21px; height: 21px; top: -10px; left: 26px; }
+
+.cloud-3 {
+  top: 6px;
+  width: 60px;
+  height: 23px;
+  animation: driftCloud 83s linear infinite;
+  animation-delay: -55s;
+}
+.cloud-3::before { width: 31px; height: 31px; top: -16px; left: 6px; }
+.cloud-3::after  { width: 23px; height: 23px; top: -12px; left: 31px; }
+
+@keyframes driftCloud {
+  from { left: -15%; }
+  to   { left: 115%; }
+}
+
+/* ---------- Castle graphic (sits right at the edge of the track) ----------
+   Sprite art: CraftPix "Free Castle 2D Game Assets" (craftpix.net), used
+   under their free-asset commercial license. Both sides use the same castle
+   (folder 1's gate tower); only the flag is recolored blue/red, and the
+   severe-damage stage has its glow stripped to plain crack (offline, see
+   assets/castle/recolor-flag.ps1 and fix-severe.ps1). Each side has 3
+   pre-drawn HP-based damage stages; smoke on top is added here in CSS. */
+.castle-graphic {
+  position: absolute;
+  bottom: 6px;
+  width: 62px;
+  height: 104px;
+}
+
+.castle-graphic.enemy { left: 4px; }
+.castle-graphic.player { right: 4px; }
+
+.castle-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: bottom;
+  filter: drop-shadow(0 3px 2px rgba(0,0,0,0.25));
+}
+
+/* The art's door/window face left; mirror the enemy side (left edge of the
+   battlefield) so its entrance faces inward, toward the player's castle,
+   instead of out past the battlefield's edge. */
+.castle-graphic.enemy .castle-img { transform: scaleX(-1); }
+
+.cg-smoke {
+  position: absolute;
+  top: 6px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(90,90,90,0.75), rgba(90,90,90,0));
+  opacity: 0;
+  pointer-events: none;
+}
+
+.cg-smoke-1 { left: 14px; }
+.cg-smoke-2 { left: 34px; top: 14px; }
+
+.castle-graphic.dmg-severe .cg-smoke {
+  opacity: 1;
+  animation: smokeRise 2.4s ease-out infinite;
+}
+.castle-graphic.dmg-severe .cg-smoke-2 { animation-delay: 1.2s; }
+
+@keyframes smokeRise {
+  0%   { opacity: 0; transform: translateY(0) scale(0.6); }
+  30%  { opacity: 0.8; }
+  100% { opacity: 0; transform: translateY(-30px) scale(1.4); }
+}
+
+
+.soldiers-layer {
+  position: absolute;
+  inset: 0;
+}
+
+/* ---------- Soldier figures (sprite-based, see assets/sprites/knight) ---------- */
+.soldier {
+  position: absolute;
+  bottom: -6px;
+  width: 50px;
+  height: 62px;
+  transform: translateX(-50%);
+  transition: left 0.2s linear;
+}
+
+.soldier-figure {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Sprite frames face right by default; player is mirrored to face left (toward the enemy) */
+.soldier.player .soldier-figure { transform: scaleX(-1); }
+
+/* Dying: opacity fade is computed in JS from the death timer and applied
+   inline every render (see render() in render.js) since soldiersLayer's
+   innerHTML is rebuilt every tick -- the fall/topple itself is just the
+   'dead' sprite frames playing out. */
+.soldier.dying {
+  pointer-events: none;
+}
+
+.soldier.dying .soldier-hp {
+  display: none;
+}
+
+/* Overlay */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 25, 45, 0.65);
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.overlay.show {
+  display: flex;
+}
+
+.overlay-card {
+  background: white;
+  border-radius: 18px;
+  padding: 34px 46px;
+  text-align: center;
+  box-shadow: 0 14px 40px rgba(0,0,0,0.3);
+}
+
+.overlay-title {
+  font-size: 30px;
+  font-weight: bold;
+  margin-bottom: 18px;
+}
+
+.overlay-title.win { color: #2e9e4f; }
+.overlay-title.lose { color: #e0433d; }
+
+.restart-btn {
+  font-size: 18px;
+  padding: 10px 26px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #6685ff, #4a6cf7);
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 3px 0 #3349b0;
+}
+
+.overlay-text {
+  font-size: 14px;
+  color: #666;
+  max-width: 280px;
+  margin: 0 0 22px;
+}
+
+.difficulty-pickers-row {
+  display: flex;
+  justify-content: center;
+  gap: 36px;
+  margin: 0 0 22px;
+}
+
+.difficulty-picker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.diff-arrow-btn {
+  font-size: 16px;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #6685ff, #4a6cf7);
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 3px 0 #3349b0;
+  transition: transform 0.1s ease;
+}
+
+.diff-arrow-btn:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #3349b0;
+}
+
+.diff-arrow-btn:disabled {
+  background: #b7b7b7;
+  box-shadow: 0 3px 0 #8f8f8f;
+  cursor: not-allowed;
+}
+
+.diff-label {
+  font-size: 19px;
+  font-weight: bold;
+  color: #2b3a67;
+  min-width: 110px;
+  text-align: center;
+}
+
+.diff-title {
+  font-size: 13px;
+  font-weight: bold;
+  color: #888;
+  letter-spacing: 0.5px;
+}
+
+.postgame-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.home-btn {
+  font-size: 18px;
+  padding: 10px 26px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #ffb347, #ff8c1a);
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 3px 0 #cc6f00;
+}
+
+.home-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #cc6f00;
+}
+
+.surrender-row {
+  margin-top: 14px;
+  text-align: center;
+}
+
+.surrender-btn {
+  font-size: 12px;
+  padding: 6px 14px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #d9d9d9, #b7b7b7);
+  color: #555;
+  cursor: pointer;
+  box-shadow: 0 3px 0 #8f8f8f;
+  transition: transform 0.1s ease;
+}
+
+.surrender-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #8f8f8f;
+}
+
+.overlay-battle-time {
+  font-size: 13px;
+  color: #777;
+  margin: -6px 0 18px;
+}
+
+/* Floating +/- coin popups: positioned in JS (fixed, viewport coords) next
+   to whatever triggered them (the answer input or the swap button), then
+   rise and fade on their own. Isolated LTR so the RTL page never flips the
+   sign, same trick used for the coins display. */
+.floating-text {
+  position: fixed;
+  font-size: 22px;
+  font-weight: bold;
+  pointer-events: none;
+  z-index: 20;
+  white-space: nowrap;
+  direction: ltr;
+  unicode-bidi: isolate;
+  animation: floatUp 1s ease-out forwards;
+}
+
+.floating-text.positive { color: #2e9e4f; }
+.floating-text.negative { color: #e0433d; }
+
+@keyframes floatUp {
+  0%   { transform: translate(-50%, 0); opacity: 1; }
+  100% { transform: translate(-50%, -40px); opacity: 0; }
+}
+
+/* Per-soldier HP bar */
+.soldier-hp {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 22px;
+  height: 5px;
+  background: #333;
+  border: 1px solid rgba(0,0,0,0.4);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.soldier-hp-fill {
+  height: 100%;
+  background: #4caf50;
+  transition: width 0.15s linear;
+}
