@@ -244,18 +244,25 @@ hr {
 }
 
 @media (max-width: 600px) {
-  .mobile-buy-row {
+  /* Level with the check button instead of on its own line below it -- one
+     row is shorter than two, and this is the last bit of height standing
+     between the buy button and the top of the keyboard. */
+  .check-buy-row {
     display: flex;
+    align-items: center;
     justify-content: center;
-    margin: 0 0 10px;
+    gap: 10px;
   }
 
-  /* Bigger tap target here specifically -- this is the button players reach
-     for with the on-screen keyboard open, right after answering, so it's
-     worth sizing up beyond its small desktop footprint. */
+  .mobile-buy-row {
+    display: flex;
+  }
+
+  /* Sized to match the check button next to it rather than the bigger
+     standalone footprint this had when it was its own full-width row. */
   .mobile-buy-row .buy-btn {
-    font-size: 17px;
-    padding: 12px 26px;
+    font-size: 14px;
+    padding: 7px 16px;
     margin-top: 0;
   }
 

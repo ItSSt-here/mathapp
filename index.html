@@ -26,16 +26,17 @@
   <div id="answer2Home" style="display:none;">
     <input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" id="answer2">
   </div>
-  <button class="check-btn" id="checkBtn">בדוק</button>
+  <!-- On wide screens this is just the check button on its own line, same
+       as always -- .mobile-buy-row is empty and hidden there. On narrow
+       screens the buy-soldier button (see placeBuyBtn() in main.js) lands
+       inside .mobile-buy-row, and this row puts it right beside the check
+       button -- level with it instead of on its own line below -- so it
+       sits as high on the screen as possible, clear of the keyboard. -->
+  <div class="check-buy-row">
+    <div class="mobile-buy-row" id="mobileBuyRow"></div>
+    <button class="check-btn" id="checkBtn">בדוק</button>
+  </div>
   <div class="feedback" id="feedback"></div>
-
-  <!-- Home for the buy-soldier button on narrow screens, right under the
-       exercise controls instead of down by the castle -- see placeBuyBtn()
-       in main.js. Empty and hidden on wide screens, where the button stays
-       in its normal spot next to the player's castle. Placed above
-       .stats-row so it's the very next thing after the check button, with
-       nothing else competing for the space the keyboard leaves visible. -->
-  <div class="mobile-buy-row" id="mobileBuyRow"></div>
 
   <div class="stats-row">
     <div class="coins" id="coins">מטבעות: 0</div>
