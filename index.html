@@ -45,7 +45,12 @@
 
   <hr>
 
-  <div class="castle-row">
+  <!-- Marks the battlefield's normal spot in the layout, so placeBattlefield()
+       in main.js can put it back here on wide screens after moving it to the
+       top of the card on narrow ones (see there for why). -->
+  <div id="castleRowDesktopAnchor"></div>
+
+  <div class="castle-row" id="castleRow">
     <div class="castle-block enemy">
       <div class="castle-label">האויב</div>
       <div class="hp-bar-container"><div class="hp-bar-fill enemy" id="enemyHpFill"></div></div>

@@ -84,6 +84,23 @@ function placeBuyBtn() {
   target.appendChild(buyBtn);
 }
 
+// On a phone, the on-screen keyboard covers the *bottom* of the screen, but
+// nothing focuses/scrolls to keep the battlefield visible the way it does
+// for the answer input -- so if the battlefield stays in its normal spot
+// (below the exercise controls) it just gets hidden behind the keyboard
+// while the player is typing. Moving it to the very top of the card avoids
+// that regardless of how tall the keyboard is, at the cost of the title and
+// exercise controls sitting below it instead of above.
+function placeBattlefield() {
+  const castleRow = document.getElementById('castleRow');
+  const isMobile = window.matchMedia('(max-width: 600px)').matches;
+  if (isMobile) {
+    document.querySelector('.card').prepend(castleRow);
+  } else {
+    document.getElementById('castleRowDesktopAnchor').after(castleRow);
+  }
+}
+
 // ---------- Events ----------
 document.getElementById('checkBtn').addEventListener('click', checkAnswer);
 document.getElementById('answer').addEventListener('keydown', (e) => {
@@ -143,8 +160,10 @@ document.getElementById('exDiffUpBtn').addEventListener('click', () => changeExe
 document.getElementById('exDiffDownBtn').addEventListener('click', () => changeExerciseDifficulty(-1));
 window.addEventListener('resize', recalcSiegeThresholds);
 window.addEventListener('resize', placeBuyBtn);
+window.addEventListener('resize', placeBattlefield);
 updateDifficultyLabel();
 updateExerciseDifficultyLabel();
 placeBuyBtn();
+placeBattlefield();
 preloadSoldierSprites();
 preloadCastleSprites();

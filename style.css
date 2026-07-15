@@ -272,6 +272,16 @@ hr {
   .feedback { margin-top: 4px; min-height: 20px; font-size: 16px; }
   .stats-row { margin: 4px 0 10px; }
   hr { margin: 0 0 10px; }
+
+  /* Vertically centering (the desktop default) leaves blank space above the
+     card whenever its content is shorter than the screen -- wasted space
+     that would otherwise help keep the battlefield clear of the keyboard.
+     Top-aligning instead reclaims all of it. */
+  body {
+    align-items: flex-start;
+    padding-top: 10px;
+    box-sizing: border-box;
+  }
 }
 
 /* Battlefield (now at the bottom) */
@@ -331,8 +341,18 @@ hr {
    instead gives the battlefield -- and the marching soldiers -- nearly the
    full screen width, same as the spacious desktop layout. */
 @media (max-width: 600px) {
+  /* Sticky, not just moved to the top: focusing the answer input makes real
+     phone browsers auto-scroll the page so the input clears the keyboard,
+     which would otherwise carry the battlefield (sitting above it) right
+     off the top of the screen along with everything else. Sticky keeps it
+     pinned to the viewport through that scroll instead. Needs an opaque
+     background since content now scrolls up underneath it. */
   .castle-row {
-    position: relative;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: #f3f6ff;
+    padding-top: 2px;
   }
 
   .castle-block {
