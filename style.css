@@ -236,6 +236,44 @@ hr {
   margin: 0 0 18px;
 }
 
+/* Mobile-only home for the buy-soldier button (see placeBuyBtn() in main.js).
+   Empty and invisible above the phone breakpoint, where the button lives in
+   its normal spot (.castle-block.player) instead. */
+.mobile-buy-row {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  .mobile-buy-row {
+    display: flex;
+    justify-content: center;
+    margin: 0 0 10px;
+  }
+
+  /* Bigger tap target here specifically -- this is the button players reach
+     for with the on-screen keyboard open, right after answering, so it's
+     worth sizing up beyond its small desktop footprint. */
+  .mobile-buy-row .buy-btn {
+    font-size: 17px;
+    padding: 12px 26px;
+    margin-top: 0;
+  }
+
+  /* Everything above this point (title, question, answer, check button,
+     buy button) has to fit above the on-screen keyboard, which can cover
+     close to half a phone screen -- so the desktop's generous spacing gets
+     compressed here to leave the keyboard as much room as possible. */
+  .card { padding: 14px 16px; }
+  .level-info { margin-bottom: 4px; }
+  h1 { font-size: 17px; padding: 6px 18px; margin-bottom: 10px; }
+  .exercise { font-size: 32px; margin-bottom: 8px; }
+  input { font-size: 22px; width: 74px; margin-bottom: 8px; }
+  button.check-btn { padding: 7px 22px; }
+  .feedback { margin-top: 4px; min-height: 20px; font-size: 16px; }
+  .stats-row { margin: 4px 0 10px; }
+  hr { margin: 0 0 10px; }
+}
+
 /* Battlefield (now at the bottom) */
 .castle-row {
   direction: ltr;
@@ -284,6 +322,44 @@ hr {
   font-size: 11px;
   color: #777;
   margin-top: 3px;
+}
+
+/* The two fixed-width side panels (HP bar + label) were eating most of a
+   phone's width, squeezing the battlefield itself down to a sliver and
+   leaving the castles almost touching. Pulling them out of the flex flow
+   and overlaying them as small HUD badges in the battlefield's top corners
+   instead gives the battlefield -- and the marching soldiers -- nearly the
+   full screen width, same as the spacious desktop layout. */
+@media (max-width: 600px) {
+  .castle-row {
+    position: relative;
+  }
+
+  .castle-block {
+    position: absolute;
+    top: 4px;
+    width: auto;
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+    background: rgba(255, 255, 255, 0.85);
+    border-radius: 8px;
+    padding: 3px 6px;
+    z-index: 5;
+  }
+
+  .castle-block.enemy { left: 4px; }
+  .castle-block.player { right: 4px; }
+
+  .castle-label { margin-top: 0; }
+
+  .hp-bar-container { width: 44px; margin-top: 0; }
+
+  .hp-text { margin-top: 0; }
+
+  /* The buy button already moved up to .mobile-buy-row (see placeBuyBtn()
+     in main.js); its now-empty home here shouldn't add stray badge space. */
+  #buyBtnDesktopHome:empty { display: none; }
 }
 
 .battlefield {

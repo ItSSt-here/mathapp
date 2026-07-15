@@ -70,6 +70,20 @@ function startGame() {
   animIntervalId = setInterval(animTick, ANIM_TICK_MS);
 }
 
+// ---------- Mobile layout: buy-soldier button placement ----------
+// On a phone the on-screen keyboard covers roughly the bottom half of the
+// viewport while typing an answer, so the desktop placement of "buy soldier"
+// (down by the player's castle) ends up hidden behind it exactly when the
+// player has coins to spend. Below the breakpoint, the same button element
+// is moved up next to the exercise controls instead of duplicated, so there
+// is still exactly one enabled/disabled state to keep in sync.
+function placeBuyBtn() {
+  const buyBtn = document.getElementById('buyBtn');
+  const isMobile = window.matchMedia('(max-width: 600px)').matches;
+  const target = document.getElementById(isMobile ? 'mobileBuyRow' : 'buyBtnDesktopHome');
+  target.appendChild(buyBtn);
+}
+
 // ---------- Events ----------
 document.getElementById('checkBtn').addEventListener('click', checkAnswer);
 document.getElementById('answer').addEventListener('keydown', (e) => {
@@ -128,7 +142,9 @@ document.getElementById('diffDownBtn').addEventListener('click', () => changeDif
 document.getElementById('exDiffUpBtn').addEventListener('click', () => changeExerciseDifficulty(1));
 document.getElementById('exDiffDownBtn').addEventListener('click', () => changeExerciseDifficulty(-1));
 window.addEventListener('resize', recalcSiegeThresholds);
+window.addEventListener('resize', placeBuyBtn);
 updateDifficultyLabel();
 updateExerciseDifficultyLabel();
+placeBuyBtn();
 preloadSoldierSprites();
 preloadCastleSprites();

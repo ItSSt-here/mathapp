@@ -29,6 +29,14 @@
   <button class="check-btn" id="checkBtn">בדוק</button>
   <div class="feedback" id="feedback"></div>
 
+  <!-- Home for the buy-soldier button on narrow screens, right under the
+       exercise controls instead of down by the castle -- see placeBuyBtn()
+       in main.js. Empty and hidden on wide screens, where the button stays
+       in its normal spot next to the player's castle. Placed above
+       .stats-row so it's the very next thing after the check button, with
+       nothing else competing for the space the keyboard leaves visible. -->
+  <div class="mobile-buy-row" id="mobileBuyRow"></div>
+
   <div class="stats-row">
     <div class="coins" id="coins">מטבעות: 0</div>
     <div class="battle-timer" id="battleTimer">0:00</div>
@@ -71,7 +79,7 @@
       <div class="castle-label">אתה</div>
       <div class="hp-bar-container"><div class="hp-bar-fill" id="playerHpFill"></div></div>
       <div class="hp-text" id="playerHpText"></div>
-      <button class="buy-btn" id="buyBtn">קנה חייל (20)</button>
+      <div id="buyBtnDesktopHome"><button class="buy-btn" id="buyBtn">קנה חייל (20)</button></div>
     </div>
   </div>
 
