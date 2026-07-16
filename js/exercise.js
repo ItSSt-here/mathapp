@@ -98,10 +98,13 @@ function newExercise() {
   const answerInput = document.getElementById('answer');
   const answer2 = document.getElementById('answer2');
   const answer2Home = document.getElementById('answer2Home');
+  const simplifyLabel = document.getElementById('simplifyLabel');
+  simplifyLabel.style.display = 'none';
 
   if (gameMode === 'fractions') {
     const ex = generateFractionExercise();
     currentAnswer = ex.answer;
+    if (ex.missing === 'both') simplifyLabel.style.display = '';
     questionText.innerHTML =
       '<span class="frac-eq">' +
         fractionBlockHTML(ex.shownNumerator, ex.shownDenominator) +

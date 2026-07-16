@@ -16,6 +16,9 @@ function updateExerciseDifficultyLabel() {
   document.getElementById('exDiffLabel').textContent = EXERCISE_DIFFICULTIES[exerciseDifficultyIndex];
   document.getElementById('exDiffDownBtn').disabled = exerciseDifficultyIndex === 0;
   document.getElementById('exDiffUpBtn').disabled = exerciseDifficultyIndex === EXERCISE_DIFFICULTIES.length - 1;
+  const descriptions = EXERCISE_LEVEL_DESCRIPTIONS[gameMode];
+  document.getElementById('exDiffDescription').textContent =
+    descriptions ? descriptions[exerciseDifficultyIndex] : 'תיאור לנושא זה יתווסף בהמשך.';
 }
 
 function changeExerciseDifficulty(delta) {
@@ -161,12 +164,22 @@ document.getElementById('answer').addEventListener('keydown', (e) => {
 });
 document.getElementById('answer').addEventListener('input', (e) => {
   e.target.value = e.target.value.replace(/[^0-9]/g, '');
+  // Full-reduction fraction exercises (both numerator and denominator
+  // blank) always target a single digit each, so one digit reliably means
+  // "done with this box" -- jump to the other one instead of making the
+  // student reach for it themselves.
+  if (typeof currentAnswer === 'object' && e.target.value.length === 1) {
+    document.getElementById('answer2').focus();
+  }
 });
 document.getElementById('answer2').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') checkAnswer();
 });
 document.getElementById('answer2').addEventListener('input', (e) => {
   e.target.value = e.target.value.replace(/[^0-9]/g, '');
+  if (typeof currentAnswer === 'object' && e.target.value.length === 1) {
+    document.getElementById('answer').focus();
+  }
 });
 document.getElementById('buyBtn').addEventListener('click', () => {
   buySoldier();
@@ -191,11 +204,13 @@ document.getElementById('reconfigureBtn').addEventListener('click', () => {
 });
 document.getElementById('modeMultiplyBtn').addEventListener('click', () => {
   gameMode = 'multiplication';
+  updateExerciseDifficultyLabel();
   document.getElementById('modeOverlay').classList.remove('show');
   document.getElementById('exDifficultyOverlay').classList.add('show');
 });
 document.getElementById('modeFractionsBtn').addEventListener('click', () => {
   gameMode = 'fractions';
+  updateExerciseDifficultyLabel();
   document.getElementById('modeOverlay').classList.remove('show');
   document.getElementById('exDifficultyOverlay').classList.add('show');
 });

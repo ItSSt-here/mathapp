@@ -12,8 +12,14 @@
   <div class="level-info" id="levelInfo"></div>
   <h1>קרב הטירות</h1>
 
-  <div class="exercise">
-    <span id="questionText"></span>
+  <div class="exercise-row">
+    <div class="simplify-label" id="simplifyLabel" style="display:none;">
+      <span>צמצם</span>
+      <span>ככל הניתן</span>
+    </div>
+    <div class="exercise">
+      <span id="questionText"></span>
+    </div>
   </div>
   <div id="answerHome">
     <input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" id="answer" autofocus>
@@ -116,6 +122,8 @@
         <button class="diff-arrow-btn" id="exDiffDownBtn">▼</button>
       </div>
     </div>
+
+    <p class="exdiff-description" id="exDiffDescription"></p>
 
     <div class="postgame-buttons">
       <button class="home-btn" id="backToModeBtn">חזרה</button>
