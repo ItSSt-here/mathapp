@@ -5,7 +5,6 @@ const SOLDIER_HP = 30;
 const STRIKE_MIN_DMG = 4;
 const STRIKE_MAX_DMG = 6;
 const STRIKE_INTERVAL_MS = 1000; // soldiers strike once per second once in range
-const SOLDIER_SPEED = 0.5;       // % of track per tick
 const ENGAGE_RANGE = 3;          // % distance to start fighting
 const TICK_MS = 250;
 const CORRECT_REWARD = 10;
@@ -40,6 +39,19 @@ let COMPUTER_SPAWN_X = 4;
 // castle's outer wall instead of marching on top of it and covering the artwork.
 let PLAYER_SIEGE_X = 10;         // player soldier at/below this damages the enemy castle
 let COMPUTER_SIEGE_X = 90;       // computer soldier at/above this damages the player castle
+
+// The castle graphic is a fixed pixel width on every device, but the
+// battlefield's pixel width varies a lot (a phone's is much narrower than a
+// desktop's) -- so that same castle eats a much bigger *percentage* of a
+// phone's track than a desktop's. If soldier speed were a fixed percentage
+// per tick, that alone would make the march from spawn to siege noticeably
+// faster on a phone than on a desktop: same settings, different game. So
+// instead, recalcSiegeThresholds() derives SOLDIER_SPEED from the actual
+// measured march distance so it always takes MARCH_SECONDS to cross,
+// regardless of device. The value here is just a placeholder until the
+// first recalc runs.
+const MARCH_SECONDS = 42;
+let SOLDIER_SPEED = 0.5; // % of track per tick
 
 // How often the computer spawns a soldier, per difficulty (index matches
 // DIFFICULTIES below): לאט מאוד, לאט, בינוני, מהר, מהר מאוד.

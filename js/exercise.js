@@ -127,14 +127,13 @@ function newExercise() {
   } else {
     [num1, num2] = pickNumbers();
     currentAnswer = num1 * num2;
-    questionText.textContent = `${num1} × ${num2}`;
+    questionText.innerHTML = `<span class="mult-eq">${num1} × ${num2}<span class="mult-op">=</span><span id="multAnswerSlot"></span></span>`;
     answerInput.classList.remove('fraction-answer-input');
-    document.getElementById('answerHome').appendChild(answerInput);
+    document.getElementById('multAnswerSlot').appendChild(answerInput);
     answer2.classList.remove('fraction-answer-input');
     answer2Home.appendChild(answer2);
   }
 
-  document.getElementById('answerReveal').textContent = '';
   answerInput.value = '';
   answer2.value = '';
   answerInput.classList.remove('answer-revealed');
@@ -248,20 +247,16 @@ function changeQuestion() {
   answerInput.disabled = true;
   answer2.disabled = true;
 
-  if (gameMode === 'fractions') {
-    // Fill the blank(s) themselves in red instead of a floating "= X" next
-    // to the equation -- that read oddly once the answer lives inside the
-    // fraction layout rather than in a separate box below the question.
-    const isTwoBlank = typeof currentAnswer === 'object';
-    answerInput.value = isTwoBlank ? currentAnswer.numerator : currentAnswer;
-    answerInput.classList.add('answer-revealed');
-    if (isTwoBlank) {
-      answer2.value = currentAnswer.denominator;
-      answer2.classList.add('answer-revealed');
-    }
-  } else {
-    document.getElementById('answerReveal').textContent = `= ${currentAnswer}`;
+  // Fill the blank(s) themselves in red, in place -- both exercise types
+  // show the answer inside the equation now, so this is the same for either.
+  const isTwoBlank = typeof currentAnswer === 'object';
+  answerInput.value = isTwoBlank ? currentAnswer.numerator : currentAnswer;
+  answerInput.classList.add('answer-revealed');
+  if (isTwoBlank) {
+    answer2.value = currentAnswer.denominator;
+    answer2.classList.add('answer-revealed');
   }
+
   document.getElementById('feedback').textContent = '';
   document.getElementById('feedback').className = 'feedback';
 

@@ -52,20 +52,6 @@ h1 {
   direction: ltr; /* keep "a × b = c" in the correct left-to-right order despite the RTL page */
 }
 
-/* Sized to fit only the question, so revealing the answer doesn't recenter it */
-.question-wrap {
-  position: relative;
-  display: inline-block;
-}
-
-.answer-reveal {
-  position: absolute;
-  top: 0;
-  left: 100%;
-  margin-left: 12px;
-  white-space: nowrap;
-}
-
 input {
   font-size: 26px;
   width: 90px;
@@ -81,14 +67,27 @@ input:focus {
   border-color: #4a6cf7;
 }
 
-/* Swap-question reveal in fraction mode: the blank itself shows the answer
-   in red instead of a floating "= X" next to the equation. Overrides the
-   browser's default disabled-input graying so the red actually shows. */
+/* Swap-question reveal: the blank itself shows the answer in red, in place,
+   for both exercise types. Overrides the browser's default disabled-input
+   graying so the red actually shows. */
 input.answer-revealed:disabled {
   color: #e0433d;
   -webkit-text-fill-color: #e0433d;
   opacity: 1;
   border-color: #e0433d;
+}
+
+/* Multiplication exercise: "a × b = [input]" as one inline equation, same
+   pattern as the fraction layout below -- the answer lives in the equation
+   itself instead of in a separate box beneath it. */
+.mult-eq {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mult-eq input {
+  margin-bottom: 0;
 }
 
 /* Fraction exercise: "(b*c)/(b*a) = [answer]/a" laid out as two stacked

@@ -175,4 +175,12 @@ function recalcSiegeThresholds() {
 
   PLAYER_SPAWN_X = 100 - wallPercent;
   COMPUTER_SPAWN_X = wallPercent;
+
+  // Derive speed from the march distance just computed above (see
+  // MARCH_SECONDS in config.js) so crossing it always takes the same real
+  // time regardless of how many percentage points that happens to be on
+  // this device's battlefield.
+  const marchDistance = PLAYER_SPAWN_X - PLAYER_SIEGE_X;
+  const ticksToMarch = (MARCH_SECONDS * 1000) / TICK_MS;
+  SOLDIER_SPEED = marchDistance / ticksToMarch;
 }
