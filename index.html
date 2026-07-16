@@ -91,7 +91,7 @@
   </div>
 </div>
 
-<div class="overlay show" id="modeOverlay">
+<div class="overlay" id="modeOverlay">
   <div class="overlay-card">
     <div class="overlay-title" style="color:#4a3fd1;">קרב טירות ⚔️</div>
     <p class="overlay-text">באיזה סוג תרגילים תרצו לתרגל?</p>
@@ -100,6 +100,46 @@
       <button class="restart-btn" id="modeMultiplyBtn">לוח הכפל</button>
       <button class="restart-btn" id="modeFractionsBtn">שברים</button>
     </div>
+  </div>
+</div>
+
+<div class="overlay" id="exDifficultyOverlay">
+  <div class="overlay-card">
+    <div class="overlay-title" style="color:#4a3fd1;">קרב טירות ⚔️</div>
+    <p class="overlay-text">בחרו את רמת הקושי של התרגילים</p>
+
+    <div class="difficulty-pickers-row">
+      <div class="difficulty-picker">
+        <div class="diff-title">קושי תרגילים</div>
+        <button class="diff-arrow-btn" id="exDiffUpBtn">▲</button>
+        <div class="diff-label" id="exDiffLabel"></div>
+        <button class="diff-arrow-btn" id="exDiffDownBtn">▼</button>
+      </div>
+    </div>
+
+    <div class="postgame-buttons">
+      <button class="home-btn" id="backToModeBtn">חזרה</button>
+      <button class="restart-btn" id="exDiffContinueBtn">המשך</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="linkOverlay">
+  <div class="overlay-card">
+    <div class="overlay-title" style="color:#4a3fd1;">קרב טירות ⚔️</div>
+    <p class="overlay-text">אפשר להמשיך למשחק, או ליצור קישור לשליחה לתלמיד</p>
+
+    <div class="postgame-buttons">
+      <button class="home-btn" id="backToExDiffBtn">חזרה</button>
+      <button class="restart-btn" id="createLinkBtn">צור קישור</button>
+      <button class="restart-btn" id="teacherContinueBtn">המשך</button>
+    </div>
+
+    <div class="share-link-row" id="shareLinkRow">
+      <input type="text" id="shareLinkInput" class="share-link-input" readonly>
+      <button class="copy-link-btn" id="copyLinkBtn">העתק</button>
+    </div>
+    <div class="copy-feedback" id="copyFeedback"></div>
   </div>
 </div>
 
@@ -115,17 +155,10 @@
         <div class="diff-label" id="diffLabel"></div>
         <button class="diff-arrow-btn" id="diffDownBtn">▼</button>
       </div>
-
-      <div class="difficulty-picker">
-        <div class="diff-title">קושי תרגילים</div>
-        <button class="diff-arrow-btn" id="exDiffUpBtn">▲</button>
-        <div class="diff-label" id="exDiffLabel"></div>
-        <button class="diff-arrow-btn" id="exDiffDownBtn">▼</button>
-      </div>
     </div>
 
     <div class="postgame-buttons">
-      <button class="home-btn" id="backToModeBtn">חזרה</button>
+      <button class="home-btn" id="backToLinkBtn">חזרה</button>
       <button class="restart-btn" id="startBtn">התחל משחק</button>
     </div>
   </div>
@@ -139,8 +172,8 @@
     <p class="overlay-text">לשחק שוב?</p>
     <div class="postgame-buttons">
       <button class="restart-btn" id="restartBtn">שחק שוב</button>
-      <button class="restart-btn" id="changeDifficultyBtn">שנה קושי</button>
-      <button class="home-btn" id="changeModeBtn">שנה נושא</button>
+      <button class="restart-btn" id="changeDifficultyBtn">שנה מהירות</button>
+      <button class="home-btn" id="reconfigureBtn">הגדר שוב</button>
     </div>
   </div>
 </div>

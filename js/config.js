@@ -78,6 +78,15 @@ let exerciseDifficultyIndex = DEFAULT_EXERCISE_DIFFICULTY_INDEX;
 // falls back to multiplication questions in fractions mode for now.
 let gameMode = 'multiplication';
 
+// True when the page loaded with a valid ?topic=&difficulty= URL (a
+// teacher-generated student link). Suppresses every path back to the
+// topic/difficulty screens for the rest of the session (see parseUrlParams()
+// and applyLinkModeUI() in main.js).
+let arrivedViaLink = false;
+const URL_PARAM_TOPIC = 'topic';
+const URL_PARAM_DIFFICULTY = 'difficulty';
+const VALID_TOPICS = ['multiplication', 'fractions']; // matches gameMode's own values, no translation table needed
+
 // Fraction exercise: "complete the missing numerator" for a reduced fraction
 // c/a, shown as its unreduced equivalent (b*c)/(b*a). a is the target
 // (already-reduced) denominator; b is an inflation factor kept small when a

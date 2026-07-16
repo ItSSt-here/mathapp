@@ -30,6 +30,59 @@ function formatLevelInfo() {
   return `נושא: ${modeLabel} | מהירות: ${DIFFICULTIES[difficultyIndex]} | קושי תרגילים: ${EXERCISE_DIFFICULTIES[exerciseDifficultyIndex]}`;
 }
 
+// ---------- Teacher link: URL config parsing + share-link generation ----------
+function parseUrlParams() {
+  const params = new URLSearchParams(location.search);
+  const topic = params.get(URL_PARAM_TOPIC);
+  const difficultyNum = Number(params.get(URL_PARAM_DIFFICULTY));
+  if (!VALID_TOPICS.includes(topic)) return false;
+  if (!Number.isInteger(difficultyNum) || difficultyNum < 1 || difficultyNum > EXERCISE_DIFFICULTIES.length) return false;
+  gameMode = topic;
+  exerciseDifficultyIndex = difficultyNum - 1;
+  arrivedViaLink = true;
+  return true;
+}
+
+function showInitialOverlay() {
+  const viaLink = parseUrlParams();
+  document.getElementById(viaLink ? 'startOverlay' : 'modeOverlay').classList.add('show');
+}
+
+function applyLinkModeUI() {
+  document.getElementById('backToLinkBtn').style.display = arrivedViaLink ? 'none' : '';
+  document.getElementById('reconfigureBtn').style.display = arrivedViaLink ? 'none' : '';
+}
+
+function buildShareLink() {
+  const params = new URLSearchParams();
+  params.set(URL_PARAM_TOPIC, gameMode);
+  params.set(URL_PARAM_DIFFICULTY, String(exerciseDifficultyIndex + 1));
+  // location.origin is the literal string "null" when the page is opened
+  // directly as a file:// URL (no local server) -- protocol+host stays
+  // correct in that case (host is just empty) so building from those
+  // instead keeps the link usable while testing locally that way too.
+  return `${location.protocol}//${location.host}${location.pathname}?${params.toString()}`;
+}
+
+function copyShareLink() {
+  const input = document.getElementById('shareLinkInput');
+  const feedback = document.getElementById('copyFeedback');
+  const showCopied = () => {
+    feedback.textContent = 'הועתק!';
+    setTimeout(() => { feedback.textContent = ''; }, 2000);
+  };
+  const legacyCopy = () => {
+    input.select();
+    document.execCommand('copy'); // works over file:// where navigator.clipboard is unavailable
+    showCopied();
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(input.value).then(showCopied).catch(legacyCopy);
+  } else {
+    legacyCopy();
+  }
+}
+
 function endGame(playerWon) {
   gameOver = true;
   clearInterval(intervalId);
@@ -132,23 +185,45 @@ document.getElementById('changeDifficultyBtn').addEventListener('click', () => {
   document.getElementById('overlay').classList.remove('show');
   document.getElementById('startOverlay').classList.add('show');
 });
-document.getElementById('changeModeBtn').addEventListener('click', () => {
+document.getElementById('reconfigureBtn').addEventListener('click', () => {
   document.getElementById('overlay').classList.remove('show');
   document.getElementById('modeOverlay').classList.add('show');
 });
 document.getElementById('modeMultiplyBtn').addEventListener('click', () => {
   gameMode = 'multiplication';
   document.getElementById('modeOverlay').classList.remove('show');
-  document.getElementById('startOverlay').classList.add('show');
+  document.getElementById('exDifficultyOverlay').classList.add('show');
 });
 document.getElementById('modeFractionsBtn').addEventListener('click', () => {
   gameMode = 'fractions';
   document.getElementById('modeOverlay').classList.remove('show');
-  document.getElementById('startOverlay').classList.add('show');
+  document.getElementById('exDifficultyOverlay').classList.add('show');
 });
 document.getElementById('backToModeBtn').addEventListener('click', () => {
-  document.getElementById('startOverlay').classList.remove('show');
+  document.getElementById('exDifficultyOverlay').classList.remove('show');
   document.getElementById('modeOverlay').classList.add('show');
+});
+document.getElementById('exDiffContinueBtn').addEventListener('click', () => {
+  document.getElementById('shareLinkRow').classList.remove('show');
+  document.getElementById('exDifficultyOverlay').classList.remove('show');
+  document.getElementById('linkOverlay').classList.add('show');
+});
+document.getElementById('backToExDiffBtn').addEventListener('click', () => {
+  document.getElementById('linkOverlay').classList.remove('show');
+  document.getElementById('exDifficultyOverlay').classList.add('show');
+});
+document.getElementById('teacherContinueBtn').addEventListener('click', () => {
+  document.getElementById('linkOverlay').classList.remove('show');
+  document.getElementById('startOverlay').classList.add('show');
+});
+document.getElementById('createLinkBtn').addEventListener('click', () => {
+  document.getElementById('shareLinkInput').value = buildShareLink();
+  document.getElementById('shareLinkRow').classList.add('show');
+});
+document.getElementById('copyLinkBtn').addEventListener('click', copyShareLink);
+document.getElementById('backToLinkBtn').addEventListener('click', () => {
+  document.getElementById('startOverlay').classList.remove('show');
+  document.getElementById('linkOverlay').classList.add('show');
 });
 document.getElementById('startBtn').addEventListener('click', () => {
   document.getElementById('startOverlay').classList.remove('show');
@@ -161,6 +236,8 @@ document.getElementById('exDiffDownBtn').addEventListener('click', () => changeE
 window.addEventListener('resize', recalcSiegeThresholds);
 window.addEventListener('resize', placeBuyBtn);
 window.addEventListener('resize', placeBattlefield);
+showInitialOverlay();
+applyLinkModeUI();
 updateDifficultyLabel();
 updateExerciseDifficultyLabel();
 placeBuyBtn();
