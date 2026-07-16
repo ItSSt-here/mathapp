@@ -14,6 +14,18 @@ function gcd(x, y) {
   return x;
 }
 
+// Picks n distinct random items from arr (n <= arr.length), also useful as a
+// full shuffle when n === arr.length.
+function pickDistinctRandom(arr, n) {
+  const copy = arr.slice();
+  const result = [];
+  while (result.length < n && copy.length) {
+    const idx = Math.floor(Math.random() * copy.length);
+    result.push(copy.splice(idx, 1)[0]);
+  }
+  return result;
+}
+
 function strikeDamage() {
   return randInt(STRIKE_MIN_DMG, STRIKE_MAX_DMG);
 }

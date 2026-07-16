@@ -12,7 +12,7 @@
   <div class="level-info" id="levelInfo"></div>
   <h1>קרב הטירות</h1>
 
-  <div class="exercise-row">
+  <div class="exercise-row" id="mathQuestionRow">
     <div class="simplify-label" id="simplifyLabel" style="display:none;">
       <span>צמצם</span>
       <span>ככל הניתן</span>
@@ -23,6 +23,13 @@
   </div>
   <div id="answerHome">
     <input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" id="answer" autofocus>
+  </div>
+  <!-- Letters exercise (recognition, multiple choice): child taps the sound
+       button to hear a letter's name spoken, then picks it from 5 options.
+       Hidden except in letters mode (see newExercise() in js/exercise.js). -->
+  <div id="lettersAnswerHome" style="display:none;">
+    <button type="button" class="letter-sound-btn" id="letterSoundBtn" aria-label="השמע את שם האות">🔊</button>
+    <div class="letter-choices" id="letterChoices"></div>
   </div>
   <!-- Second blank, only used for fraction exercises where both the
        numerator and denominator are hidden; parked here (hidden) otherwise. -->
@@ -105,6 +112,7 @@
     <div class="postgame-buttons">
       <button class="restart-btn" id="modeMultiplyBtn">לוח הכפל</button>
       <button class="restart-btn" id="modeFractionsBtn">שברים</button>
+      <button class="restart-btn" id="modeLettersBtn">אותיות</button>
     </div>
   </div>
 </div>

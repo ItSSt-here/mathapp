@@ -200,6 +200,86 @@ button.check-btn:active {
   cursor: not-allowed;
 }
 
+/* Letters exercise: sound button + multiple-choice letter buttons, shown
+   instead of the numeric input/equation in letters mode (see newExercise()
+   in js/exercise.js). */
+#lettersAnswerHome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 16px;
+}
+
+.letter-sound-btn {
+  font-size: 30px;
+  width: 66px;
+  height: 66px;
+  border: none;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #6685ff, #4a6cf7);
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 3px 0 #3349b0;
+  transition: transform 0.1s ease;
+}
+
+.letter-sound-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #3349b0;
+}
+
+.letter-choices {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
+
+.letter-choice-btn {
+  font-size: 32px;
+  font-weight: bold;
+  width: 64px;
+  height: 64px;
+  border: 2px solid #d3ddf7;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #ffffff, #f6f8ff);
+  color: #2b3a67;
+  cursor: pointer;
+  box-shadow: 0 3px 0 #b9c4e6;
+  transition: transform 0.1s ease;
+}
+
+.letter-choice-btn:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #b9c4e6;
+}
+
+.letter-choice-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.letter-choice-btn.letter-correct {
+  background: linear-gradient(180deg, #7ee29a, #2e9e4f);
+  color: white;
+  border-color: #2e9e4f;
+  opacity: 1;
+}
+
+.letter-choice-btn.letter-wrong {
+  background: linear-gradient(180deg, #f18b85, #e0433d);
+  color: white;
+  border-color: #e0433d;
+  opacity: 1;
+}
+
+@media (max-width: 600px) {
+  .letter-sound-btn { width: 54px; height: 54px; font-size: 24px; }
+  .letter-choice-btn { width: 52px; height: 52px; font-size: 26px; }
+  #lettersAnswerHome { gap: 12px; margin-bottom: 8px; }
+}
+
 .feedback {
   margin-top: 14px;
   font-size: 20px;

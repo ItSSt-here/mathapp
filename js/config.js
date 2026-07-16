@@ -85,7 +85,14 @@ let gameMode = 'multiplication';
 let arrivedViaLink = false;
 const URL_PARAM_TOPIC = 'topic';
 const URL_PARAM_DIFFICULTY = 'difficulty';
-const VALID_TOPICS = ['multiplication', 'fractions']; // matches gameMode's own values, no translation table needed
+const VALID_TOPICS = ['multiplication', 'fractions', 'letters']; // matches gameMode's own values, no translation table needed
+
+// Letters exercise (recognition, for younger children): child taps a sound
+// button to hear the letter's name (a recorded clip, see
+// assets/letters/<letter>.mp3 and playLetterSound() in exercise.js) and picks
+// it out of 5 options. Final-form letters (ך ם ן ף ץ) are left out for now --
+// may be added later.
+const HEBREW_LETTERS = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט', 'י', 'כ', 'ל', 'מ', 'נ', 'ס', 'ע', 'פ', 'צ', 'ק', 'ר', 'ש', 'ת'];
 
 // Fraction exercise: "complete the missing numerator" for a reduced fraction
 // c/a, shown as its unreduced equivalent (b*c)/(b*a). a is the target
@@ -164,6 +171,7 @@ const EXERCISE_LEVEL_DESCRIPTIONS = {
 // ---------- State ----------
 let num1, num2;
 let currentAnswer; // correct value for the current exercise, any mode
+let currentLetterAnswer = null; // correct letter (a single character) for the current letters-mode exercise
 let playerMoney = 0;
 let playerCastleHP = CASTLE_MAX_HP;
 let computerCastleHP = CASTLE_MAX_HP;

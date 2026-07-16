@@ -81,6 +81,82 @@ function generateFractionExercise() {
   return { shownNumerator, shownDenominator, targetNumerator, targetDenominator, missing, answer };
 }
 
+// ---------- Letters exercise (recognition, multiple choice) ----------
+function generateLetterExercise() {
+  const correct = randChoice(HEBREW_LETTERS);
+  const distractors = pickDistinctRandom(HEBREW_LETTERS.filter(l => l !== correct), 4);
+  const options = pickDistinctRandom([correct, ...distractors], 5); // shuffles the order too
+  return { correct, options };
+}
+
+// Recorded pronunciation clips (assets/letters/<letter>.mp3, see
+// assets/letters/CREDITS.txt for sources/licenses) -- browser speechSynthesis
+// was tried first, but generic TTS reads several letter names as unrelated
+// homograph words (e.g. אלף as "thousand") since Hebrew is normally written
+// without the vowel points that would disambiguate them, and voice
+// availability varies wildly across machines. Recorded audio sidesteps both.
+let currentLetterAudio = null;
+
+function playLetterSound(letter) {
+  if (!letter) return;
+  if (currentLetterAudio) currentLetterAudio.pause(); // cut off a rapid repeat tap
+  currentLetterAudio = new Audio(`assets/letters/${encodeURIComponent(letter)}.mp3`);
+  currentLetterAudio.play();
+}
+
+function renderLetterChoices(ex) {
+  const container = document.getElementById('letterChoices');
+  container.innerHTML = '';
+  container.classList.remove('letter-choices-locked');
+  ex.options.forEach(option => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'letter-choice-btn';
+    btn.textContent = option;
+    btn.addEventListener('click', () => checkLetterAnswer(option, ex.correct, btn));
+    container.appendChild(btn);
+  });
+}
+
+// Wrong pick: that option is eliminated (stays disabled) and the same
+// question continues with the remaining options, same as the numeric modes
+// letting you retry after a mistake instead of jumping to a new question.
+function checkLetterAnswer(selected, correct, btnEl) {
+  if (gameOver) return;
+
+  const container = document.getElementById('letterChoices');
+  if (container.classList.contains('letter-choices-locked')) return;
+
+  const feedback = document.getElementById('feedback');
+  const isCorrect = selected === correct;
+
+  container.classList.add('letter-choices-locked');
+  Array.from(container.children).forEach(b => b.disabled = true);
+
+  if (isCorrect) {
+    btnEl.classList.add('letter-correct');
+    feedback.textContent = 'נכון';
+    feedback.className = 'feedback correct';
+    playerMoney += CORRECT_REWARD;
+    updateCoinsDisplay();
+    showFloatingText(`+${CORRECT_REWARD}`, 'positive', btnEl);
+    setTimeout(newExercise, 800);
+  } else {
+    btnEl.classList.add('letter-wrong');
+    feedback.textContent = 'לא נכון, נסה שוב';
+    feedback.className = 'feedback incorrect';
+    playerMoney -= WRONG_PENALTY;
+    updateCoinsDisplay();
+    showFloatingText(`-${WRONG_PENALTY}`, 'negative', btnEl);
+    setTimeout(() => {
+      Array.from(container.children).forEach(b => { if (b !== btnEl) b.disabled = false; });
+      container.classList.remove('letter-choices-locked');
+      feedback.textContent = '';
+      feedback.className = 'feedback';
+    }, 800);
+  }
+}
+
 function fractionBlockHTML(numerator, denominator) {
   return `<span class="frac-block"><span class="frac-num">${numerator}</span><span class="frac-bar"></span><span class="frac-den">${denominator}</span></span>`;
 }
@@ -100,6 +176,25 @@ function newExercise() {
   const answer2Home = document.getElementById('answer2Home');
   const simplifyLabel = document.getElementById('simplifyLabel');
   simplifyLabel.style.display = 'none';
+
+  // Letters mode has no equation/typed answer at all -- swap the whole
+  // question+answer UI for the sound button + multiple-choice buttons
+  // instead of reusing the numeric-input elements.
+  const isLetters = gameMode === 'letters';
+  document.getElementById('mathQuestionRow').style.display = isLetters ? 'none' : '';
+  document.getElementById('answerHome').style.display = isLetters ? 'none' : '';
+  document.getElementById('checkBtn').style.display = isLetters ? 'none' : '';
+  document.getElementById('swapBtn').style.display = isLetters ? 'none' : '';
+  document.getElementById('lettersAnswerHome').style.display = isLetters ? '' : 'none';
+
+  if (isLetters) {
+    const ex = generateLetterExercise();
+    currentLetterAnswer = ex.correct;
+    renderLetterChoices(ex);
+    document.getElementById('feedback').textContent = '';
+    document.getElementById('feedback').className = 'feedback';
+    return;
+  }
 
   if (gameMode === 'fractions') {
     const ex = generateFractionExercise();

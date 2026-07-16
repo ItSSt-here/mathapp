@@ -1,0 +1,23 @@
+Hebrew letter-name pronunciation recordings used by the "letters" exercise mode.
+
+All files are native-speaker recordings sourced from Wikimedia Commons /
+Wiktionary (the audio embedded in each letter's pronunciation section, e.g.
+https://en.wiktionary.org/wiki/א).
+
+CC0 1.0 (public domain, no attribution required) -- recorded for the Lingua
+Libre project unless noted otherwise:
+  א.mp3  ג.mp3  ד.mp3  ה.mp3  ז.mp3  ח.mp3  ט.mp3  י.mp3  כ.mp3  ל.mp3
+  מ.mp3  נ.mp3  ס.mp3  ע.mp3  פ.mp3  צ.mp3  ק.mp3  ר.mp3  ש.mp3  ת.mp3
+  Speaker: Uziel302 (Lingua Libre)
+  ב.mp3
+  Author: dafna3.bot (Wikimedia Commons, "He-ב.ogg")
+
+CC BY-SA 4.0 (attribution + share-alike required):
+  ו.mp3
+  Speaker: Buffer (Lingua Libre)
+  License: https://creativecommons.org/licenses/by-sa/4.0/
+  Credit: pronunciation of ו by Wikimedia Commons user "Buffer",
+  via the Lingua Libre project (https://lingualibre.org).
+
+Original file pages (for provenance): each recording's Commons file page is
+linked from the corresponding letter's entry at https://en.wiktionary.org/wiki/<letter>
