@@ -108,10 +108,29 @@ function isLetterReverseMode() {
 // availability varies wildly across machines. Recorded audio sidesteps both.
 let currentLetterAudio = null;
 
+// A plain <audio> element's .volume tops out at 1.0 (the recording's own
+// mastered level), which isn't enough for clips that were recorded quietly
+// -- ק in particular. Boosted letters are routed through a Web Audio gain
+// node instead, which can amplify past that ceiling; everything else plays
+// through the element directly, untouched.
+let letterAudioCtx = null;
+const LETTER_VOLUME_BOOST = { 'ק': 2.2 };
+
 function playLetterSound(letter) {
   if (!letter) return;
   if (currentLetterAudio) currentLetterAudio.pause(); // cut off a rapid repeat tap
   currentLetterAudio = new Audio(`assets/letters/${encodeURIComponent(letter)}.mp3`);
+
+  const boost = LETTER_VOLUME_BOOST[letter];
+  if (boost && window.AudioContext) {
+    if (!letterAudioCtx) letterAudioCtx = new AudioContext();
+    letterAudioCtx.resume();
+    const source = letterAudioCtx.createMediaElementSource(currentLetterAudio);
+    const gainNode = letterAudioCtx.createGain();
+    gainNode.gain.value = boost;
+    source.connect(gainNode).connect(letterAudioCtx.destination);
+  }
+
   currentLetterAudio.play();
 }
 
@@ -122,11 +141,7 @@ function playLetterSound(letter) {
 // always lowercase, level 3 randomizes each shown letter independently.
 // Levels 4-5 flip to the reverse direction (renderLetterReverseChoices()),
 // showing one letter (case randomized) and having the child match it to a
-// sound. Sound uses the browser's built-in speechSynthesis instead of a
-// recorded clip: unlike HEBREW_LETTERS, English letter names have no
-// homograph ambiguity (no vowel-point-dependent misreading) and English
-// voices are close to universally available, so neither problem that ruled
-// out TTS for playLetterSound() applies here.
+// sound.
 function abcCaseForLevel(letter, level) {
   if (level === 1) return letter;
   if (level === 2) return letter.toLowerCase();
@@ -153,39 +168,19 @@ function generateAbcExercise() {
   return { correct: options[identities.indexOf(correct)], options };
 }
 
-// Corrects a couple of single-letter names that some voices/engines misread
-// (e.g. "Z" alone coming out as "zi" instead of "zed") by spelling out the
-// intended pronunciation instead. Extend this if other letters turn out to
-// need it too.
-const ABC_TTS_OVERRIDES = { Z: 'zed' };
-
-// speechSynthesis.getVoices() is often empty until the async 'voiceschanged'
-// event fires (a well-known browser quirk), so the preferred voice is
-// resolved lazily and cached rather than looked up fresh on every play.
-let cachedAbcVoice = null;
-function refreshAbcVoice() {
-  if (!window.speechSynthesis) return;
-  const voices = speechSynthesis.getVoices();
-  if (!voices.length) return;
-  cachedAbcVoice =
-    voices.find(v => /en/i.test(v.lang) && /Google|Natural|Neural|Microsoft/i.test(v.name)) ||
-    voices.find(v => /^en/i.test(v.lang)) ||
-    null;
-}
-if (window.speechSynthesis) {
-  refreshAbcVoice();
-  speechSynthesis.onvoiceschanged = refreshAbcVoice;
-}
+// Recorded pronunciation clips (assets/abc/<letter>.ogg, lowercase filename
+// regardless of the letter's displayed case -- see assets/abc/CREDITS.txt for
+// sources/licenses). speechSynthesis was tried first, but came out too
+// unclear for a child to reliably understand even after tuning voice/rate
+// and adding pronunciation overrides -- real recordings sidestep that
+// entirely, same rationale as playLetterSound() above.
+let currentAbcAudio = null;
 
 function playAbcSound(letter) {
-  if (!letter || !window.speechSynthesis) return;
-  speechSynthesis.cancel(); // cut off a rapid repeat tap
-  const spokenLetter = letter.toUpperCase(); // case is a display-only concern -- always speak the canonical letter name
-  const utterance = new SpeechSynthesisUtterance(ABC_TTS_OVERRIDES[spokenLetter] || spokenLetter);
-  utterance.lang = 'en-US';
-  utterance.rate = 0.75; // slower than default for clearer pronunciation
-  if (cachedAbcVoice) utterance.voice = cachedAbcVoice;
-  speechSynthesis.speak(utterance);
+  if (!letter) return;
+  if (currentAbcAudio) currentAbcAudio.pause(); // cut off a rapid repeat tap
+  currentAbcAudio = new Audio(`assets/abc/${letter.toLowerCase()}.ogg`);
+  currentAbcAudio.play();
 }
 
 // Dispatches to the right sound source for whichever letters-family topic is

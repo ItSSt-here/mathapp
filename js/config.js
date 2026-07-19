@@ -94,10 +94,11 @@ const VALID_TOPICS = ['multiplication', 'fractions', 'letters', 'abc']; // match
 // may be added later.
 const HEBREW_LETTERS = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט', 'י', 'כ', 'ל', 'מ', 'נ', 'ס', 'ע', 'פ', 'צ', 'ק', 'ר', 'ש', 'ת'];
 
-// ABC exercise: same listen-then-pick mechanic as HEBREW_LETTERS level 1
-// (generateAbcExercise()/playAbcSound() in exercise.js reuse the shared
-// renderLetterChoices()/checkLetterAnswer() rendering), for all 5 levels for
-// now -- no reverse (see-letter/pick-sound) direction yet. Uppercase only.
+// ABC exercise: levels 1-3 reuse HEBREW_LETTERS level 1's listen-then-pick
+// mechanic (varying upper/lowercase, see generateAbcExercise() in
+// exercise.js), levels 4-5 reuse the reverse (see-letter/pick-sound)
+// direction. Sound is a recorded clip (assets/abc/<letter>.ogg, see
+// playAbcSound() in exercise.js), same as HEBREW_LETTERS.
 const ABC_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
 
 // Fraction exercise: "complete the missing numerator" for a reduced fraction

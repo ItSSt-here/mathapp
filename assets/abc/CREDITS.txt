@@ -1,0 +1,32 @@
+English letter-name pronunciation recordings used by the "abc" exercise mode.
+
+All files are native-speaker (US English) recordings sourced from Wikimedia
+Commons / Wiktionary (the audio embedded in each letter's pronunciation
+section, e.g. https://en.wiktionary.org/wiki/Z), originally named
+En-us-<letter>.ogg and renamed here to just <letter>.ogg.
+
+Public domain (no attribution required):
+  a.ogg
+  Author: unattributed upload, credited to Wikimedia Commons user "Xnux"
+  i.ogg
+  Speaker: Geoff Sebastian
+
+CC BY-SA 3.0 (attribution + share-alike required):
+License: https://creativecommons.org/licenses/by-sa/3.0/
+
+  b.ogg  c.ogg  d.ogg  f.ogg  g.ogg  h.ogg  l.ogg  m.ogg  o.ogg  q.ogg
+  s.ogg  t.ogg  u.ogg  v.ogg  w.ogg  x.ogg  y.ogg
+  Speaker: Twocs (Wikimedia Commons)
+
+  e.ogg  r.ogg
+  Speaker: Logictheo (Wikimedia Commons)
+
+  j.ogg  n.ogg  p.ogg  z.ogg
+  Speaker: Dvortygirl (Wikimedia Commons)
+
+  k.ogg
+  Speaker: Neskaya (Wikimedia Commons)
+
+Original file pages (for provenance): each recording's Commons file page is
+linked from the corresponding letter's entry at https://en.wiktionary.org/wiki/<letter>
+(e.g. https://commons.wikimedia.org/wiki/File:En-us-z.ogg for z.ogg).
