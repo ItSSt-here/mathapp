@@ -29,7 +29,8 @@ function changeExerciseDifficulty(delta) {
 }
 
 function formatLevelInfo() {
-  const modeLabel = gameMode === 'fractions' ? 'שברים' : gameMode === 'letters' ? 'אותיות' : 'כפל';
+  const modeLabels = { fractions: 'שברים', letters: 'אותיות', abc: 'ABC' };
+  const modeLabel = modeLabels[gameMode] || 'כפל';
   return `נושא: ${modeLabel} | מהירות: ${DIFFICULTIES[difficultyIndex]} | קושי תרגילים: ${EXERCISE_DIFFICULTIES[exerciseDifficultyIndex]}`;
 }
 
@@ -187,7 +188,7 @@ document.getElementById('buyBtn').addEventListener('click', () => {
 });
 document.getElementById('swapBtn').addEventListener('click', changeQuestion);
 document.getElementById('letterSoundBtn').addEventListener('click', () => {
-  if (currentLetterAnswer) playLetterSound(currentLetterAnswer);
+  if (currentLetterAnswer) playCurrentTopicSound(currentLetterAnswer);
 });
 document.getElementById('surrenderBtn').addEventListener('click', () => {
   if (gameOver) return;
@@ -219,6 +220,12 @@ document.getElementById('modeFractionsBtn').addEventListener('click', () => {
 });
 document.getElementById('modeLettersBtn').addEventListener('click', () => {
   gameMode = 'letters';
+  updateExerciseDifficultyLabel();
+  document.getElementById('modeOverlay').classList.remove('show');
+  document.getElementById('exDifficultyOverlay').classList.add('show');
+});
+document.getElementById('modeAbcBtn').addEventListener('click', () => {
+  gameMode = 'abc';
   updateExerciseDifficultyLabel();
   document.getElementById('modeOverlay').classList.remove('show');
   document.getElementById('exDifficultyOverlay').classList.add('show');

@@ -89,6 +89,17 @@ function generateLetterExercise() {
   return { correct, options };
 }
 
+// Letters: level 1 hears the letter and picks it visually; levels 2-5 flip
+// that -- the letter is shown and the child picks which of 5 sound buttons
+// names it. ABC: levels 1-3 are the listen-then-pick direction (upper/lower
+// case varies by level, see generateAbcExercise()); levels 4-5 flip it the
+// same way letters' levels 2-5 do.
+function isLetterReverseMode() {
+  if (gameMode === 'letters') return exerciseDifficultyIndex >= 1;
+  if (gameMode === 'abc') return exerciseDifficultyIndex >= 3;
+  return false;
+}
+
 // Recorded pronunciation clips (assets/letters/<letter>.mp3, see
 // assets/letters/CREDITS.txt for sources/licenses) -- browser speechSynthesis
 // was tried first, but generic TTS reads several letter names as unrelated
@@ -102,6 +113,89 @@ function playLetterSound(letter) {
   if (currentLetterAudio) currentLetterAudio.pause(); // cut off a rapid repeat tap
   currentLetterAudio = new Audio(`assets/letters/${encodeURIComponent(letter)}.mp3`);
   currentLetterAudio.play();
+}
+
+// ---------- ABC exercise (English letters, recognition, multiple choice) ----------
+// Levels 1-3 reuse the listen-then-pick mechanic (renderLetterChoices()/
+// checkLetterAnswer() below are topic-agnostic), varying only the
+// upper/lowercase of the 5 shown letters: level 1 always uppercase, level 2
+// always lowercase, level 3 randomizes each shown letter independently.
+// Levels 4-5 flip to the reverse direction (renderLetterReverseChoices()),
+// showing one letter (case randomized) and having the child match it to a
+// sound. Sound uses the browser's built-in speechSynthesis instead of a
+// recorded clip: unlike HEBREW_LETTERS, English letter names have no
+// homograph ambiguity (no vowel-point-dependent misreading) and English
+// voices are close to universally available, so neither problem that ruled
+// out TTS for playLetterSound() applies here.
+function abcCaseForLevel(letter, level) {
+  if (level === 1) return letter;
+  if (level === 2) return letter.toLowerCase();
+  return Math.random() < 0.5 ? letter : letter.toLowerCase(); // level 3: 50/50 per letter
+}
+
+function generateAbcExercise() {
+  const level = exerciseDifficultyIndex + 1;
+  const correct = randChoice(ABC_LETTERS);
+  const distractors = pickDistinctRandom(ABC_LETTERS.filter(l => l !== correct), 4);
+  const identities = pickDistinctRandom([correct, ...distractors], 5); // shuffles the order too
+
+  if (level >= 4) {
+    // Reverse mode: options are sound-button identities (always canonical
+    // uppercase -- they're never displayed, only spoken), while the single
+    // shown target letter gets its own independently-randomized case.
+    return { correct, options: identities, displayCorrect: Math.random() < 0.5 ? correct : correct.toLowerCase() };
+  }
+
+  // Listen mode: each shown letter (including the correct one) is cased per
+  // abcCaseForLevel(), and `correct` is set to that same cased string so it
+  // matches the exact button text checkLetterAnswer() compares against.
+  const options = identities.map(letter => abcCaseForLevel(letter, level));
+  return { correct: options[identities.indexOf(correct)], options };
+}
+
+// Corrects a couple of single-letter names that some voices/engines misread
+// (e.g. "Z" alone coming out as "zi" instead of "zed") by spelling out the
+// intended pronunciation instead. Extend this if other letters turn out to
+// need it too.
+const ABC_TTS_OVERRIDES = { Z: 'zed' };
+
+// speechSynthesis.getVoices() is often empty until the async 'voiceschanged'
+// event fires (a well-known browser quirk), so the preferred voice is
+// resolved lazily and cached rather than looked up fresh on every play.
+let cachedAbcVoice = null;
+function refreshAbcVoice() {
+  if (!window.speechSynthesis) return;
+  const voices = speechSynthesis.getVoices();
+  if (!voices.length) return;
+  cachedAbcVoice =
+    voices.find(v => /en/i.test(v.lang) && /Google|Natural|Neural|Microsoft/i.test(v.name)) ||
+    voices.find(v => /^en/i.test(v.lang)) ||
+    null;
+}
+if (window.speechSynthesis) {
+  refreshAbcVoice();
+  speechSynthesis.onvoiceschanged = refreshAbcVoice;
+}
+
+function playAbcSound(letter) {
+  if (!letter || !window.speechSynthesis) return;
+  speechSynthesis.cancel(); // cut off a rapid repeat tap
+  const spokenLetter = letter.toUpperCase(); // case is a display-only concern -- always speak the canonical letter name
+  const utterance = new SpeechSynthesisUtterance(ABC_TTS_OVERRIDES[spokenLetter] || spokenLetter);
+  utterance.lang = 'en-US';
+  utterance.rate = 0.75; // slower than default for clearer pronunciation
+  if (cachedAbcVoice) utterance.voice = cachedAbcVoice;
+  speechSynthesis.speak(utterance);
+}
+
+// Dispatches to the right sound source for whichever letters-family topic is
+// currently active (see letterSoundBtn's click handler in main.js).
+function playCurrentTopicSound(letter) {
+  if (gameMode === 'abc') {
+    playAbcSound(letter);
+  } else {
+    playLetterSound(letter);
+  }
 }
 
 function renderLetterChoices(ex) {
@@ -163,6 +257,89 @@ function checkLetterAnswer(selected, correct, btnEl) {
   }
 }
 
+// Levels 2-5 (reverse direction): the target letter is shown visually and
+// the child taps sound buttons (each plays a candidate letter's name) until
+// they've picked the one they believe matches, then confirms with the
+// checkBtn -- see checkAnswer()'s isLetterReverseMode() branch.
+let letterReverseSelected = null; // { option, btnEl } for the currently-selected sound button, or null
+
+function renderLetterReverseChoices(ex) {
+  document.getElementById('letterRevealDisplay').textContent = ex.displayCorrect || ex.correct;
+  const container = document.getElementById('letterSoundChoices');
+  container.innerHTML = '';
+  container.classList.remove('letter-choices-locked');
+  letterReverseSelected = null;
+  document.getElementById('checkBtn').disabled = true;
+  ex.options.forEach(option => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'letter-choice-btn';
+    btn.textContent = '🔊';
+    btn.addEventListener('click', () => selectLetterReverseOption(option, btn));
+    container.appendChild(btn);
+  });
+}
+
+// Tapping a sound button plays it and selects it as the current answer --
+// re-tapping the same or a different button just moves the selection and
+// replays that sound, since nothing is locked in until checkBtn is pressed.
+function selectLetterReverseOption(option, btnEl) {
+  if (gameOver) return;
+  const container = document.getElementById('letterSoundChoices');
+  if (container.classList.contains('letter-choices-locked')) return;
+
+  playCurrentTopicSound(option);
+  Array.from(container.children).forEach(b => b.classList.remove('letter-selected'));
+  btnEl.classList.add('letter-selected');
+  letterReverseSelected = { option, btnEl };
+  document.getElementById('checkBtn').disabled = false;
+}
+
+// Wrong: that sound button is eliminated (disabled) and the same question
+// continues with the remaining options, same retry pattern as
+// checkLetterAnswer() uses for the level 1 (listen-then-pick) direction.
+function checkLetterReverseAnswer() {
+  if (gameOver || !letterReverseSelected) return;
+
+  const container = document.getElementById('letterSoundChoices');
+  if (container.classList.contains('letter-choices-locked')) return;
+
+  const { option, btnEl } = letterReverseSelected;
+  const feedback = document.getElementById('feedback');
+  const checkBtn = document.getElementById('checkBtn');
+  const isCorrect = option === currentLetterAnswer;
+
+  container.classList.add('letter-choices-locked');
+  Array.from(container.children).forEach(b => b.disabled = true);
+  checkBtn.disabled = true;
+  btnEl.classList.remove('letter-selected');
+
+  if (isCorrect) {
+    btnEl.classList.add('letter-correct');
+    feedback.textContent = 'נכון';
+    feedback.className = 'feedback correct';
+    playerMoney += CORRECT_REWARD;
+    updateCoinsDisplay();
+    showFloatingText(`+${CORRECT_REWARD}`, 'positive', btnEl);
+    setTimeout(newExercise, 800);
+  } else {
+    btnEl.classList.add('letter-wrong');
+    feedback.textContent = 'לא נכון, נסה שוב';
+    feedback.className = 'feedback incorrect';
+    playerMoney -= WRONG_PENALTY;
+    updateCoinsDisplay();
+    showFloatingText(`-${WRONG_PENALTY}`, 'negative', btnEl);
+    setTimeout(() => {
+      letterReverseSelected = null;
+      Array.from(container.children).forEach(b => { if (b !== btnEl) b.disabled = false; });
+      container.classList.remove('letter-choices-locked');
+      feedback.textContent = '';
+      feedback.className = 'feedback';
+      // checkBtn stays disabled until the child selects another option
+    }, 800);
+  }
+}
+
 function fractionBlockHTML(numerator, denominator) {
   return `<span class="frac-block"><span class="frac-num">${numerator}</span><span class="frac-bar"></span><span class="frac-den">${denominator}</span></span>`;
 }
@@ -183,20 +360,33 @@ function newExercise() {
   const simplifyLabel = document.getElementById('simplifyLabel');
   simplifyLabel.style.display = 'none';
 
-  // Letters mode has no equation/typed answer at all -- swap the whole
+  // Letters/ABC modes have no equation/typed answer at all -- swap the whole
   // question+answer UI for the sound button + multiple-choice buttons
-  // instead of reusing the numeric-input elements.
+  // instead of reusing the numeric-input elements. Listen-mode levels
+  // (letters 1, abc 1-3) keep checkBtn hidden (picking a letter button
+  // answers immediately); reverse-mode levels (letters 2-5, abc 4-5) need
+  // it, since picking a sound only selects it -- checkAnswer() dispatches to
+  // checkLetterReverseAnswer() for those via isLetterReverseMode().
   const isLetters = gameMode === 'letters';
-  document.getElementById('mathQuestionRow').style.display = isLetters ? 'none' : '';
-  document.getElementById('answerHome').style.display = isLetters ? 'none' : '';
-  document.getElementById('checkBtn').style.display = isLetters ? 'none' : '';
-  document.getElementById('swapBtn').style.display = isLetters ? 'none' : '';
-  document.getElementById('lettersAnswerHome').style.display = isLetters ? '' : 'none';
+  const isAbc = gameMode === 'abc';
+  const isLetterFamily = isLetters || isAbc;
+  const isReverse = isLetterReverseMode();
+  document.getElementById('mathQuestionRow').style.display = isLetterFamily ? 'none' : '';
+  document.getElementById('answerHome').style.display = isLetterFamily ? 'none' : '';
+  document.getElementById('checkBtn').style.display = (isLetterFamily && !isReverse) ? 'none' : '';
+  document.getElementById('swapBtn').style.display = isLetterFamily ? 'none' : '';
+  document.getElementById('lettersAnswerHome').style.display = isLetterFamily ? '' : 'none';
 
-  if (isLetters) {
-    const ex = generateLetterExercise();
+  if (isLetterFamily) {
+    document.getElementById('letterListenMode').style.display = isReverse ? 'none' : '';
+    document.getElementById('letterRevealMode').style.display = isReverse ? '' : 'none';
+    const ex = isAbc ? generateAbcExercise() : generateLetterExercise();
     currentLetterAnswer = ex.correct;
-    renderLetterChoices(ex);
+    if (isReverse) {
+      renderLetterReverseChoices(ex);
+    } else {
+      renderLetterChoices(ex);
+    }
     document.getElementById('feedback').textContent = '';
     document.getElementById('feedback').className = 'feedback';
     return;
@@ -263,6 +453,11 @@ function showFloatingText(text, colorClass, anchorEl) {
 
 function checkAnswer() {
   if (gameOver) return;
+
+  if (isLetterReverseMode()) {
+    checkLetterReverseAnswer();
+    return;
+  }
 
   const answerInput = document.getElementById('answer');
   const answer2 = document.getElementById('answer2');

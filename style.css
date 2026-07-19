@@ -211,6 +211,28 @@ button.check-btn:active {
   margin-bottom: 16px;
 }
 
+#letterListenMode, #letterRevealMode {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+
+.letter-reveal-display {
+  font-size: 56px;
+  font-weight: bold;
+  width: 90px;
+  height: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #d3ddf7;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #ffffff, #f6f8ff);
+  color: #2b3a67;
+  box-shadow: 0 3px 0 #b9c4e6;
+}
+
 .letter-sound-btn {
   font-size: 30px;
   width: 66px;
@@ -280,10 +302,18 @@ button.check-btn:active {
   opacity: 1;
 }
 
+/* Levels 2-5: the sound button the child last tapped, pending "בדוק". */
+.letter-choice-btn.letter-selected {
+  border-color: #4a6cf7;
+  box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.35), 0 3px 0 #3349b0;
+}
+
 @media (max-width: 600px) {
   .letter-sound-btn { width: 54px; height: 54px; font-size: 24px; }
   .letter-choice-btn { width: 52px; height: 52px; font-size: 26px; }
+  .letter-reveal-display { width: 74px; height: 74px; font-size: 44px; }
   #lettersAnswerHome { gap: 12px; margin-bottom: 8px; }
+  #letterListenMode, #letterRevealMode { gap: 12px; }
 }
 
 .feedback {

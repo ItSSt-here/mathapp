@@ -85,7 +85,7 @@ let gameMode = 'multiplication';
 let arrivedViaLink = false;
 const URL_PARAM_TOPIC = 'topic';
 const URL_PARAM_DIFFICULTY = 'difficulty';
-const VALID_TOPICS = ['multiplication', 'fractions', 'letters']; // matches gameMode's own values, no translation table needed
+const VALID_TOPICS = ['multiplication', 'fractions', 'letters', 'abc']; // matches gameMode's own values, no translation table needed
 
 // Letters exercise (recognition, for younger children): child taps a sound
 // button to hear the letter's name (a recorded clip, see
@@ -93,6 +93,12 @@ const VALID_TOPICS = ['multiplication', 'fractions', 'letters']; // matches game
 // it out of 5 options. Final-form letters (ך ם ן ף ץ) are left out for now --
 // may be added later.
 const HEBREW_LETTERS = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט', 'י', 'כ', 'ל', 'מ', 'נ', 'ס', 'ע', 'פ', 'צ', 'ק', 'ר', 'ש', 'ת'];
+
+// ABC exercise: same listen-then-pick mechanic as HEBREW_LETTERS level 1
+// (generateAbcExercise()/playAbcSound() in exercise.js reuse the shared
+// renderLetterChoices()/checkLetterAnswer() rendering), for all 5 levels for
+// now -- no reverse (see-letter/pick-sound) direction yet. Uppercase only.
+const ABC_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
 
 // Fraction exercise: "complete the missing numerator" for a reduced fraction
 // c/a, shown as its unreduced equivalent (b*c)/(b*a). a is the target
@@ -165,6 +171,20 @@ const EXERCISE_LEVEL_DESCRIPTIONS = {
     'בכל תרגיל מוצג שבר אחד ויש להשלים חלק אחד בשבר המקביל לו — הצמצום או ההרחבה, וכן האם החלק החסר הוא המונה או המכנה, נבחרים באקראי.',
     'ברוב המקרים (80%) מוצג שבר לא מצומצם ויש לצמצם אותו עד הסוף בעצמו: גם המונה וגם המכנה של הצורה המצומצמת חסרים. ב-20% הנותרים יש להשלים רק חלק אחד (מונה או מכנה) של שבר מקביל, כשהצמצום או ההרחבה נבחרים באקראי.',
     'לעולם לא מוצג השבר המצומצם עצמו: מוצגים שני שברים שווי-ערך אך לא מצומצמים, עם מכנים שונים. שבר אחד מלא והשני חסר בו מונה או מכנה, כך שיש להשוות בין שני השברים הלא מצומצמים ישירות.',
+  ],
+  letters: [
+    'שומעים את שם האות (לחיצה על 🔊) ובוחרים אותה מתוך 5 אותיות.',
+    'רואים אות, ולוחצים על כפתורי השמעה עד שמוצאים את זה שמשמיע את שמה, ואז לוחצים "בדוק" לאישור.',
+    'רואים אות, ולוחצים על כפתורי השמעה עד שמוצאים את זה שמשמיע את שמה, ואז לוחצים "בדוק" לאישור.',
+    'רואים אות, ולוחצים על כפתורי השמעה עד שמוצאים את זה שמשמיע את שמה, ואז לוחצים "בדוק" לאישור.',
+    'רואים אות, ולוחצים על כפתורי השמעה עד שמוצאים את זה שמשמיע את שמה, ואז לוחצים "בדוק" לאישור.',
+  ],
+  abc: [
+    'שומעים את שם האות באנגלית (לחיצה על 🔊) ובוחרים אותה מתוך 5 אותיות גדולות (A-Z).',
+    'כמו ברמה 1, אבל כל 5 האותיות המוצגות הן אותיות קטנות (a-z).',
+    'כמו ברמה 1, אבל כל אחת מ-5 האותיות המוצגות נבחרת באקראי כגדולה או קטנה.',
+    'הפוך: מוצגת אות אחת (גדולה או קטנה, נבחר באקראי), ולוחצים על כפתורי השמעה עד שמוצאים את זה שמשמיע את שמה, ואז לוחצים "בדוק" לאישור.',
+    'הפוך: מוצגת אות אחת (גדולה או קטנה, נבחר באקראי), ולוחצים על כפתורי השמעה עד שמוצאים את זה שמשמיע את שמה, ואז לוחצים "בדוק" לאישור.',
   ],
 };
 
