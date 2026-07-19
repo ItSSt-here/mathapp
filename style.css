@@ -224,9 +224,15 @@ button.check-btn:active {
   transition: transform 0.1s ease;
 }
 
-.letter-sound-btn:active {
+.letter-sound-btn:active:not(:disabled) {
   transform: translateY(2px);
   box-shadow: 0 1px 0 #3349b0;
+}
+
+.letter-sound-btn:disabled {
+  background: #b7b7b7;
+  box-shadow: 0 3px 0 #8f8f8f;
+  cursor: not-allowed;
 }
 
 .letter-choices {

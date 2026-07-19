@@ -108,6 +108,7 @@ function renderLetterChoices(ex) {
   const container = document.getElementById('letterChoices');
   container.innerHTML = '';
   container.classList.remove('letter-choices-locked');
+  document.getElementById('letterSoundBtn').disabled = false;
   ex.options.forEach(option => {
     const btn = document.createElement('button');
     btn.type = 'button';
@@ -140,6 +141,11 @@ function checkLetterAnswer(selected, correct, btnEl) {
     playerMoney += CORRECT_REWARD;
     updateCoinsDisplay();
     showFloatingText(`+${CORRECT_REWARD}`, 'positive', btnEl);
+    // Otherwise the child can still tap the sound button during this pause
+    // and hear the old (already-answered) letter, mistaking it for the next
+    // question's -- re-enabled by renderLetterChoices() once the new
+    // question is up.
+    document.getElementById('letterSoundBtn').disabled = true;
     setTimeout(newExercise, 800);
   } else {
     btnEl.classList.add('letter-wrong');
