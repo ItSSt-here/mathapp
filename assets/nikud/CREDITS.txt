@@ -1,0 +1,37 @@
+Hebrew letter+niqud pronunciation recordings used by the "nikud" exercise mode.
+
+kamats/<letter>.mp3 (all 22 base letters): downloaded from
+https://soundsofnikud.com (kamats_sounds/<translit>_kamats.mp3), a small
+two-page educational site with clickable letter+niqud sound cards covering
+all niqud types. Fetched 2026-07-23.
+
+Unlike the Wikimedia Commons sources in assets/letters/ and assets/abc/, this
+site has NO visible license, credits, about, or contact page anywhere
+(checked the page itself, its links, and its sitemap.xml -- just two HTML
+pages, no footer). Used anyway per explicit user decision, but the
+authorship/license of these specific recordings is unknown. If this ever
+becomes a concern, revisit finding/contacting the site owner or re-recording.
+
+kamats/פ.wav: REPLACES the soundsofnikud.com clip above -- that one was
+unusable (user reported it was unrecognizable as פ, sounded like ה). Instead,
+self-made by trimming the "פ" syllable out of a real word recording:
+LL-Q9288 (heb)-YaronSh-פס.wav (the word פַּס/"pas", CC0), downloaded from
+Wikimedia Commons, IPA confirms hard פ ("pa"). פס was chosen because it's a
+single syllable (no crowding consonant right after, unlike an earlier attempt
+with פרה where the following ר made the vowel clip too short and sound like
+a שווא instead of a full קמץ). Trimmed with the project's own trim-tool.html
+(a small Web Audio waveform-trim utility, not part of the shipped game) by
+the user, 2026-07-23.
+
+Not yet wired into the exercise (level 1 is hard-sound-only for now, see
+NIKUD_CLIP_EXT/NIKUD_AUDIO_OVERRIDE in js/exercise.js) but already recorded
+for a future "soft/undageshed" level:
+kamats/soft ב.wav -- trimmed from LL-Q9288 (heb)-Buffer-אהבה.wav (the word
+  אהבה/"ahava", CC BY-SA 4.0), the trailing "-vָה" syllable.
+kamats/soft כ.wav -- trimmed from LL-Q9288 (heb)-YaronSh-ברכה.wav (the word
+  ברכה/"bracha", CC0), the trailing "-khָה" syllable.
+Both currently sit in _raw-audio-src/ (untrimmed source words) and
+assets/nikud/kamats/ (trimmed clips) pending that future level's design.
+A soft פ source word (תרופה/"trufa") was identified but not yet fetched
+(hit Wikimedia's rate limiter) -- resume via the same Commons API technique
+documented in feedback_hebrew_letter_audio.md memory when picking this back up.

@@ -29,7 +29,7 @@ function changeExerciseDifficulty(delta) {
 }
 
 function formatLevelInfo() {
-  const modeLabels = { fractions: 'שברים', letters: 'אותיות', abc: 'ABC' };
+  const modeLabels = { fractions: 'שברים', letters: 'אותיות', abc: 'ABC', nikud: 'ניקוד' };
   const modeLabel = modeLabels[gameMode] || 'כפל';
   return `נושא: ${modeLabel} | מהירות: ${DIFFICULTIES[difficultyIndex]} | קושי תרגילים: ${EXERCISE_DIFFICULTIES[exerciseDifficultyIndex]}`;
 }
@@ -226,6 +226,12 @@ document.getElementById('modeLettersBtn').addEventListener('click', () => {
 });
 document.getElementById('modeAbcBtn').addEventListener('click', () => {
   gameMode = 'abc';
+  updateExerciseDifficultyLabel();
+  document.getElementById('modeOverlay').classList.remove('show');
+  document.getElementById('exDifficultyOverlay').classList.add('show');
+});
+document.getElementById('modeNikudBtn').addEventListener('click', () => {
+  gameMode = 'nikud';
   updateExerciseDifficultyLabel();
   document.getElementById('modeOverlay').classList.remove('show');
   document.getElementById('exDifficultyOverlay').classList.add('show');

@@ -85,7 +85,7 @@ let gameMode = 'multiplication';
 let arrivedViaLink = false;
 const URL_PARAM_TOPIC = 'topic';
 const URL_PARAM_DIFFICULTY = 'difficulty';
-const VALID_TOPICS = ['multiplication', 'fractions', 'letters', 'abc']; // matches gameMode's own values, no translation table needed
+const VALID_TOPICS = ['multiplication', 'fractions', 'letters', 'abc', 'nikud']; // matches gameMode's own values, no translation table needed
 
 // Letters exercise (recognition, for younger children): child taps a sound
 // button to hear the letter's name (a recorded clip, see
@@ -100,6 +100,58 @@ const HEBREW_LETTERS = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט', '�
 // direction. Sound is a recorded clip (assets/abc/<letter>.ogg, see
 // playAbcSound() in exercise.js), same as HEBREW_LETTERS.
 const ABC_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
+
+// Nikud exercise: child hears a letter pronounced with a niqud vowel mark
+// (currently only קמץ -- recorded clips, see assets/nikud/kamats/<letter>.mp3
+// and assets/nikud/CREDITS.txt) and picks the matching letter (shown with the
+// same niqud mark) out of 5 options, same mechanic/UI as HEBREW_LETTERS level
+// 1 (see generateNikudExercise()/renderNikudChoices() in exercise.js). At the
+// moment every difficulty level uses this same קמץ-only mechanic; more niqud
+// types may be added later. Every letter in HEBREW_LETTERS is eligible as the
+// target (including כ -- see NIKUD_AUDIO_OVERRIDE in exercise.js for how its
+// sound is sourced, since it has no unambiguous recording of its own).
+
+// Letter pairs that sound identical in Modern Hebrew once pointed -- never
+// let one appear as a distractor when the other is the correct/played
+// letter (see nikudConfusablesOf() in exercise.js). ק/כ sound identical (and
+// כ's audio is literally ק's clip, see NIKUD_AUDIO_OVERRIDE); כ written
+// without a dagesh reads like ח; ט/ת both sound "t". א/ע deliberately left
+// unpaired -- both are silent in casual Modern Hebrew speech, but these
+// recordings do pronounce them distinctly, which is worth letting the
+// exercise actually test rather than papering over.
+const NIKUD_CONFUSABLE_PAIRS = [['ק', 'כ'], ['ח', 'כ'], ['ט', 'ת']];
+
+// Letters whose glyph has a descender (a stroke dropping below the line,
+// e.g. ק's leg) that collides with the niqud mark stacked underneath at the
+// normal spacing -- see .nikud-descender-letter in style.css for the extra
+// clearance added just for these.
+const NIKUD_DESCENDER_LETTERS = ['ק'];
+
+// Maps each base letter to soundsofnikud.com's transliterated filename stem
+// (only needed at fetch time, kept here for reference/reuse if more niqud
+// types are fetched later -- playNikudSound() itself just uses the Hebrew
+// letter as the local filename, matching assets/letters/'s convention).
+const NIKUD_LETTER_TRANSLIT = {
+  'א': 'aleph', 'ב': 'bet', 'ג': 'gimel', 'ד': 'dalet', 'ה': 'he', 'ו': 'vav',
+  'ז': 'zayin', 'ח': 'het', 'ט': 'tet', 'י': 'yod', 'כ': 'kaf', 'ל': 'lamed',
+  'מ': 'mem', 'נ': 'nun', 'ס': 'samekh', 'ע': 'ayin', 'פ': 'pe', 'צ': 'tsadi',
+  'ק': 'qof', 'ר': 'resh', 'ש': 'shin', 'ת': 'tav',
+};
+
+// Combining קמץ mark (U+05B8), rendered as its own enlarged element (see
+// renderNikudChoices() in exercise.js) rather than relying on the font to
+// combine+size it with the base letter -- combining-mark rendering doesn't
+// give independent control over the mark's size, and it needs to read
+// clearly on its own, more so once more niqud types are added alongside it.
+const NIKUD_KAMATS_MARK = 'ָ';
+
+// Combining דגש mark (U+05BC). ב/כ/פ are shown with a דגש in nikud-mode
+// pictures because the exercise currently only plays/tests their *hard*
+// sound (ba/ka/pa) -- without a דגש, standard Hebrew reading rules say these
+// three read as their soft sound (va/kha/fa) instead, so the plain letter
+// alone would misrepresent what's actually being heard.
+const NIKUD_DAGESH_MARK = 'ּ';
+const NIKUD_DAGESH_LETTERS = ['ב', 'כ', 'פ'];
 
 // Fraction exercise: "complete the missing numerator" for a reduced fraction
 // c/a, shown as its unreduced equivalent (b*c)/(b*a). a is the target
@@ -186,6 +238,13 @@ const EXERCISE_LEVEL_DESCRIPTIONS = {
     'כמו ברמה 1, אבל כל אחת מ-5 האותיות המוצגות נבחרת באקראי כגדולה או קטנה.',
     'הפוך: מוצגת אות אחת (גדולה או קטנה, נבחר באקראי), ולוחצים על כפתורי השמעה עד שמוצאים את זה שמשמיע את שמה, ואז לוחצים "בדוק" לאישור.',
     'הפוך: מוצגת אות אחת (גדולה או קטנה, נבחר באקראי), ולוחצים על כפתורי השמעה עד שמוצאים את זה שמשמיע את שמה, ואז לוחצים "בדוק" לאישור.',
+  ],
+  nikud: [
+    'שומעים אות עם ניקוד קמץ (לחיצה על 🔊) ובוחרים אותה מתוך 5 אותיות עם קמץ.',
+    'שומעים אות עם ניקוד קמץ (לחיצה על 🔊) ובוחרים אותה מתוך 5 אותיות עם קמץ.',
+    'שומעים אות עם ניקוד קמץ (לחיצה על 🔊) ובוחרים אותה מתוך 5 אותיות עם קמץ.',
+    'שומעים אות עם ניקוד קמץ (לחיצה על 🔊) ובוחרים אותה מתוך 5 אותיות עם קמץ.',
+    'שומעים אות עם ניקוד קמץ (לחיצה על 🔊) ובוחרים אותה מתוך 5 אותיות עם קמץ.',
   ],
 };
 

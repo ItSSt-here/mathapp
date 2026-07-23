@@ -308,12 +308,78 @@ button.check-btn:active {
   box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.35), 0 3px 0 #3349b0;
 }
 
+/* Nikud mode: letter and its niqud mark are stacked, separately sized rows
+   instead of one combined/font-shaped glyph -- see renderNikudChoices() in
+   exercise.js. The mark is deliberately large/bold/colored so it reads as
+   clearly as the letter itself, not as a small diacritic afterthought. */
+.nikud-choice-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  gap: 1px;
+}
+.nikud-choice-btn .nikud-letter {
+  font-size: 30px;
+}
+/* A real standalone קמץ character renders as thin, faint line-strokes in
+   most fonts -- scaling that glyph up (font-size or transform) just makes a
+   bigger *box* around still-thin ink, not a bolder/clearer mark. Instead,
+   the mark's own text is hidden (color/font-size collapsed to nothing) and
+   a plain bold "T" shape (a full-width top bar + a vertical bar centered
+   under its middle, via left:50%/translateX(-50%) so it's centered exactly
+   regardless of size) is drawn on top with ::before/::after -- fully
+   controlled size/thickness/position, independent of font rendering. Real
+   text stays in the DOM (see renderNikudChoices()) for screen readers.
+   Each niqud type gets its own shape class (".nikud-mark-<type>") the same
+   way -- this is the pattern to extend for future niqud types, not text. */
+.nikud-choice-btn .nikud-mark {
+  position: relative;
+  color: transparent;
+  font-size: 0;
+  width: 18px;
+  height: 17px;
+}
+.nikud-mark-kamats::before,
+.nikud-mark-kamats::after {
+  content: '';
+  position: absolute;
+  background: #000;
+  border-radius: 3px;
+}
+.nikud-mark-kamats::before { /* top horizontal bar, spans the full mark width */
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 5px;
+}
+.nikud-mark-kamats::after { /* vertical bar, centered under the horizontal bar's middle -- shorter than the box so it reads as a drop off the horizontal, not an equal-length arm */
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 5px;
+  height: 70%;
+}
+
+/* ק's leg drops below the line further than other letters, colliding with
+   the mark at the normal gap -- see NIKUD_DESCENDER_LETTERS in config.js. */
+.nikud-choice-btn.nikud-descender-letter .nikud-mark {
+  margin-top: 6px;
+}
+
 @media (max-width: 600px) {
   .letter-sound-btn { width: 54px; height: 54px; font-size: 24px; }
   .letter-choice-btn { width: 52px; height: 52px; font-size: 26px; }
   .letter-reveal-display { width: 74px; height: 74px; font-size: 44px; }
   #lettersAnswerHome { gap: 12px; margin-bottom: 8px; }
   #letterListenMode, #letterRevealMode { gap: 12px; }
+  .nikud-choice-btn { gap: 1px; }
+  .nikud-choice-btn .nikud-letter { font-size: 24px; }
+  .nikud-choice-btn .nikud-mark { width: 14px; height: 13px; }
+  .nikud-mark-kamats::before { height: 4px; }
+  .nikud-mark-kamats::after { width: 4px; }
+  .nikud-choice-btn.nikud-descender-letter .nikud-mark { margin-top: 4px; }
 }
 
 .feedback {
