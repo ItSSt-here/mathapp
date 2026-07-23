@@ -23,6 +23,18 @@ a שווא instead of a full קמץ). Trimmed with the project's own trim-tool.h
 (a small Web Audio waveform-trim utility, not part of the shipped game) by
 the user, 2026-07-23.
 
+kamats/ט.wav: REPLACES the soundsofnikud.com clip above -- user reported it
+was also bad. Self-made by trimming the "ט" syllable out of a real word
+recording: LL-Q9288 (heb)-YaronSh-טל.wav (the word טַל/"tal", "dew", CC0),
+downloaded from Wikimedia Commons, IPA confirms /tal/. Same single-syllable
+selection logic as פ above. Trimmed by the user, 2026-07-23.
+
+כ still uses ק's clip indirectly (see NIKUD_AUDIO_OVERRIDE in js/exercise.js)
+-- a candidate replacement word was tried (כף/"kaf", two takes fetched:
+He-כָּף.ogg by dafna3bot, CC0, and LL-Q9288 (heb)-Buffer-כף.wav, CC BY-SA 4.0,
+both in _raw-audio-src/) but the recording wasn't clear enough on trimming.
+Postponed -- try a different source word next time this is picked back up.
+
 Not yet wired into the exercise (level 1 is hard-sound-only for now, see
 NIKUD_CLIP_EXT/NIKUD_AUDIO_OVERRIDE in js/exercise.js) but already recorded
 for a future "soft/undageshed" level:

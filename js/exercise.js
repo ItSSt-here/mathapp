@@ -138,10 +138,14 @@ const NIKUD_AUDIO_OVERRIDE = { 'כ': 'ק' };
 
 // פ: the site's own clip was unrecognizable as פ (reported as sounding like
 // ה) -- replaced with a hard "pa" trimmed from a real-word recording of פס
-// (see assets/nikud/CREDITS.txt). Soft/undageshed ב and כ have also been
-// self-recorded this way but aren't wired in yet -- level 1 stays hard-only
-// for now, soft versions are earmarked for a future level.
-const NIKUD_CLIP_EXT = { 'פ': 'wav' };
+// (see assets/nikud/CREDITS.txt). ט: the site's own clip was also reported
+// as bad -- replaced with a clip trimmed from טל. Soft/undageshed ב and כ
+// have also been self-recorded this way but aren't wired in yet -- level 1
+// stays hard-only for now, soft versions are earmarked for a future level.
+// כ's own site clip is still in use *indirectly* via NIKUD_AUDIO_OVERRIDE
+// above (borrowing ק's) -- a candidate replacement word (כף) was found and
+// fetched but the recording wasn't clear enough either; postponed.
+const NIKUD_CLIP_EXT = { 'פ': 'wav', 'ט': 'wav' };
 let currentNikudAudio = null;
 
 function playNikudSound(letter) {
