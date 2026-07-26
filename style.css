@@ -604,6 +604,29 @@ hr {
   #buyBtnDesktopHome:empty { display: none; }
 }
 
+/* The mode-select overlay (and any other overlay whose button row grows,
+   e.g. adding more topics) used to force a single-row-wide card with no
+   scroll escape, running the card off the sides of a phone screen. Wrapping
+   the buttons and capping the card width keeps it inside the viewport, and
+   the top-aligned + scrollable overlay is a safety net if a wrapped card
+   still ends up taller than the screen. */
+@media (max-width: 600px) {
+  .overlay {
+    align-items: flex-start;
+    overflow-y: auto;
+    padding: 24px 0;
+  }
+
+  .overlay-card {
+    max-width: 90vw;
+    box-sizing: border-box;
+  }
+
+  .postgame-buttons {
+    flex-wrap: wrap;
+  }
+}
+
 .battlefield {
   direction: ltr;
   position: relative;
