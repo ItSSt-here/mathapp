@@ -432,6 +432,96 @@ function checkLetterReverseAnswer() {
   }
 }
 
+// ---------- Compare-fractions exercise (which fraction is bigger?) ----------
+// Level 1 (currently every level, see EXERCISE_LEVEL_DESCRIPTIONS.comparefractions
+// in config.js): randomly picks one of two sub-cases so the student can't
+// coast on one memorized rule --
+//   same denominator: p/n vs q/n (p != q) -- bigger numerator wins.
+//   same numerator:   n/p vs n/q (p != q) -- SMALLER denominator wins (fewer,
+//     bigger slices), the easy one to get backwards if you don't reason it out.
+// Both fractions are always proper (numerator < denominator). Answer is
+// always '<' or '>' -- COMPARE_OPTIONS in config.js already leaves room to
+// add '=' later via a same-value sub-case.
+function generateCompareFractionsExercise() {
+  const sameDenominator = Math.random() < 0.5;
+  let leftNum, leftDen, rightNum, rightDen, correct;
+
+  if (sameDenominator) {
+    const den = randInt(COMPARE_FRAC_SAME_DEN_MIN, COMPARE_FRAC_SAME_DEN_MAX);
+    [leftNum, rightNum] = pickDistinctRandom(rangeArray(1, den - 1), 2);
+    leftDen = rightDen = den;
+    correct = leftNum > rightNum ? '>' : '<';
+  } else {
+    const num = randInt(COMPARE_FRAC_SAME_NUM_MIN, COMPARE_FRAC_SAME_NUM_MAX);
+    [leftDen, rightDen] = pickDistinctRandom(rangeArray(num + 1, num + COMPARE_FRAC_DEN_SPREAD), 2);
+    leftNum = rightNum = num;
+    correct = leftDen < rightDen ? '>' : '<';
+  }
+
+  return { leftNum, leftDen, rightNum, rightDen, correct };
+}
+
+// Renders the '<'/'>' pick buttons into #compareChoices, in its own row
+// below the question (#compareAnswerHome in index.html) rather than inline
+// with the fractions -- reuses .letter-choice-btn so the correct/wrong/
+// disabled states match every other multiple-choice topic without
+// duplicating that CSS.
+function renderCompareChoices() {
+  const container = document.getElementById('compareChoices');
+  container.innerHTML = '';
+  container.classList.remove('compare-choices-locked');
+  COMPARE_OPTIONS.forEach(option => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'letter-choice-btn';
+    btn.textContent = option;
+    btn.addEventListener('click', () => checkCompareAnswer(option, btn));
+    container.appendChild(btn);
+  });
+}
+
+// Only two options exist, so unlike checkLetterAnswer()'s eliminate-and-retry
+// pattern, a wrong pick here can't just disable that one button -- the other
+// would then be a free correct answer. Instead a wrong pick reveals the
+// correct answer in #compareBlank (red, same convention as
+// input.answer-revealed:disabled for the swap-question button) and moves on
+// to a new question after SWAP_REVEAL_MS, same pause changeQuestion() uses.
+function checkCompareAnswer(selected, btnEl) {
+  if (gameOver) return;
+
+  const container = document.getElementById('compareChoices');
+  if (container.classList.contains('compare-choices-locked')) return;
+
+  const feedback = document.getElementById('feedback');
+  const blank = document.getElementById('compareBlank');
+  const isCorrect = selected === currentCompareAnswer;
+
+  container.classList.add('compare-choices-locked');
+  Array.from(container.children).forEach(b => b.disabled = true);
+
+  if (isCorrect) {
+    blank.textContent = selected;
+    blank.classList.add('answer-correct');
+    btnEl.classList.add('letter-correct');
+    feedback.textContent = 'נכון';
+    feedback.className = 'feedback correct';
+    playerMoney += CORRECT_REWARD;
+    updateCoinsDisplay();
+    showFloatingText(`+${CORRECT_REWARD}`, 'positive', btnEl);
+    setTimeout(newExercise, 800);
+  } else {
+    btnEl.classList.add('letter-wrong');
+    blank.textContent = currentCompareAnswer;
+    blank.classList.add('revealed');
+    feedback.textContent = 'לא נכון';
+    feedback.className = 'feedback incorrect';
+    playerMoney -= WRONG_PENALTY;
+    updateCoinsDisplay();
+    showFloatingText(`-${WRONG_PENALTY}`, 'negative', btnEl);
+    setTimeout(newExercise, SWAP_REVEAL_MS);
+  }
+}
+
 function fractionBlockHTML(numerator, denominator) {
   return `<span class="frac-block"><span class="frac-num">${numerator}</span><span class="frac-bar"></span><span class="frac-den">${denominator}</span></span>`;
 }
@@ -462,13 +552,30 @@ function newExercise() {
   const isLetters = gameMode === 'letters';
   const isAbc = gameMode === 'abc';
   const isNikud = gameMode === 'nikud';
+  const isCompare = gameMode === 'comparefractions';
   const isLetterFamily = isLetters || isAbc || isNikud;
   const isReverse = isLetterReverseMode(); // always false for nikud -- no reverse direction yet
   document.getElementById('mathQuestionRow').style.display = isLetterFamily ? 'none' : '';
-  document.getElementById('answerHome').style.display = isLetterFamily ? 'none' : '';
-  document.getElementById('checkBtn').style.display = (isLetterFamily && !isReverse) ? 'none' : '';
-  document.getElementById('swapBtn').style.display = isLetterFamily ? 'none' : '';
+  document.getElementById('answerHome').style.display = (isLetterFamily || isCompare) ? 'none' : '';
+  document.getElementById('checkBtn').style.display = ((isLetterFamily && !isReverse) || isCompare) ? 'none' : '';
+  document.getElementById('swapBtn').style.display = (isLetterFamily || isCompare) ? 'none' : '';
   document.getElementById('lettersAnswerHome').style.display = isLetterFamily ? '' : 'none';
+  document.getElementById('compareAnswerHome').style.display = isCompare ? '' : 'none';
+
+  if (isCompare) {
+    const ex = generateCompareFractionsExercise();
+    currentCompareAnswer = ex.correct;
+    questionText.innerHTML =
+      '<span class="frac-eq compare-eq">' +
+        fractionBlockHTML(ex.leftNum, ex.leftDen) +
+        '<span class="compare-blank" id="compareBlank"></span>' +
+        fractionBlockHTML(ex.rightNum, ex.rightDen) +
+      '</span>';
+    renderCompareChoices();
+    document.getElementById('feedback').textContent = '';
+    document.getElementById('feedback').className = 'feedback';
+    return;
+  }
 
   if (isLetterFamily) {
     document.getElementById('letterListenMode').style.display = isReverse ? 'none' : '';

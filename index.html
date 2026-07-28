@@ -42,6 +42,15 @@
       <div class="letter-choices" id="letterSoundChoices"></div>
     </div>
   </div>
+  <!-- Compare-fractions exercise: the two fractions render with a blank gap
+       between them in #mathQuestionRow (see newExercise() in
+       js/exercise.js) -- no operator shown there. The </> pick buttons live
+       in their own row here instead, so choosing an answer is a clearly
+       separate action from reading the question. Hidden except in
+       comparefractions mode. -->
+  <div id="compareAnswerHome" style="display:none;">
+    <div class="letter-choices" id="compareChoices"></div>
+  </div>
   <!-- Second blank, only used for fraction exercises where both the
        numerator and denominator are hidden; parked here (hidden) otherwise. -->
   <div id="answer2Home" style="display:none;">
@@ -123,6 +132,7 @@
     <div class="postgame-buttons">
       <button class="restart-btn" id="modeMultiplyBtn">לוח הכפל</button>
       <button class="restart-btn" id="modeFractionsBtn">שברים</button>
+      <button class="restart-btn" id="modeCompareFractionsBtn">השוואת שברים</button>
       <button class="restart-btn" id="modeLettersBtn">אותיות</button>
       <button class="restart-btn" id="modeAbcBtn">ABC</button>
       <button class="restart-btn" id="modeNikudBtn">ניקוד</button>

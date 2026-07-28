@@ -153,6 +153,45 @@ input.answer-revealed:disabled {
   font-size: 40px;
 }
 
+/* Compare-fractions exercise: an empty box between the two fraction blocks,
+   styled like the plain-input blank in every other exercise, signals
+   "answer goes here" -- the </> pick buttons that actually fill it live
+   below in #compareAnswerHome (see renderCompareChoices()/
+   checkCompareAnswer() in js/exercise.js), not inline with the question.
+   '<'/'>' are Unicode "mirrored" characters -- the page's dir="rtl" flips
+   how they render unless explicitly forced back to ltr, which is why both
+   this box and #compareChoices set direction/unicode-bidi below. */
+.compare-blank {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  font-size: 26px;
+  font-weight: bold;
+  border: 2px solid #ccc;
+  border-radius: 10px;
+  color: #2b3a67;
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+/* Correct pick: shown in the box, green. Wrong pick: the *correct* answer
+   (not the wrong pick) is revealed here in red -- same red-for-reveal
+   convention as input.answer-revealed:disabled uses for the swap-question
+   button -- while newExercise() is about to swap in a new question. */
+.compare-blank.answer-correct { color: #2e9e4f; border-color: #2e9e4f; }
+.compare-blank.revealed { color: #e0433d; border-color: #e0433d; }
+
+#compareChoices {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+#compareAnswerHome {
+  margin-bottom: 16px;
+}
+
 .fraction-answer-input {
   width: 50px !important;
   font-size: 30px !important;

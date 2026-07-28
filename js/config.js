@@ -85,7 +85,7 @@ let gameMode = 'multiplication';
 let arrivedViaLink = false;
 const URL_PARAM_TOPIC = 'topic';
 const URL_PARAM_DIFFICULTY = 'difficulty';
-const VALID_TOPICS = ['multiplication', 'fractions', 'letters', 'abc', 'nikud']; // matches gameMode's own values, no translation table needed
+const VALID_TOPICS = ['multiplication', 'fractions', 'comparefractions', 'letters', 'abc', 'nikud']; // matches gameMode's own values, no translation table needed
 
 // Letters exercise (recognition, for younger children): child taps a sound
 // button to hear the letter's name (a recorded clip, see
@@ -175,6 +175,23 @@ const FRACTION_LEVEL4_FULL_REDUCTION_CHANCE = 0.8;
 // level 3-style exercises as a subset without any special-casing.
 const FRACTION_B2_MIN = 1;
 
+// Compare-fractions exercise ("השוואת שברים"): pick either two proper
+// fractions sharing a denominator (p/n vs q/n, compare numerators directly)
+// or two sharing a numerator (n/p vs n/q, compare denominators inverted --
+// fewer/bigger slices wins). See generateCompareFractionsExercise() in
+// exercise.js. At the moment every difficulty level (1-5) uses this same
+// level-1 mechanic; harder variants may be added later.
+const COMPARE_FRAC_SAME_DEN_MIN = 3;  // denominator must be >=3 for 2 distinct proper numerators to exist
+const COMPARE_FRAC_SAME_DEN_MAX = 10;
+const COMPARE_FRAC_SAME_NUM_MIN = 1;
+const COMPARE_FRAC_SAME_NUM_MAX = 8;
+const COMPARE_FRAC_DEN_SPREAD = 9; // denominators drawn from [num+1, num+SPREAD]
+
+// The only two comparison answers implemented so far -- kept as a list
+// (rather than two hardcoded buttons) so a same-value '=' sub-case can be
+// added later just by extending this array plus the exercise generator.
+const COMPARE_OPTIONS = ['<', '>'];
+
 const LEVEL1_NUMS = [0, 1, 10];
 const LEVEL2_NUMS = [2, 3, 5];
 const LEVEL3_NUMS_FULL = [4, 6, 7, 8, 9];
@@ -246,12 +263,20 @@ const EXERCISE_LEVEL_DESCRIPTIONS = {
     'שומעים אות עם ניקוד קמץ (לחיצה על 🔊) ובוחרים אותה מתוך 5 אותיות עם קמץ.',
     'שומעים אות עם ניקוד קמץ (לחיצה על 🔊) ובוחרים אותה מתוך 5 אותיות עם קמץ.',
   ],
+  comparefractions: [
+    'מוצגים שני שברים -- לפעמים עם אותו מכנה, לפעמים עם אותו מונה (באקראי) -- ויש לבחור > או < כדי לקבוע איזה מהם גדול יותר.',
+    'מוצגים שני שברים -- לפעמים עם אותו מכנה, לפעמים עם אותו מונה (באקראי) -- ויש לבחור > או < כדי לקבוע איזה מהם גדול יותר.',
+    'מוצגים שני שברים -- לפעמים עם אותו מכנה, לפעמים עם אותו מונה (באקראי) -- ויש לבחור > או < כדי לקבוע איזה מהם גדול יותר.',
+    'מוצגים שני שברים -- לפעמים עם אותו מכנה, לפעמים עם אותו מונה (באקראי) -- ויש לבחור > או < כדי לקבוע איזה מהם גדול יותר.',
+    'מוצגים שני שברים -- לפעמים עם אותו מכנה, לפעמים עם אותו מונה (באקראי) -- ויש לבחור > או < כדי לקבוע איזה מהם גדול יותר.',
+  ],
 };
 
 // ---------- State ----------
 let num1, num2;
 let currentAnswer; // correct value for the current exercise, any mode
 let currentLetterAnswer = null; // correct letter (a single character) for the current letters-mode exercise
+let currentCompareAnswer = null; // correct '<'/'>' for the current comparefractions-mode exercise
 let playerMoney = 0;
 let playerCastleHP = CASTLE_MAX_HP;
 let computerCastleHP = CASTLE_MAX_HP;

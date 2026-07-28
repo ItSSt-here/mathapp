@@ -14,6 +14,15 @@ function gcd(x, y) {
   return x;
 }
 
+// Inclusive integer range [min, max] as an array -- e.g. a numeric pool to
+// draw from with pickDistinctRandom() (see generateCompareFractionsExercise()
+// in exercise.js).
+function rangeArray(min, max) {
+  const arr = [];
+  for (let i = min; i <= max; i++) arr.push(i);
+  return arr;
+}
+
 // Picks n distinct random items from arr (n <= arr.length), also useful as a
 // full shuffle when n === arr.length.
 function pickDistinctRandom(arr, n) {
