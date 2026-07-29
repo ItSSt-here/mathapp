@@ -37,6 +37,28 @@ h1 {
   margin: 0 0 10px;
 }
 
+/* Clock + session counters, grouped together at the top of the card and
+   kept well away from .stats-row's coins counter below -- coins is what the
+   player needs to track constantly, so nothing here should compete with it
+   for attention. RTL flex packs these to the visual right edge, first DOM
+   child (the clock) rightmost. */
+.top-stats-row {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 10px;
+}
+
+.mini-stat {
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.mini-stat-correct { color: #2e9e4f; }
+.mini-stat-wrong { color: #e0433d; }
+.mini-stat-swap { color: #4a6cf7; }
+
 .overlay-level-info {
   font-size: 13px;
   color: #777;
@@ -347,6 +369,18 @@ button.check-btn:active {
   box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.35), 0 3px 0 #3349b0;
 }
 
+/* ABC mode only (see .abc-mode toggle in newExercise(), exercise-core.js):
+   the page's normal font (Arial) renders uppercase I and lowercase l as the
+   same plain vertical stroke -- genuinely unreadable apart, confirmed by
+   rendering both to a canvas and diffing pixels (Arial: ~3800 differing
+   pixels; Verdana: ~31000). Verdana was specifically designed to keep I/l/1
+   visually distinct, so it's scoped to just the ABC letter glyphs rather
+   than changing the whole page's font. */
+.abc-mode .letter-choice-btn,
+.abc-mode .letter-reveal-display {
+  font-family: Verdana, Tahoma, Geneva, sans-serif;
+}
+
 /* Nikud mode: letter and its niqud mark are stacked, separately sized rows
    instead of one combined/font-shaped glyph -- see renderNikudChoices() in
    exercise.js. The mark is deliberately large/bold/colored so it reads as
@@ -524,6 +558,8 @@ hr {
      compressed here to leave the keyboard as much room as possible. */
   .card { padding: 14px 16px; }
   .level-info { margin-bottom: 4px; }
+  .top-stats-row { gap: 8px; margin-bottom: 6px; }
+  .mini-stat { font-size: 12px; }
   h1 { font-size: 17px; padding: 6px 18px; margin-bottom: 10px; }
   .exercise { font-size: 32px; }
   .exercise-row { margin-bottom: 8px; gap: 8px; }
@@ -1056,6 +1092,36 @@ hr {
   color: #777;
   margin: -6px 0 18px;
 }
+
+/* Session totals on the win/lose screen -- unlike .top-stats-row during
+   gameplay, these are meant to stand out (bigger, centered), since there's
+   no coins counter competing for attention here anymore. */
+.final-stats-row {
+  display: flex;
+  justify-content: center;
+  gap: 22px;
+  margin: 0 0 18px;
+}
+
+.final-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.final-stat span:first-child {
+  font-size: 26px;
+  font-weight: bold;
+}
+
+.final-stat-label {
+  font-size: 12px;
+  color: #777;
+}
+
+.final-stat-correct span:first-child { color: #2e9e4f; }
+.final-stat-wrong span:first-child { color: #e0433d; }
+.final-stat-swap span:first-child { color: #4a6cf7; }
 
 /* Floating +/- coin popups: positioned in JS (fixed, viewport coords) next
    to whatever triggered them (the answer input or the swap button), then

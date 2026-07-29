@@ -97,6 +97,12 @@ function endGame(playerWon) {
   title.className = playerWon ? 'overlay-title win' : 'overlay-title lose';
   document.getElementById('overlayLevelInfo').textContent = formatLevelInfo();
   document.getElementById('overlayBattleTime').textContent = `משך הקרב: ${formatDuration(battleElapsedMs)}`;
+  // correctCount/wrongCount/swapCount are frozen now that gameOver is true,
+  // so a one-time copy into the overlay's own elements is enough -- no need
+  // for these to live-update the way .top-stats-row does during play.
+  document.getElementById('overlayCorrectCount').textContent = correctCount;
+  document.getElementById('overlayWrongCount').textContent = wrongCount;
+  document.getElementById('overlaySwapCount').textContent = swapCount;
   overlay.classList.add('show');
 }
 
@@ -108,6 +114,9 @@ function startGame() {
   gameOver = false;
   enemySpawnTimer = 0;
   battleElapsedMs = 0;
+  correctCount = 0;
+  wrongCount = 0;
+  swapCount = 0;
   document.getElementById('overlay').classList.remove('show');
   document.getElementById('levelInfo').textContent = formatLevelInfo();
   recalcSiegeThresholds();
@@ -119,6 +128,7 @@ function startGame() {
   document.getElementById('swapBtn').disabled = false;
 
   updateCoinsDisplay();
+  updateStatsCountersDisplay();
   render();
   newExercise();
   if (intervalId) clearInterval(intervalId);

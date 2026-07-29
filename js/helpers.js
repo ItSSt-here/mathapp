@@ -16,11 +16,23 @@ function gcd(x, y) {
 
 // Inclusive integer range [min, max] as an array -- e.g. a numeric pool to
 // draw from with pickDistinctRandom() (see generateCompareFractionsExercise()
-// in exercise.js).
+// in exercise-compare.js).
 function rangeArray(min, max) {
   const arr = [];
   for (let i = min; i <= max; i++) arr.push(i);
   return arr;
+}
+
+// Letters that must never appear alongside `letter` as a {correct,distractor}
+// pair, given a list of confusable pairs (e.g. NIKUD_CONFUSABLE_PAIRS or
+// ABC_CONFUSABLE_PAIRS in config.js) -- shared by nikudConfusablesOf() in
+// exercise-nikud.js and abcConfusablesOf() in exercise-abc.js, since both are
+// the exact same "which letters could be mistaken for this one" lookup, just
+// against a different pairs table.
+function confusablesOf(letter, pairs) {
+  return pairs
+    .filter(pair => pair.includes(letter))
+    .map(pair => pair[0] === letter ? pair[1] : pair[0]);
 }
 
 // Picks n distinct random items from arr (n <= arr.length), also useful as a

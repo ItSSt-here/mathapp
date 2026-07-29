@@ -5,11 +5,11 @@
 
 // Returns the letters that must never appear alongside `letter` as a
 // {correct, distractor} pair, per NIKUD_CONFUSABLE_PAIRS (see config.js for
-// why each pair sounds identical once pointed).
+// why each pair sounds identical once pointed). See confusablesOf() in
+// helpers.js -- abcConfusablesOf() in exercise-abc.js is the same lookup
+// against a different pairs table.
 function nikudConfusablesOf(letter) {
-  return NIKUD_CONFUSABLE_PAIRS
-    .filter(pair => pair.includes(letter))
-    .map(pair => pair[0] === letter ? pair[1] : pair[0]);
+  return confusablesOf(letter, NIKUD_CONFUSABLE_PAIRS);
 }
 
 function generateNikudExercise() {

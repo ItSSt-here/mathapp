@@ -10,6 +10,17 @@
 
 <div class="card">
   <div class="level-info" id="levelInfo"></div>
+  <!-- Small, unobtrusive session counters (correct/wrong/question-swaps) plus
+       the battle clock -- deliberately grouped together and kept away from
+       the coins counter (.stats-row below), since coins is what the player
+       needs to track constantly for buying soldiers and shouldn't compete
+       for attention. See updateStatsCountersDisplay() in exercise-core.js. -->
+  <div class="top-stats-row" id="topStatsRow">
+    <span class="battle-timer" id="battleTimer">0:00</span>
+    <span class="mini-stat mini-stat-correct" id="correctCountDisplay">0</span>
+    <span class="mini-stat mini-stat-wrong" id="wrongCountDisplay">0</span>
+    <span class="mini-stat mini-stat-swap" id="swapCountDisplay">0</span>
+  </div>
   <h1>קרב הטירות</h1>
 
   <div class="exercise-row" id="mathQuestionRow">
@@ -70,7 +81,6 @@
 
   <div class="stats-row">
     <div class="coins" id="coins">מטבעות: 0</div>
-    <div class="battle-timer" id="battleTimer">0:00</div>
     <button class="swap-btn" id="swapBtn">החלף שאלה (עלות: 15 מטבעות)</button>
   </div>
 
@@ -208,6 +218,11 @@
     <div class="overlay-title" id="overlayTitle"></div>
     <p class="overlay-level-info" id="overlayLevelInfo"></p>
     <p class="overlay-battle-time" id="overlayBattleTime"></p>
+    <div class="final-stats-row" id="finalStatsRow">
+      <div class="final-stat final-stat-correct"><span id="overlayCorrectCount">0</span><span class="final-stat-label">נכון</span></div>
+      <div class="final-stat final-stat-wrong"><span id="overlayWrongCount">0</span><span class="final-stat-label">לא נכון</span></div>
+      <div class="final-stat final-stat-swap"><span id="overlaySwapCount">0</span><span class="final-stat-label">החלפות</span></div>
+    </div>
     <p class="overlay-text">לשחק שוב?</p>
     <div class="postgame-buttons">
       <button class="restart-btn" id="restartBtn">שחק שוב</button>

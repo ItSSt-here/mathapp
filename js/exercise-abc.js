@@ -12,16 +12,32 @@ function abcCaseForLevel(letter, level) {
   return Math.random() < 0.5 ? letter : letter.toLowerCase(); // level 3: 50/50 per letter
 }
 
+// Returns the letters that must never appear as a distractor sound alongside
+// `letter` when it's the one actually shown, per ABC_CONFUSABLE_PAIRS in
+// config.js (currently just I/L). See confusablesOf() in helpers.js.
+function abcConfusablesOf(letter) {
+  return confusablesOf(letter, ABC_CONFUSABLE_PAIRS);
+}
+
 function generateAbcExercise() {
   const level = exerciseDifficultyIndex + 1;
   const correct = randChoice(ABC_LETTERS);
-  const distractors = pickDistinctRandom(ABC_LETTERS.filter(l => l !== correct), 4);
+  const isReverse = level >= 4;
+
+  // Reverse mode shows only one letter's shape at a time, with nothing to
+  // compare it against -- even with Verdana keeping I and l visually
+  // distinct *side by side* (see .abc-mode in style.css), a lone "l" still
+  // can't be told apart from "I" with confidence. Listen mode shows all 5
+  // shapes at once, where that side-by-side distinction already works, so
+  // the exclusion is reverse-mode only.
+  const excluded = isReverse ? new Set([correct, ...abcConfusablesOf(correct)]) : new Set([correct]);
+  const distractors = pickDistinctRandom(ABC_LETTERS.filter(l => !excluded.has(l)), 4);
   const identities = pickDistinctRandom([correct, ...distractors], 5); // shuffles the order too
 
-  if (level >= 4) {
-    // Reverse mode: options are sound-button identities (always canonical
-    // uppercase -- they're never displayed, only spoken), while the single
-    // shown target letter gets its own independently-randomized case.
+  if (isReverse) {
+    // Options are sound-button identities (always canonical uppercase --
+    // they're never displayed, only spoken), while the single shown target
+    // letter gets its own independently-randomized case.
     return { correct, options: identities, displayCorrect: Math.random() < 0.5 ? correct : correct.toLowerCase() };
   }
 

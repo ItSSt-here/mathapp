@@ -89,32 +89,45 @@ const VALID_TOPICS = ['multiplication', 'fractions', 'comparefractions', 'letter
 
 // Letters exercise (recognition, for younger children): child taps a sound
 // button to hear the letter's name (a recorded clip, see
-// assets/letters/<letter>.mp3 and playLetterSound() in exercise.js) and picks
-// it out of 5 options. Final-form letters (ך ם ן ף ץ) are left out for now --
-// may be added later.
+// assets/letters/<letter>.mp3 and playLetterSound() in exercise-letters.js)
+// and picks it out of 5 options. Final-form letters (ך ם ן ף ץ) are left out
+// for now -- may be added later.
 const HEBREW_LETTERS = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט', 'י', 'כ', 'ל', 'מ', 'נ', 'ס', 'ע', 'פ', 'צ', 'ק', 'ר', 'ש', 'ת'];
 
 // ABC exercise: levels 1-3 reuse HEBREW_LETTERS level 1's listen-then-pick
 // mechanic (varying upper/lowercase, see generateAbcExercise() in
-// exercise.js), levels 4-5 reuse the reverse (see-letter/pick-sound)
+// exercise-abc.js), levels 4-5 reuse the reverse (see-letter/pick-sound)
 // direction. Sound is a recorded clip (assets/abc/<letter>.ogg, see
-// playAbcSound() in exercise.js), same as HEBREW_LETTERS.
+// playAbcSound() in exercise-abc.js), same as HEBREW_LETTERS.
 const ABC_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
+
+// Capital I and lowercase l render as the same plain vertical stroke in the
+// app's normal font (Arial) -- fixed for *listen* mode (where all 5 shapes
+// show at once, side by side) by switching ABC's glyphs to Verdana, which
+// keeps them visually distinct (see .abc-mode in style.css). But *reverse*
+// mode (see abcConfusablesOf() in exercise-abc.js) shows only one glyph at a
+// time with nothing to compare it against, so even a distinct-looking "l"
+// can't be told apart from "I" with confidence -- never let one appear as a
+// distractor sound when the other is the letter actually shown, same
+// exclusion pattern as NIKUD_CONFUSABLE_PAIRS below (see confusablesOf() in
+// helpers.js, shared by both).
+const ABC_CONFUSABLE_PAIRS = [['I', 'L']];
 
 // Nikud exercise: child hears a letter pronounced with a niqud vowel mark
 // (currently only קמץ -- recorded clips, see assets/nikud/kamats/<letter>.mp3
 // and assets/nikud/CREDITS.txt) and picks the matching letter (shown with the
 // same niqud mark) out of 5 options, same mechanic/UI as HEBREW_LETTERS level
-// 1 (see generateNikudExercise()/renderNikudChoices() in exercise.js). At the
-// moment every difficulty level uses this same קמץ-only mechanic; more niqud
-// types may be added later. Every letter in HEBREW_LETTERS is eligible as the
-// target (including כ -- see NIKUD_AUDIO_OVERRIDE in exercise.js for how its
-// sound is sourced, since it has no unambiguous recording of its own).
+// 1 (see generateNikudExercise()/renderNikudChoices() in exercise-nikud.js).
+// At the moment every difficulty level uses this same קמץ-only mechanic; more
+// niqud types may be added later. Every letter in HEBREW_LETTERS is eligible
+// as the target (including כ -- see NIKUD_AUDIO_OVERRIDE in exercise-nikud.js
+// for how its sound is sourced, since it has no unambiguous recording of its
+// own).
 
 // Letter pairs that sound identical in Modern Hebrew once pointed -- never
 // let one appear as a distractor when the other is the correct/played
-// letter (see nikudConfusablesOf() in exercise.js). ק/כ sound identical (and
-// כ's audio is literally ק's clip, see NIKUD_AUDIO_OVERRIDE); כ written
+// letter (see nikudConfusablesOf() in exercise-nikud.js). ק/כ sound identical
+// (and כ's audio is literally ק's clip, see NIKUD_AUDIO_OVERRIDE); כ written
 // without a dagesh reads like ח; ט/ת both sound "t". א/ע deliberately left
 // unpaired -- both are silent in casual Modern Hebrew speech, but these
 // recordings do pronounce them distinctly, which is worth letting the
@@ -139,7 +152,7 @@ const NIKUD_LETTER_TRANSLIT = {
 };
 
 // Combining קמץ mark (U+05B8), rendered as its own enlarged element (see
-// renderNikudChoices() in exercise.js) rather than relying on the font to
+// renderNikudChoices() in exercise-nikud.js) rather than relying on the font to
 // combine+size it with the base letter -- combining-mark rendering doesn't
 // give independent control over the mark's size, and it needs to read
 // clearly on its own, more so once more niqud types are added alongside it.
@@ -179,8 +192,8 @@ const FRACTION_B2_MIN = 1;
 // fractions sharing a denominator (p/n vs q/n, compare numerators directly)
 // or two sharing a numerator (n/p vs n/q, compare denominators inverted --
 // fewer/bigger slices wins). See generateCompareFractionsExercise() in
-// exercise.js. At the moment every difficulty level (1-5) uses this same
-// level-1 mechanic; harder variants may be added later.
+// exercise-compare.js. At the moment every difficulty level (1-5) uses this
+// same level-1 mechanic; harder variants may be added later.
 const COMPARE_FRAC_SAME_DEN_MIN = 3;  // denominator must be >=3 for 2 distinct proper numerators to exist
 const COMPARE_FRAC_SAME_DEN_MAX = 10;
 const COMPARE_FRAC_SAME_NUM_MIN = 1;
@@ -188,12 +201,12 @@ const COMPARE_FRAC_SAME_NUM_MAX = 8;
 const COMPARE_FRAC_DEN_SPREAD = 9; // denominators drawn from [num+1, num+SPREAD]
 
 // Level 2's "complement to whole" sub-case (see generateCompareFractionsComplementExercise()
-// in exercise.js): fixed at 1 for now -- a randomized distance-from-whole
+// in exercise-compare.js): fixed at 1 for now -- a randomized distance-from-whole
 // made the trick too hard to spot, per user feedback.
 const COMPARE_FRAC_COMPLEMENT_D = 1;
 
 // Level 3's "one denominator is a multiple of the other" case (see
-// generateCompareFractionsLevel3Exercise() in exercise.js): q/a vs
+// generateCompareFractionsLevel3Exercise() in exercise-compare.js): q/a vs
 // (b*q +/- n)/(b*a) -- the second denominator is always a multiple of the
 // first, so the trick is expanding q/a to the common denominator (b*q)/(b*a)
 // and then just comparing numerators. 10% of exercises use n=0, making the
@@ -217,7 +230,7 @@ const COMPARE_FRAC_L4_M_MAX = 5;
 // list (rather than two hardcoded buttons) so a same-value '=' sub-case
 // could be added later just by extending it. Level 3 is that sub-case:
 // COMPARE_OPTIONS_WITH_EQUAL is shown instead from level 3 onward (see
-// newExercise() in exercise.js).
+// newExercise() in exercise-core.js).
 const COMPARE_OPTIONS = ['<', '>'];
 const COMPARE_OPTIONS_WITH_EQUAL = ['<', '=', '>'];
 
@@ -253,7 +266,7 @@ function getExerciseLevelConfig() {
 // Shown to the teacher on the difficulty-picker screen so they know what
 // each level actually drills, in plain terms, per topic (see
 // EXERCISE_LEVEL_CONFIGS above and pickFractionMode()/generateLevel5Exercise()
-// in exercise.js for the logic each of these is describing). Indexed like
+// in exercise-fractions.js for the logic each of these is describing). Indexed like
 // EXERCISE_DIFFICULTIES; a topic with no entry here falls back to a
 // placeholder in updateExerciseDifficultyLabel().
 const EXERCISE_LEVEL_DESCRIPTIONS = {
@@ -317,3 +330,11 @@ let animIntervalId = null;
 let enemySpawnTimer = 0;
 let swapTimeoutId = null;
 let battleElapsedMs = 0;
+
+// Per-game session counters shown in .top-stats-row during play and again
+// (bigger, centered) on the win/lose overlay -- see markCorrect()/markWrong()/
+// changeQuestion() in exercise-core.js, which increment these, and
+// updateStatsCountersDisplay() in the same file, which renders them.
+let correctCount = 0;
+let wrongCount = 0;
+let swapCount = 0;

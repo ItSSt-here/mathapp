@@ -55,6 +55,11 @@ function newExercise() {
   document.getElementById('swapBtn').style.display = (isLetterFamily || isCompare) ? 'none' : '';
   document.getElementById('lettersAnswerHome').style.display = isLetterFamily ? '' : 'none';
   document.getElementById('compareAnswerHome').style.display = isCompare ? '' : 'none';
+  // Swaps in a font where uppercase I and lowercase l are actually visually
+  // distinct (see the .abc-mode rule in style.css) -- only relevant for the
+  // Latin alphabet, so scoped to abc mode rather than applied to the
+  // Hebrew-letters/nikud glyphs sharing these same elements.
+  document.getElementById('lettersAnswerHome').classList.toggle('abc-mode', isAbc);
 
   if (isCompare) {
     const ex = generateCompareFractionsExercise();
@@ -158,7 +163,9 @@ function markCorrect(anchorEl) {
   feedback.textContent = 'נכון';
   feedback.className = 'feedback correct';
   playerMoney += CORRECT_REWARD;
+  correctCount++;
   updateCoinsDisplay();
+  updateStatsCountersDisplay();
   showFloatingText(`+${CORRECT_REWARD}`, 'positive', anchorEl);
 }
 
@@ -167,7 +174,9 @@ function markWrong(anchorEl, message = 'לא נכון, נסה שוב') {
   feedback.textContent = message;
   feedback.className = 'feedback incorrect';
   playerMoney -= WRONG_PENALTY;
+  wrongCount++;
   updateCoinsDisplay();
+  updateStatsCountersDisplay();
   showFloatingText(`-${WRONG_PENALTY}`, 'negative', anchorEl);
 }
 
@@ -250,7 +259,9 @@ function changeQuestion() {
   if (swapBtn.disabled) return; // already mid-reveal
 
   playerMoney -= SWAP_QUESTION_COST;
+  swapCount++;
   updateCoinsDisplay();
+  updateStatsCountersDisplay();
   showFloatingText(`-${SWAP_QUESTION_COST}`, 'negative', swapBtn);
 
   swapBtn.disabled = true;
@@ -287,4 +298,14 @@ function updateCoinsDisplay() {
   coinsEl.innerHTML = `מטבעות: <span style="direction:ltr;unicode-bidi:isolate">${playerMoney}</span>`;
   coinsEl.className = playerMoney < 0 ? 'coins negative' : 'coins';
   document.getElementById('buyBtn').disabled = playerMoney < SOLDIER_COST || gameOver;
+}
+
+// Updates the small in-play counters (.top-stats-row). The same
+// correctCount/wrongCount/swapCount values get read directly by endGame()
+// in main.js to populate the bigger win/lose-screen versions once, since
+// those are static after gameOver -- no live-updating needed there.
+function updateStatsCountersDisplay() {
+  document.getElementById('correctCountDisplay').textContent = correctCount;
+  document.getElementById('wrongCountDisplay').textContent = wrongCount;
+  document.getElementById('swapCountDisplay').textContent = swapCount;
 }
