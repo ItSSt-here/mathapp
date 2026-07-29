@@ -206,42 +206,25 @@ document.getElementById('reconfigureBtn').addEventListener('click', () => {
   document.getElementById('overlay').classList.remove('show');
   document.getElementById('modeOverlay').classList.add('show');
 });
-document.getElementById('modeMultiplyBtn').addEventListener('click', () => {
-  gameMode = 'multiplication';
-  updateExerciseDifficultyLabel();
-  document.getElementById('modeOverlay').classList.remove('show');
-  document.getElementById('exDifficultyOverlay').classList.add('show');
-});
-document.getElementById('modeFractionsBtn').addEventListener('click', () => {
-  gameMode = 'fractions';
-  updateExerciseDifficultyLabel();
-  document.getElementById('modeOverlay').classList.remove('show');
-  document.getElementById('exDifficultyOverlay').classList.add('show');
-});
-document.getElementById('modeCompareFractionsBtn').addEventListener('click', () => {
-  gameMode = 'comparefractions';
-  updateExerciseDifficultyLabel();
-  document.getElementById('modeOverlay').classList.remove('show');
-  document.getElementById('exDifficultyOverlay').classList.add('show');
-});
-document.getElementById('modeLettersBtn').addEventListener('click', () => {
-  gameMode = 'letters';
-  updateExerciseDifficultyLabel();
-  document.getElementById('modeOverlay').classList.remove('show');
-  document.getElementById('exDifficultyOverlay').classList.add('show');
-});
-document.getElementById('modeAbcBtn').addEventListener('click', () => {
-  gameMode = 'abc';
-  updateExerciseDifficultyLabel();
-  document.getElementById('modeOverlay').classList.remove('show');
-  document.getElementById('exDifficultyOverlay').classList.add('show');
-});
-document.getElementById('modeNikudBtn').addEventListener('click', () => {
-  gameMode = 'nikud';
-  updateExerciseDifficultyLabel();
-  document.getElementById('modeOverlay').classList.remove('show');
-  document.getElementById('exDifficultyOverlay').classList.add('show');
-});
+// Each mode button just sets gameMode to its own topic string and advances
+// to the difficulty picker -- looped over a table instead of one near-
+// identical listener per button, so a future topic is a one-line entry here.
+const MODE_BUTTON_TOPICS = {
+  modeMultiplyBtn: 'multiplication',
+  modeFractionsBtn: 'fractions',
+  modeCompareFractionsBtn: 'comparefractions',
+  modeLettersBtn: 'letters',
+  modeAbcBtn: 'abc',
+  modeNikudBtn: 'nikud',
+};
+for (const [btnId, topic] of Object.entries(MODE_BUTTON_TOPICS)) {
+  document.getElementById(btnId).addEventListener('click', () => {
+    gameMode = topic;
+    updateExerciseDifficultyLabel();
+    document.getElementById('modeOverlay').classList.remove('show');
+    document.getElementById('exDifficultyOverlay').classList.add('show');
+  });
+}
 document.getElementById('backToModeBtn').addEventListener('click', () => {
   document.getElementById('exDifficultyOverlay').classList.remove('show');
   document.getElementById('modeOverlay').classList.add('show');
