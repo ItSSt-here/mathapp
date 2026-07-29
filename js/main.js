@@ -15,7 +15,7 @@ function changeDifficulty(delta) {
 function updateExerciseDifficultyLabel() {
   document.getElementById('exDiffLabel').textContent = EXERCISE_DIFFICULTIES[exerciseDifficultyIndex];
   document.getElementById('exDiffDownBtn').disabled = exerciseDifficultyIndex === 0;
-  document.getElementById('exDiffUpBtn').disabled = exerciseDifficultyIndex === EXERCISE_DIFFICULTIES.length - 1;
+  document.getElementById('exDiffUpBtn').disabled = exerciseDifficultyIndex === getExerciseLevelCount() - 1;
   const descriptions = EXERCISE_LEVEL_DESCRIPTIONS[gameMode];
   document.getElementById('exDiffDescription').textContent =
     descriptions ? descriptions[exerciseDifficultyIndex] : 'תיאור לנושא זה יתווסף בהמשך.';
@@ -23,7 +23,7 @@ function updateExerciseDifficultyLabel() {
 
 function changeExerciseDifficulty(delta) {
   const next = exerciseDifficultyIndex + delta;
-  if (next < 0 || next >= EXERCISE_DIFFICULTIES.length) return;
+  if (next < 0 || next >= getExerciseLevelCount()) return;
   exerciseDifficultyIndex = next;
   updateExerciseDifficultyLabel();
 }
@@ -42,7 +42,13 @@ function parseUrlParams() {
   if (!VALID_TOPICS.includes(topic)) return false;
   if (!Number.isInteger(difficultyNum) || difficultyNum < 1 || difficultyNum > EXERCISE_DIFFICULTIES.length) return false;
   gameMode = topic;
-  exerciseDifficultyIndex = difficultyNum - 1;
+  // Clamped rather than rejected: an older link generated before a topic's
+  // level count shrank (see EXERCISE_TOPIC_LEVEL_COUNTS in config.js) should
+  // still auto-start the game instead of dumping the student back at the
+  // mode-select screen -- and for every topic shrunk so far, the removed
+  // levels were exact duplicates of a lower one anyway, so clamping produces
+  // identical gameplay to what the link originally pointed at.
+  exerciseDifficultyIndex = Math.min(difficultyNum, getExerciseLevelCount()) - 1;
   arrivedViaLink = true;
   return true;
 }
@@ -230,6 +236,10 @@ const MODE_BUTTON_TOPICS = {
 for (const [btnId, topic] of Object.entries(MODE_BUTTON_TOPICS)) {
   document.getElementById(btnId).addEventListener('click', () => {
     gameMode = topic;
+    // The previously-picked level can be out of range for the new topic
+    // (e.g. coming from multiplication's 5 levels into letters' 2) --
+    // clamp down instead of leaving it pointing past what this topic offers.
+    exerciseDifficultyIndex = Math.min(exerciseDifficultyIndex, getExerciseLevelCount() - 1);
     updateExerciseDifficultyLabel();
     document.getElementById('modeOverlay').classList.remove('show');
     document.getElementById('exDifficultyOverlay').classList.add('show');

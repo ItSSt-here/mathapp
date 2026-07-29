@@ -263,12 +263,38 @@ function getExerciseLevelConfig() {
   };
 }
 
+// How many difficulty levels are actually implemented per topic. Several
+// topics' generate*Exercise() functions don't branch on every level 1-5 --
+// e.g. letters only changes behavior once (listen vs. reverse mode; levels
+// 2-5 were all identical reverse mode), nikud doesn't look at the level at
+// all yet. Rather than let the picker offer levels that silently produce the
+// exact same exercise as a lower one, it's capped here to what's real (see
+// getExerciseLevelCount(), used by changeExerciseDifficulty() and
+// updateExerciseDifficultyLabel() in main.js instead of a flat 5). Bump a
+// topic's count up the day a genuinely new level is implemented for it --
+// pair it with a new EXERCISE_LEVEL_DESCRIPTIONS entry below and nothing
+// else needs to change. nikud is deliberately still capped at 1 even though
+// more levels are planned -- raise this once they're actually built.
+const EXERCISE_TOPIC_LEVEL_COUNTS = {
+  multiplication: 5,
+  fractions: 5,
+  comparefractions: 4, // level 5 was identical to level 4
+  letters: 2,          // levels 2-5 were identical to each other
+  abc: 4,               // level 5 was identical to level 4
+  nikud: 1,             // every level currently uses the same קמץ-only mechanic
+};
+
+function getExerciseLevelCount() {
+  return EXERCISE_TOPIC_LEVEL_COUNTS[gameMode] || EXERCISE_DIFFICULTIES.length;
+}
+
 // Shown to the teacher on the difficulty-picker screen so they know what
 // each level actually drills, in plain terms, per topic (see
 // EXERCISE_LEVEL_CONFIGS above and pickFractionMode()/generateLevel5Exercise()
 // in exercise-fractions.js for the logic each of these is describing). Indexed like
-// EXERCISE_DIFFICULTIES; a topic with no entry here falls back to a
-// placeholder in updateExerciseDifficultyLabel().
+// EXERCISE_DIFFICULTIES, trimmed to each topic's EXERCISE_TOPIC_LEVEL_COUNTS;
+// a topic with no entry here falls back to a placeholder in
+// updateExerciseDifficultyLabel().
 const EXERCISE_LEVEL_DESCRIPTIONS = {
   multiplication: [
     'תרגילים קלים: ב-70% מהמקרים אחד המספרים הוא 2, 3 או 5 (והשני בין 2 ל-9); ב-30% הנותרים אחד המספרים הוא 0, 1 או 10. אין תרגילים ששני המספרים בהם קשים יחד (כמו 7×8).',
@@ -287,29 +313,20 @@ const EXERCISE_LEVEL_DESCRIPTIONS = {
   letters: [
     'שומעים את שם האות (לחיצה על 🔊) ובוחרים אותה מתוך 5 אותיות.',
     'רואים אות, ולוחצים על כפתורי השמעה עד שמוצאים את זה שמשמיע את שמה, ואז לוחצים "בדוק" לאישור.',
-    'רואים אות, ולוחצים על כפתורי השמעה עד שמוצאים את זה שמשמיע את שמה, ואז לוחצים "בדוק" לאישור.',
-    'רואים אות, ולוחצים על כפתורי השמעה עד שמוצאים את זה שמשמיע את שמה, ואז לוחצים "בדוק" לאישור.',
-    'רואים אות, ולוחצים על כפתורי השמעה עד שמוצאים את זה שמשמיע את שמה, ואז לוחצים "בדוק" לאישור.',
   ],
   abc: [
     'שומעים את שם האות באנגלית (לחיצה על 🔊) ובוחרים אותה מתוך 5 אותיות גדולות (A-Z).',
     'כמו ברמה 1, אבל כל 5 האותיות המוצגות הן אותיות קטנות (a-z).',
     'כמו ברמה 1, אבל כל אחת מ-5 האותיות המוצגות נבחרת באקראי כגדולה או קטנה.',
     'הפוך: מוצגת אות אחת (גדולה או קטנה, נבחר באקראי), ולוחצים על כפתורי השמעה עד שמוצאים את זה שמשמיע את שמה, ואז לוחצים "בדוק" לאישור.',
-    'הפוך: מוצגת אות אחת (גדולה או קטנה, נבחר באקראי), ולוחצים על כפתורי השמעה עד שמוצאים את זה שמשמיע את שמה, ואז לוחצים "בדוק" לאישור.',
   ],
   nikud: [
-    'שומעים אות עם ניקוד קמץ (לחיצה על 🔊) ובוחרים אותה מתוך 5 אותיות עם קמץ.',
-    'שומעים אות עם ניקוד קמץ (לחיצה על 🔊) ובוחרים אותה מתוך 5 אותיות עם קמץ.',
-    'שומעים אות עם ניקוד קמץ (לחיצה על 🔊) ובוחרים אותה מתוך 5 אותיות עם קמץ.',
-    'שומעים אות עם ניקוד קמץ (לחיצה על 🔊) ובוחרים אותה מתוך 5 אותיות עם קמץ.',
     'שומעים אות עם ניקוד קמץ (לחיצה על 🔊) ובוחרים אותה מתוך 5 אותיות עם קמץ.',
   ],
   comparefractions: [
     'מוצגים שני שברים -- לפעמים עם אותו מכנה, לפעמים עם אותו מונה (באקראי) -- ויש לבחור > או < כדי לקבוע איזה מהם גדול יותר.',
     'ב-50% מהמקרים -- כמו ברמה 1. ב-50% הנותרים, מוצגים שני שברים שלשניהם חסר בדיוק חלק אחד (1) כדי להגיע לשלם (למשל 3/4 ו-5/6) עם מכנים שונים -- יש להשוות באמצעות טריק ההשלמה לשלם: להשוות בין המשלימים (כמו כלל "אותו מונה" מרמה 1) ואז להפוך את המסקנה.',
     'מוצגים שני שברים שבהם המכנה של השבר השני הוא כפולה של מכנה השבר הראשון (למשל 2/3 מול 7/9, כי 9=3×3) -- יש להרחיב את השבר הראשון למכנה המשותף (2/3=6/9) ואז להשוות בין המונים. ב-90% מהמקרים התשובה היא > או <, וב-10% הנותרים שני השברים שווים בדיוק -- ומכאן ואילך = היא תשובה אפשרית.',
-    'כמו ברמה 3, אבל השבר הראשון מוצג כשבר לא מצומצם (למשל 4/6 במקום 2/3) -- יש לזהות/לצמצם אותו קודם (או לשים לב לגורם המשותף) ואז להשוות כמו ברמה 3. ב-90% מהמקרים התשובה היא > או <, וב-10% הנותרים שני השברים שווים בדיוק.',
     'כמו ברמה 3, אבל השבר הראשון מוצג כשבר לא מצומצם (למשל 4/6 במקום 2/3) -- יש לזהות/לצמצם אותו קודם (או לשים לב לגורם המשותף) ואז להשוות כמו ברמה 3. ב-90% מהמקרים התשובה היא > או <, וב-10% הנותרים שני השברים שווים בדיוק.',
   ],
 };
