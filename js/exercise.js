@@ -479,24 +479,55 @@ function generateCompareFractionsComplementExercise() {
   return { leftNum, leftDen, rightNum, rightDen, correct };
 }
 
+// Level 3 (currently every level 3-5): "one denominator is a multiple of the
+// other" case -- q/a vs (b*q +/- n)/(b*a). The second denominator is always
+// a multiple of the first, so the trick is expanding q/a to the common
+// denominator ((b*q)/(b*a)) and then just comparing numerators: b*q vs
+// b*q+n. 10% of exercises use n=0, making the two fractions exactly equal --
+// the first case where '=' is a real answer (see COMPARE_OPTIONS_WITH_EQUAL
+// in config.js). Rejection loop only guards against a negative/zero
+// right-hand numerator; everything else about the random draw is already
+// safe (q < a keeps the left fraction proper, and b*q+n stays reasonably
+// close to b*a given the small ranges in config.js).
+function generateCompareFractionsLevel3Exercise() {
+  const isEqual = Math.random() < COMPARE_FRAC_L3_EQUAL_CHANCE;
+  let a, b, q, n, rightNum;
+
+  do {
+    a = randInt(COMPARE_FRAC_L3_A_MIN, COMPARE_FRAC_L3_A_MAX);
+    b = randInt(COMPARE_FRAC_L3_B_MIN, COMPARE_FRAC_L3_B_MAX);
+    q = randInt(1, a - 1);
+    n = isEqual ? 0 : randInt(1, COMPARE_FRAC_L3_N_MAX) * randChoice([1, -1]);
+    rightNum = b * q + n;
+  } while (rightNum < 1);
+
+  const correct = n === 0 ? '=' : (n > 0 ? '<' : '>');
+  return { leftNum: q, leftDen: a, rightNum, rightDen: b * a, correct };
+}
+
 function generateCompareFractionsExercise() {
   const level = exerciseDifficultyIndex + 1;
+  if (level >= 3) {
+    return generateCompareFractionsLevel3Exercise();
+  }
   if (level >= 2 && Math.random() < 0.5) {
     return generateCompareFractionsComplementExercise();
   }
   return generateCompareFractionsLevel1Exercise();
 }
 
-// Renders the '<'/'>' pick buttons into #compareChoices, in its own row
-// below the question (#compareAnswerHome in index.html) rather than inline
-// with the fractions -- reuses .letter-choice-btn so the correct/wrong/
-// disabled states match every other multiple-choice topic without
-// duplicating that CSS.
-function renderCompareChoices() {
+// Renders the pick buttons into #compareChoices, in its own row below the
+// question (#compareAnswerHome in index.html) rather than inline with the
+// fractions -- reuses .letter-choice-btn so the correct/wrong/disabled
+// states match every other multiple-choice topic without duplicating that
+// CSS. `options` is COMPARE_OPTIONS (just '<'/'>') below level 3, or
+// COMPARE_OPTIONS_WITH_EQUAL (adds '=') from level 3 onward -- see
+// newExercise().
+function renderCompareChoices(options) {
   const container = document.getElementById('compareChoices');
   container.innerHTML = '';
   container.classList.remove('compare-choices-locked');
-  COMPARE_OPTIONS.forEach(option => {
+  options.forEach(option => {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'letter-choice-btn';
@@ -597,7 +628,7 @@ function newExercise() {
         '<span class="compare-blank" id="compareBlank"></span>' +
         fractionBlockHTML(ex.rightNum, ex.rightDen) +
       '</span>';
-    renderCompareChoices();
+    renderCompareChoices(exerciseDifficultyIndex + 1 >= 3 ? COMPARE_OPTIONS_WITH_EQUAL : COMPARE_OPTIONS);
     document.getElementById('feedback').textContent = '';
     document.getElementById('feedback').className = 'feedback';
     return;

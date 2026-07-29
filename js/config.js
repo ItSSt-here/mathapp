@@ -192,10 +192,26 @@ const COMPARE_FRAC_DEN_SPREAD = 9; // denominators drawn from [num+1, num+SPREAD
 // made the trick too hard to spot, per user feedback.
 const COMPARE_FRAC_COMPLEMENT_D = 1;
 
-// The only two comparison answers implemented so far -- kept as a list
-// (rather than two hardcoded buttons) so a same-value '=' sub-case can be
-// added later just by extending this array plus the exercise generator.
+// Level 3's "one denominator is a multiple of the other" case (see
+// generateCompareFractionsLevel3Exercise() in exercise.js): q/a vs
+// (b*q +/- n)/(b*a) -- the second denominator is always a multiple of the
+// first, so the trick is expanding q/a to the common denominator (b*q)/(b*a)
+// and then just comparing numerators. 10% of exercises use n=0, making the
+// two fractions exactly equal -- the first case '=' is a real answer.
+const COMPARE_FRAC_L3_A_MIN = 2;
+const COMPARE_FRAC_L3_A_MAX = 9;
+const COMPARE_FRAC_L3_B_MIN = 2;
+const COMPARE_FRAC_L3_B_MAX = 4;
+const COMPARE_FRAC_L3_N_MAX = 3; // nonzero offset magnitude drawn from [1, N_MAX]
+const COMPARE_FRAC_L3_EQUAL_CHANCE = 0.10;
+
+// The only two comparison answers implemented through level 2 -- kept as a
+// list (rather than two hardcoded buttons) so a same-value '=' sub-case
+// could be added later just by extending it. Level 3 is that sub-case:
+// COMPARE_OPTIONS_WITH_EQUAL is shown instead from level 3 onward (see
+// newExercise() in exercise.js).
 const COMPARE_OPTIONS = ['<', '>'];
+const COMPARE_OPTIONS_WITH_EQUAL = ['<', '=', '>'];
 
 const LEVEL1_NUMS = [0, 1, 10];
 const LEVEL2_NUMS = [2, 3, 5];
@@ -271,9 +287,9 @@ const EXERCISE_LEVEL_DESCRIPTIONS = {
   comparefractions: [
     'מוצגים שני שברים -- לפעמים עם אותו מכנה, לפעמים עם אותו מונה (באקראי) -- ויש לבחור > או < כדי לקבוע איזה מהם גדול יותר.',
     'ב-50% מהמקרים -- כמו ברמה 1. ב-50% הנותרים, מוצגים שני שברים שלשניהם חסר בדיוק חלק אחד (1) כדי להגיע לשלם (למשל 3/4 ו-5/6) עם מכנים שונים -- יש להשוות באמצעות טריק ההשלמה לשלם: להשוות בין המשלימים (כמו כלל "אותו מונה" מרמה 1) ואז להפוך את המסקנה.',
-    'ב-50% מהמקרים -- כמו ברמה 1. ב-50% הנותרים, מוצגים שני שברים שלשניהם חסר בדיוק חלק אחד (1) כדי להגיע לשלם (למשל 3/4 ו-5/6) עם מכנים שונים -- יש להשוות באמצעות טריק ההשלמה לשלם: להשוות בין המשלימים (כמו כלל "אותו מונה" מרמה 1) ואז להפוך את המסקנה.',
-    'ב-50% מהמקרים -- כמו ברמה 1. ב-50% הנותרים, מוצגים שני שברים שלשניהם חסר בדיוק חלק אחד (1) כדי להגיע לשלם (למשל 3/4 ו-5/6) עם מכנים שונים -- יש להשוות באמצעות טריק ההשלמה לשלם: להשוות בין המשלימים (כמו כלל "אותו מונה" מרמה 1) ואז להפוך את המסקנה.',
-    'ב-50% מהמקרים -- כמו ברמה 1. ב-50% הנותרים, מוצגים שני שברים שלשניהם חסר בדיוק חלק אחד (1) כדי להגיע לשלם (למשל 3/4 ו-5/6) עם מכנים שונים -- יש להשוות באמצעות טריק ההשלמה לשלם: להשוות בין המשלימים (כמו כלל "אותו מונה" מרמה 1) ואז להפוך את המסקנה.',
+    'מוצגים שני שברים שבהם המכנה של השבר השני הוא כפולה של מכנה השבר הראשון (למשל 2/3 מול 7/9, כי 9=3×3) -- יש להרחיב את השבר הראשון למכנה המשותף (2/3=6/9) ואז להשוות בין המונים. ב-90% מהמקרים התשובה היא > או <, וב-10% הנותרים שני השברים שווים בדיוק -- ומכאן ואילך = היא תשובה אפשרית.',
+    'מוצגים שני שברים שבהם המכנה של השבר השני הוא כפולה של מכנה השבר הראשון (למשל 2/3 מול 7/9, כי 9=3×3) -- יש להרחיב את השבר הראשון למכנה המשותף (2/3=6/9) ואז להשוות בין המונים. ב-90% מהמקרים התשובה היא > או <, וב-10% הנותרים שני השברים שווים בדיוק.',
+    'מוצגים שני שברים שבהם המכנה של השבר השני הוא כפולה של מכנה השבר הראשון (למשל 2/3 מול 7/9, כי 9=3×3) -- יש להרחיב את השבר הראשון למכנה המשותף (2/3=6/9) ואז להשוות בין המונים. ב-90% מהמקרים התשובה היא > או <, וב-10% הנותרים שני השברים שווים בדיוק.',
   ],
 };
 
