@@ -505,8 +505,23 @@ function generateCompareFractionsLevel3Exercise() {
   return { leftNum: q, leftDen: a, rightNum, rightDen: b * a, correct };
 }
 
+// Level 4 (currently every level 4-5): identical comparison to level 3 --
+// only the *display* of the left fraction changes, inflated by a random
+// factor m (same b/b2 mechanism the "fractions" topic's reduction exercises
+// use) so the student has to recognize/reduce it (or spot m as a common
+// factor) before applying level 3's technique. m*q/m*a is the same value as
+// q/a, so `correct` is untouched -- only leftNum/leftDen get inflated.
+function generateCompareFractionsLevel4Exercise() {
+  const base = generateCompareFractionsLevel3Exercise();
+  const m = randInt(COMPARE_FRAC_L4_M_MIN, COMPARE_FRAC_L4_M_MAX);
+  return { leftNum: m * base.leftNum, leftDen: m * base.leftDen, rightNum: base.rightNum, rightDen: base.rightDen, correct: base.correct };
+}
+
 function generateCompareFractionsExercise() {
   const level = exerciseDifficultyIndex + 1;
+  if (level >= 4) {
+    return generateCompareFractionsLevel4Exercise();
+  }
   if (level >= 3) {
     return generateCompareFractionsLevel3Exercise();
   }
