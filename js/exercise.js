@@ -433,16 +433,15 @@ function checkLetterReverseAnswer() {
 }
 
 // ---------- Compare-fractions exercise (which fraction is bigger?) ----------
-// Level 1 (currently every level, see EXERCISE_LEVEL_DESCRIPTIONS.comparefractions
-// in config.js): randomly picks one of two sub-cases so the student can't
-// coast on one memorized rule --
+// Level 1: randomly picks one of two sub-cases so the student can't coast on
+// one memorized rule --
 //   same denominator: p/n vs q/n (p != q) -- bigger numerator wins.
 //   same numerator:   n/p vs n/q (p != q) -- SMALLER denominator wins (fewer,
 //     bigger slices), the easy one to get backwards if you don't reason it out.
 // Both fractions are always proper (numerator < denominator). Answer is
 // always '<' or '>' -- COMPARE_OPTIONS in config.js already leaves room to
 // add '=' later via a same-value sub-case.
-function generateCompareFractionsExercise() {
+function generateCompareFractionsLevel1Exercise() {
   const sameDenominator = Math.random() < 0.5;
   let leftNum, leftDen, rightNum, rightDen, correct;
 
@@ -459,6 +458,33 @@ function generateCompareFractionsExercise() {
   }
 
   return { leftNum, leftDen, rightNum, rightDen, correct };
+}
+
+// Level 2 (currently every level 2-5, see EXERCISE_LEVEL_DESCRIPTIONS.comparefractions
+// in config.js): "complement to whole" sub-case -- p/a vs q/b where both
+// fractions are the same distance `d` from 1 (a-p = b-q = d), with a != b.
+// d is fixed at COMPARE_FRAC_COMPLEMENT_D (1) for now -- randomizing it made
+// the trick too hard to spot. Since p/a = 1 - d/a: comparing p/a vs q/b is
+// the same as comparing d/a vs d/b (level 1's same-numerator rule --
+// smaller denominator wins) and then FLIPPING the conclusion, because a
+// bigger complement means a smaller original fraction. Net effect collapses
+// to a direct denominator comparison: the larger denominator (smaller gap
+// to 1) is the bigger fraction.
+function generateCompareFractionsComplementExercise() {
+  const d = COMPARE_FRAC_COMPLEMENT_D;
+  const [a, b] = pickDistinctRandom(rangeArray(d + 1, d + COMPARE_FRAC_DEN_SPREAD), 2);
+  const leftNum = a - d, leftDen = a;
+  const rightNum = b - d, rightDen = b;
+  const correct = a < b ? '<' : '>';
+  return { leftNum, leftDen, rightNum, rightDen, correct };
+}
+
+function generateCompareFractionsExercise() {
+  const level = exerciseDifficultyIndex + 1;
+  if (level >= 2 && Math.random() < 0.5) {
+    return generateCompareFractionsComplementExercise();
+  }
+  return generateCompareFractionsLevel1Exercise();
 }
 
 // Renders the '<'/'>' pick buttons into #compareChoices, in its own row
