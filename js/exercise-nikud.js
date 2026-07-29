@@ -1,0 +1,97 @@
+// ---------- Nikud exercise (letter+קמץ recognition, multiple choice) ----------
+// Reuses checkLetterAnswer() from exercise-letters.js for answer-checking
+// (renderNikudChoices() below wires its buttons to it directly) -- only
+// generation and rendering are nikud-specific.
+
+// Returns the letters that must never appear alongside `letter` as a
+// {correct, distractor} pair, per NIKUD_CONFUSABLE_PAIRS (see config.js for
+// why each pair sounds identical once pointed).
+function nikudConfusablesOf(letter) {
+  return NIKUD_CONFUSABLE_PAIRS
+    .filter(pair => pair.includes(letter))
+    .map(pair => pair[0] === letter ? pair[1] : pair[0]);
+}
+
+function generateNikudExercise() {
+  const correct = randChoice(HEBREW_LETTERS);
+  const excluded = new Set([correct, ...nikudConfusablesOf(correct)]);
+  const pool = HEBREW_LETTERS.filter(l => !excluded.has(l));
+  const distractors = pickDistinctRandom(pool, 4);
+  const options = pickDistinctRandom([correct, ...distractors], 5); // shuffles the order too
+  return { correct, options };
+}
+
+// Recorded pronunciation clips (assets/nikud/kamats/<letter>.<ext>, see
+// assets/nikud/CREDITS.txt for sources). Only קמץ exists so far -- niqud is
+// hardcoded here rather than parameterized until a second niqud type is
+// actually added. Most are soundsofnikud.com's site-sourced .mp3s; a few
+// letters have since been replaced with a self-made .wav (a syllable trimmed
+// out of a real, licensed word recording, see assets/nikud/CREDITS.txt) where
+// the site's own clip was unusable -- NIKUD_CLIP_EXT records which.
+//
+// כ has no recording of its own that unambiguously means "כ with a dagesh" --
+// the source site's כ clip is undageshed and sounds like ח. Since ק sounds
+// identical to a dageshed כ, its clip is reused for כ instead (kaf_kamats.mp3
+// is fetched but intentionally never played) -- the child still hears a
+// correct, real "ka" sound, and still sees/picks כ, they just aren't hearing
+// a recording of that exact glyph.
+const NIKUD_AUDIO_OVERRIDE = { 'כ': 'ק' };
+
+// פ: the site's own clip was unrecognizable as פ (reported as sounding like
+// ה) -- replaced with a hard "pa" trimmed from a real-word recording of פס
+// (see assets/nikud/CREDITS.txt). ט: the site's own clip was also reported
+// as bad -- replaced with a clip trimmed from טל. Soft/undageshed ב and כ
+// have also been self-recorded this way but aren't wired in yet -- level 1
+// stays hard-only for now, soft versions are earmarked for a future level.
+// כ's own site clip is still in use *indirectly* via NIKUD_AUDIO_OVERRIDE
+// above (borrowing ק's) -- a candidate replacement word (כף) was found and
+// fetched but the recording wasn't clear enough either; postponed.
+const NIKUD_CLIP_EXT = { 'פ': 'wav', 'ט': 'wav' };
+let currentNikudAudio = null;
+
+function playNikudSound(letter) {
+  if (!letter) return;
+  if (currentNikudAudio) currentNikudAudio.pause(); // cut off a rapid repeat tap
+  const audioLetter = NIKUD_AUDIO_OVERRIDE[letter] || letter;
+  const ext = NIKUD_CLIP_EXT[audioLetter] || 'mp3';
+  currentNikudAudio = new Audio(`assets/nikud/kamats/${encodeURIComponent(audioLetter)}.${ext}`);
+  currentNikudAudio.play();
+}
+
+// Same #letterChoices container as renderLetterChoices(), but the letter and
+// its קמץ mark are separate stacked elements (see .nikud-choice-btn in
+// style.css) instead of one combined text node -- lets the mark be sized/
+// colored independently so it reads clearly on its own, and stacking rows
+// extends naturally if more niqud marks get added later. ב/כ/פ additionally
+// get a (normally-combined, font-sized) דגש on the letter itself -- see
+// NIKUD_DAGESH_LETTERS in config.js. The underlying option/correct values
+// stay plain base letters, so checkLetterAnswer()'s comparison needs no
+// changes.
+function renderNikudChoices(ex) {
+  const container = document.getElementById('letterChoices');
+  container.innerHTML = '';
+  container.classList.remove('letter-choices-locked');
+  document.getElementById('letterSoundBtn').disabled = false;
+  ex.options.forEach(option => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'letter-choice-btn nikud-choice-btn';
+    if (NIKUD_DESCENDER_LETTERS.includes(option)) btn.classList.add('nikud-descender-letter');
+    const dagesh = NIKUD_DAGESH_LETTERS.includes(option) ? NIKUD_DAGESH_MARK : '';
+    const letterSpan = document.createElement('span');
+    letterSpan.className = 'nikud-letter';
+    letterSpan.textContent = option + dagesh;
+    const markSpan = document.createElement('span');
+    // nikud-mark-kamats selects the CSS-drawn shape (see style.css) -- a
+    // real standalone קמץ character renders as thin, faint line-strokes in
+    // most fonts, which stayed hard to see even scaled way up, so the mark
+    // is drawn as a plain bold shape instead of trusting the glyph. Keep
+    // the real character as text content (not aria-hidden) for screen
+    // readers; the shape is layered on top via ::before/::after.
+    markSpan.className = 'nikud-mark nikud-mark-kamats';
+    markSpan.textContent = NIKUD_KAMATS_MARK;
+    btn.append(letterSpan, markSpan);
+    btn.addEventListener('click', () => checkLetterAnswer(option, ex.correct, btn));
+    container.appendChild(btn);
+  });
+}
