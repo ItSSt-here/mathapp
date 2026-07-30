@@ -1,5 +1,40 @@
 Hebrew letter-name pronunciation recordings used by the "letters" exercise mode.
 
+Loudness pass (2026-07-30): every clip here was reprocessed for volume --
+the user found them hard to hear in a noisy room. Unlike the nikud clips
+(see assets/nikud/CREDITS.txt for the same pass done there first), these
+were quiet in *two* ways: ~65-75% of each ~0.8-1.25s file was silence
+padding at the start/end (dragging down average loudness), and the actual
+peak level itself was also low (-7 to -17.5dB, well under the 0dB ceiling,
+unlike nikud's clips which already peaked near 0dB). Fixed the same way:
+detected silence via ffmpeg's silencedetect, trimmed only the leading/
+trailing padding (never anything strictly internal, to avoid cutting into
+real content), then applied a calibrated `-af volume=XdB` gain per file
+(baked into the file, not a runtime Web Audio GainNode -- see
+exercise-letters.js's playLetterSound(), which used to boost ק with a
+GainNode and had that removed as part of this pass) so every clip peaks at
+a consistent -0.4dB. Net effect: every clip's mean volume improved by
+roughly 15-22dB. All 22 originals backed up in
+_raw-audio-src/_pre-loudness-backup-letters-2026-07-30/ in case anything
+needs reverting.
+
+**These clips are full letter-*name* recordings** (e.g. א.mp3 says "alef",
+ק.mp3 says "kof"), not isolated single sounds like nikud's -- this mattered:
+the first attempt used the same -30dB silencedetect threshold that worked
+for nikud, and it wrongly classified several letters' quiet word-final
+consonants (e.g. אָלֶף/"alef" and קוֹף/"kof" both end in a soft ף/"f" sound)
+as trailing silence, chopping the ending off entirely -- the user caught
+this immediately (couldn't hear the final consonant). Fixed by lowering the
+threshold to -45dB, which correctly told a real-but-quiet fricative apart
+from actual dead air; re-verified against several letters' known name
+endings before re-shipping, and the user confirmed the reprocessed files
+sound complete. **Lesson for any future pass on word/name recordings (as
+opposed to isolated sounds): don't assume a silence threshold tuned for one
+asset folder transfers to another -- word-final fricatives/quiet consonants
+need a noticeably more sensitive (lower dB) threshold than isolated vowel
+or plosive+vowel clips do, and the fix should be re-verified per content
+type, not just reused.**
+
 All files are native-speaker recordings sourced from Wikimedia Commons /
 Wiktionary (the audio embedded in each letter's pronunciation section, e.g.
 https://en.wiktionary.org/wiki/א).

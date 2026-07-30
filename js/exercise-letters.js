@@ -36,29 +36,22 @@ function isLetterReverseMode() {
 // availability varies wildly across machines. Recorded audio sidesteps both.
 let currentLetterAudio = null;
 
-// A plain <audio> element's .volume tops out at 1.0 (the recording's own
-// mastered level), which isn't enough for clips that were recorded quietly
-// -- ק in particular. Boosted letters are routed through a Web Audio gain
-// node instead, which can amplify past that ceiling; everything else plays
-// through the element directly, untouched.
-let letterAudioCtx = null;
-const LETTER_VOLUME_BOOST = { 'ק': 2.2 };
-
+// ק used to need a runtime Web Audio GainNode boost here (a plain <audio>
+// element's .volume tops out at 1.0, the recording's own mastered level,
+// which wasn't enough for how quietly it was originally recorded). Removed
+// 2026-07-30 as part of a loudness pass across all 22 clips: every clip's
+// volume is now boosted directly into the file with ffmpeg (see
+// assets/letters/CREDITS.txt), which is both louder (a clean file-level
+// gain isn't capped at 1.0 either) and safer -- a runtime GainNode needs
+// AudioContext.resume() to finish (async) before it's actually audible,
+// which caused intermittent silent playback for the abc "N" clip when tried
+// there first (see feedback_hebrew_letter_audio.md memory). Keeping ק's old
+// GainNode here on top of its now-already-boosted file would double the
+// boost and clip.
 function playLetterSound(letter) {
   if (!letter) return;
   if (currentLetterAudio) currentLetterAudio.pause(); // cut off a rapid repeat tap
   currentLetterAudio = new Audio(`assets/letters/${encodeURIComponent(letter)}.mp3`);
-
-  const boost = LETTER_VOLUME_BOOST[letter];
-  if (boost && window.AudioContext) {
-    if (!letterAudioCtx) letterAudioCtx = new AudioContext();
-    letterAudioCtx.resume();
-    const source = letterAudioCtx.createMediaElementSource(currentLetterAudio);
-    const gainNode = letterAudioCtx.createGain();
-    gainNode.gain.value = boost;
-    source.connect(gainNode).connect(letterAudioCtx.destination);
-  }
-
   currentLetterAudio.play();
 }
 
