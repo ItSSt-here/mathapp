@@ -105,13 +105,22 @@ const ABC_LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L',
 // app's normal font (Arial) -- fixed for *listen* mode (where all 5 shapes
 // show at once, side by side) by switching ABC's glyphs to Verdana, which
 // keeps them visually distinct (see .abc-mode in style.css). But *reverse*
-// mode (see abcConfusablesOf() in exercise-abc.js) shows only one glyph at a
-// time with nothing to compare it against, so even a distinct-looking "l"
-// can't be told apart from "I" with confidence -- never let one appear as a
-// distractor sound when the other is the letter actually shown, same
-// exclusion pattern as NIKUD_CONFUSABLE_PAIRS below (see confusablesOf() in
-// helpers.js, shared by both).
-const ABC_CONFUSABLE_PAIRS = [['I', 'L']];
+// mode (see abcVisualConfusablesOf() in exercise-abc.js) shows only one
+// glyph at a time with nothing to compare it against, so even a
+// distinct-looking "l" can't be told apart from "I" with confidence --
+// never let one appear as a distractor sound when the other is the letter
+// actually shown, same exclusion pattern as NIKUD_CONFUSABLE_PAIRS below
+// (see confusablesOf() in helpers.js, shared by all three pair lists).
+const ABC_VISUAL_CONFUSABLE_PAIRS = [['I', 'L']];
+
+// M and N sound close enough that hearing one in isolation and picking the
+// matching letter out of 5 shapes is an unfair guess (2026-07-30 user
+// report) -- excluded from *listen* mode only (see abcAudioConfusablesOf()
+// in exercise-abc.js). *Reverse* mode (letter shown, tap through candidate
+// sounds to find the match) deliberately keeps them as possible distractors
+// -- there the child can play every option and compare, which is the point
+// of that mode, per explicit user call.
+const ABC_AUDIO_CONFUSABLE_PAIRS = [['M', 'N']];
 
 // Nikud exercise: child hears a letter pronounced with a niqud vowel mark
 // (currently only קמץ -- recorded clips, see assets/nikud/kamats/<letter>.mp3

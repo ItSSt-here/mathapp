@@ -13,10 +13,19 @@ function abcCaseForLevel(letter, level) {
 }
 
 // Returns the letters that must never appear as a distractor sound alongside
-// `letter` when it's the one actually shown, per ABC_CONFUSABLE_PAIRS in
-// config.js (currently just I/L). See confusablesOf() in helpers.js.
-function abcConfusablesOf(letter) {
-  return confusablesOf(letter, ABC_CONFUSABLE_PAIRS);
+// `letter` when it's the one actually shown, per ABC_VISUAL_CONFUSABLE_PAIRS
+// in config.js (currently just I/L) -- reverse mode only, see
+// generateAbcExercise(). See confusablesOf() in helpers.js.
+function abcVisualConfusablesOf(letter) {
+  return confusablesOf(letter, ABC_VISUAL_CONFUSABLE_PAIRS);
+}
+
+// Returns the letters that must never appear as a distractor letter alongside
+// `letter` when it's the one actually played, per ABC_AUDIO_CONFUSABLE_PAIRS
+// in config.js (currently just M/N) -- listen mode only, see
+// generateAbcExercise().
+function abcAudioConfusablesOf(letter) {
+  return confusablesOf(letter, ABC_AUDIO_CONFUSABLE_PAIRS);
 }
 
 function generateAbcExercise() {
@@ -29,8 +38,16 @@ function generateAbcExercise() {
   // distinct *side by side* (see .abc-mode in style.css), a lone "l" still
   // can't be told apart from "I" with confidence. Listen mode shows all 5
   // shapes at once, where that side-by-side distinction already works, so
-  // the exclusion is reverse-mode only.
-  const excluded = isReverse ? new Set([correct, ...abcConfusablesOf(correct)]) : new Set([correct]);
+  // the I/L exclusion is reverse-mode only.
+  //
+  // M/N is the opposite: listen mode plays one sound in isolation and asks
+  // the child to pick the matching shape, which is an unfair guess between
+  // two similar-sounding letters -- excluded there. Reverse mode shows the
+  // shape and lets the child tap through every candidate sound to compare,
+  // so M/N stay eligible distractors there.
+  const excluded = isReverse
+    ? new Set([correct, ...abcVisualConfusablesOf(correct)])
+    : new Set([correct, ...abcAudioConfusablesOf(correct)]);
   const distractors = pickDistinctRandom(ABC_LETTERS.filter(l => !excluded.has(l)), 4);
   const identities = pickDistinctRandom([correct, ...distractors], 5); // shuffles the order too
 

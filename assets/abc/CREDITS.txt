@@ -21,11 +21,28 @@ License: https://creativecommons.org/licenses/by-sa/3.0/
   e.ogg  r.ogg
   Speaker: Logictheo (Wikimedia Commons)
 
-  j.ogg  n.ogg  p.ogg  z.ogg
+  j.ogg  p.ogg  z.ogg
   Speaker: Dvortygirl (Wikimedia Commons)
 
   k.ogg
   Speaker: Neskaya (Wikimedia Commons)
+
+CC0 / Public domain (no attribution required):
+
+  n.ogg
+  Speaker: Userofwikiofusa, from a Lingua Libre alphabet-reading set
+  (2026-07-30: replaced the original Dvortygirl n.ogg, which had audible
+  background noise and was hard to distinguish from "m" -- source file:
+  https://commons.wikimedia.org/wiki/File:LL-Q1860_(eng)-Userofwikiofusa_(CaulkyAlphabet)-N.wav,
+  originally a quiet .wav (~8dB of headroom). A Web Audio gain-node boost
+  was tried first but caused intermittent silence -- new AudioContext.
+  resume() is async and playback could start before it finished, especially
+  right after a fresh page load, so the sound sometimes played through a
+  not-yet-running context. Fixed by baking a +7.7dB gain into the file
+  itself with ffmpeg (`-af volume=7.7dB`) while converting to .ogg/libvorbis,
+  landing its peak around -1.4dB (matching m.ogg's peak, no clipping) --
+  n.ogg now plays through the same plain <audio> element as every other
+  letter, no boost logic in JS.)
 
 Original file pages (for provenance): each recording's Commons file page is
 linked from the corresponding letter's entry at https://en.wiktionary.org/wiki/<letter>
