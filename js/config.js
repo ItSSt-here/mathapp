@@ -125,13 +125,21 @@ const ABC_AUDIO_CONFUSABLE_PAIRS = [['M', 'N']];
 // Nikud exercise: child hears a letter pronounced with a niqud vowel mark
 // (currently only קמץ -- recorded clips, see assets/nikud/kamats/<letter>.mp3
 // and assets/nikud/CREDITS.txt) and picks the matching letter (shown with the
-// same niqud mark) out of 5 options, same mechanic/UI as HEBREW_LETTERS level
-// 1 (see generateNikudExercise()/renderNikudChoices() in exercise-nikud.js).
-// At the moment every difficulty level uses this same קמץ-only mechanic; more
-// niqud types may be added later. Every letter in HEBREW_LETTERS is eligible
-// as the target (including כ -- see NIKUD_AUDIO_OVERRIDE in exercise-nikud.js
-// for how its sound is sourced, since it has no unambiguous recording of its
-// own).
+// same niqud mark), same mechanic/UI as HEBREW_LETTERS level 1 (see
+// generateNikudExercise()/renderNikudChoices() in exercise-nikud.js). At the
+// moment every difficulty level uses this same קמץ-only mechanic; more niqud
+// types may be added later. Level 2 uses the full HEBREW_LETTERS pool (5
+// options); level 1 is eligible as the target (including כ -- see
+// NIKUD_AUDIO_OVERRIDE in exercise-nikud.js for how its sound is sourced,
+// since it has no unambiguous recording of its own).
+
+// Level 1's fixed, easier letter set (2026-07-30, user reported the full
+// 22-letter level was too hard) -- exactly the 4 self-made-clip letters
+// available at the time (see NIKUD_CLIP_EXT in exercise-nikud.js). Options
+// are always all 4 of these, always in this fixed order (no shuffling) --
+// with pool size == options shown, there's nothing to randomly exclude or
+// permute, which also makes the UI predictable for a struggling learner.
+const NIKUD_LEVEL1_LETTERS = ['א', 'ב', 'ג', 'ד'];
 
 // Letter pairs that sound identical in Modern Hebrew once pointed -- never
 // let one appear as a distractor when the other is the correct/played
@@ -282,15 +290,15 @@ function getExerciseLevelConfig() {
 // updateExerciseDifficultyLabel() in main.js instead of a flat 5). Bump a
 // topic's count up the day a genuinely new level is implemented for it --
 // pair it with a new EXERCISE_LEVEL_DESCRIPTIONS entry below and nothing
-// else needs to change. nikud is deliberately still capped at 1 even though
-// more levels are planned -- raise this once they're actually built.
+// else needs to change. nikud is at 2 now: level 1 is a fixed 4-letter pool
+// (NIKUD_LEVEL1_LETTERS), level 2 is the original full-alphabet mechanic.
 const EXERCISE_TOPIC_LEVEL_COUNTS = {
   multiplication: 5,
   fractions: 5,
   comparefractions: 4, // level 5 was identical to level 4
   letters: 2,          // levels 2-5 were identical to each other
   abc: 4,               // level 5 was identical to level 4
-  nikud: 1,             // every level currently uses the same קמץ-only mechanic
+  nikud: 2,
 };
 
 function getExerciseLevelCount() {
@@ -330,7 +338,8 @@ const EXERCISE_LEVEL_DESCRIPTIONS = {
     'הפוך: מוצגת אות אחת (גדולה או קטנה, נבחר באקראי), ולוחצים על כפתורי השמעה עד שמוצאים את זה שמשמיע את שמה, ואז לוחצים "בדוק" לאישור.',
   ],
   nikud: [
-    'שומעים אות עם ניקוד קמץ (לחיצה על 🔊) ובוחרים אותה מתוך 5 אותיות עם קמץ.',
+    'שומעים אחת מ-4 האותיות א, ב, ג, ד עם ניקוד קמץ (לחיצה על 🔊) ובוחרים אותה מתוך 4 כפתורים קבועים, תמיד באותו סדר.',
+    'שומעים אות עם ניקוד קמץ (לחיצה על 🔊) ובוחרים אותה מתוך 5 אותיות עם קמץ, מתוך כל האלף-בית.',
   ],
   comparefractions: [
     'מוצגים שני שברים -- לפעמים עם אותו מכנה, לפעמים עם אותו מונה (באקראי) -- ויש לבחור > או < כדי לקבוע איזה מהם גדול יותר.',

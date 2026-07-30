@@ -13,6 +13,13 @@ function nikudConfusablesOf(letter) {
 }
 
 function generateNikudExercise() {
+  // Level 1: fixed 4-letter pool, always all 4 as options, always in the
+  // same order -- see NIKUD_LEVEL1_LETTERS in config.js for why (pool size
+  // == options shown, so there's nothing to exclude or shuffle).
+  if (exerciseDifficultyIndex === 0) {
+    return { correct: randChoice(NIKUD_LEVEL1_LETTERS), options: NIKUD_LEVEL1_LETTERS };
+  }
+
   const correct = randChoice(HEBREW_LETTERS);
   const excluded = new Set([correct, ...nikudConfusablesOf(correct)]);
   const pool = HEBREW_LETTERS.filter(l => !excluded.has(l));
@@ -40,13 +47,23 @@ const NIKUD_AUDIO_OVERRIDE = { 'כ': 'ק' };
 // פ: the site's own clip was unrecognizable as פ (reported as sounding like
 // ה) -- replaced with a hard "pa" trimmed from a real-word recording of פס
 // (see assets/nikud/CREDITS.txt). ט: the site's own clip was also reported
-// as bad -- replaced with a clip trimmed from טל. Soft/undageshed ב and כ
-// have also been self-recorded this way but aren't wired in yet -- level 1
-// stays hard-only for now, soft versions are earmarked for a future level.
+// as bad -- replaced with a clip trimmed from טל. ב/א/ג/ד: replaced not
+// because they were unusable but as part of the broader project of
+// replacing every soundsofnikud.com clip (unknown license) with a self-made
+// one -- ב trimmed from בא, א from אהבה, ג from מגע, ד from ילדה (see
+// assets/nikud/CREDITS.txt for why word-final syllables like מגע/ילדה are
+// preferred going forward: the natural trailing silence at the end of a
+// recording makes the back edge trivial to trim, unlike a word-initial
+// syllable where the next consonant can bleed into the cut). All boosted
+// with ffmpeg afterward (baked into the file -- see the abc "N" clip's
+// CREDITS.txt entry for why a runtime Web Audio gain node was rejected in
+// favor of this). Soft/undageshed ב and כ have also been self-recorded this
+// way but aren't wired in yet -- level 1 stays hard-only for now, soft
+// versions are earmarked for a future level.
 // כ's own site clip is still in use *indirectly* via NIKUD_AUDIO_OVERRIDE
 // above (borrowing ק's) -- a candidate replacement word (כף) was found and
 // fetched but the recording wasn't clear enough either; postponed.
-const NIKUD_CLIP_EXT = { 'פ': 'wav', 'ט': 'wav' };
+const NIKUD_CLIP_EXT = { 'א': 'wav', 'ב': 'wav', 'ג': 'wav', 'ד': 'wav', 'פ': 'wav', 'ט': 'wav' };
 let currentNikudAudio = null;
 
 function playNikudSound(letter) {

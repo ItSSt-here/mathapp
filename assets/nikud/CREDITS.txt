@@ -1,5 +1,30 @@
 Hebrew letter+niqud pronunciation recordings used by the "nikud" exercise mode.
 
+Loudness pass (2026-07-30): every kamats/ clip (soundsofnikud.com mp3s and
+self-made wavs alike) was reprocessed because the user found them hard to
+hear in a noisy room. The real issue wasn't peak level (every clip already
+peaked near 0dB) but that most of the site's mp3s were ~1s long with only
+~200-400ms of actual sound -- the rest was silence padding at the start and
+end, dragging the *average* loudness way down even though the peak was fine.
+Fixed by trimming only the outermost leading/trailing silence (detected via
+ffmpeg's silencedetect at -30dB, keeping a 40ms buffer so onsets/decays
+aren't clipped) -- any silence strictly *inside* the clip (e.g. a
+stop-consonant's natural closure, seen in ק/ת/ו) was left untouched, since
+removing that would cut into real content. A small calibrated gain was then
+applied per file (via `-af volume=XdB`, baked into the file, never a runtime
+Web Audio GainNode -- see the abc "N" clip entry below for why) to bring
+every clip's peak to a consistent -0.4dB. Net effect: most clips' mean
+volume improved by roughly 5-8dB and got noticeably shorter/snappier (dead
+air removed), all without clipping. Originals of all 22 files are backed up
+in _raw-audio-src/_pre-loudness-backup-2026-07-30/ in case any clip needs
+reverting.
+(First attempt used ffmpeg's `silenceremove` filter directly, which turned
+out to also strip *internal* silence periods unpredictably -- verified via
+before/after duration and silencedetect comparisons, it over-trimmed ג from
+190ms to 50ms and collapsed ו/ר down to fragments needing an absurd +13 to
++16dB gain to compensate. Reverted from backup and redone with a
+manually-computed leading/trailing-only cut instead, which fixed all three.)
+
 kamats/<letter>.mp3 (all 22 base letters): downloaded from
 https://soundsofnikud.com (kamats_sounds/<translit>_kamats.mp3), a small
 two-page educational site with clickable letter+niqud sound cards covering
@@ -34,6 +59,43 @@ selection logic as פ above. Trimmed by the user, 2026-07-23.
 He-כָּף.ogg by dafna3bot, CC0, and LL-Q9288 (heb)-Buffer-כף.wav, CC BY-SA 4.0,
 both in _raw-audio-src/) but the recording wasn't clear enough on trimming.
 Postponed -- try a different source word next time this is picked back up.
+
+kamats/ב.wav: REPLACES the soundsofnikud.com clip above -- part of the
+broader project of replacing every soundsofnikud.com clip (unknown license)
+with a self-made one, not because this particular one was reported bad.
+Self-made from a real word recording: LL-Q9288 (heb)-Uziel302-בא.wav (the
+word בָּא/"ba", "came/comes", CC0), downloaded from Wikimedia Commons -- the
+whole word already IS the target syllable, so it only needed edge-trimming
+rather than carving a syllable out of a longer word. Trimmed by the user,
+2026-07-30. Boosted +5dB with ffmpeg afterward (`-af volume=5dB`, baked into
+the file, peak -0.6dB, no clipping) since the user reported the raw trim as
+too quiet.
+(A same-day attempt to replace א the same way, trimming the opening "א"
+syllable out of the word אָב/"av", "father" (LL-Q9288 (heb)-Buffer-אב.wav,
+CC BY-SA 4.0), failed -- the user reported the trailing closed ב bleeding
+through no matter where the cut was placed.)
+
+kamats/ג.wav, kamats/ד.wav: REPLACE the soundsofnikud.com clips above, same
+"broader project" reason as ב, not because they were reported bad. Lesson
+learned from the א attempt above: prefer a word where the target letter is
+word-*final* (letter+קמץ followed by a silent/near-silent letter, so there's
+nothing after it to bleed into the cut and the recording's own trailing
+silence marks the back edge) over word-initial. Both self-made from real
+word recordings, trimmed by the user 2026-07-30, then boosted with ffmpeg
+(baked into the file, all landing at peak -0.5dB, no clipping, matching
+ב's level) since the user reported the raw trims as too quiet:
+  ג.wav <- LL-Q9288 (heb)-Yuvalyan-מגע.wav (מַגָּע/"maga", "touch/contact",
+    CC BY-SA 4.0), the trailing "-gָע" syllable. +3.7dB.
+  ד.wav <- LL-Q9288 (heb)-Buffer-ילדה.wav (יַלְדָּה/"yalda", "girl",
+    CC BY-SA 4.0), the trailing "-dָה" syllable. +10.1dB.
+
+kamats/א.wav: REPLACES the soundsofnikud.com clip above -- the earlier
+word-initial attempt (אב, above) failed, but the user got a usable trim a
+different way: from LL-Q9288 (heb)-Buffer-אהבה.wav (the same אהבה/"ahava"
+recording already used for kamats/soft ב.wav below), taking just the
+opening "א" syllable tightly enough to cut before the following ה
+consonant's onset. Trimmed by the user 2026-07-30, boosted +6.0dB with
+ffmpeg (baked into the file, peak -0.5dB, no clipping).
 
 Not yet wired into the exercise (level 1 is hard-sound-only for now, see
 NIKUD_CLIP_EXT/NIKUD_AUDIO_OVERRIDE in js/exercise.js) but already recorded
