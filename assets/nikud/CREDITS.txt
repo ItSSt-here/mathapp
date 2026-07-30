@@ -109,3 +109,32 @@ assets/nikud/kamats/ (trimmed clips) pending that future level's design.
 A soft פ source word (תרופה/"trufa") was identified but not yet fetched
 (hit Wikimedia's rate limiter) -- resume via the same Commons API technique
 documented in feedback_hebrew_letter_audio.md memory when picking this back up.
+
+kamats/ה.wav: REPLACES the soundsofnikud.com clip above -- part of the same
+broader self-made-clip project, not because it was reported bad. Unlike
+every letter above, this one is an ORIGINAL recording made directly by the
+user (2026-07-30) -- not a syllable trimmed out of a longer licensed word,
+so no third-party source/license applies. Already tight with no leading/
+trailing silence (verified via ffmpeg silencedetect down to -45dB, nothing
+detected), so only needed a calibrated gain boost, +4.1dB (baked in via
+`-af volume=4.1dB`), landing at peak -0.5dB to match the rest of the folder.
+
+kamats/ו.wav: also REPLACES the soundsofnikud.com clip above. Rather than a
+new recording, this reuses kamats/soft ב.wav outright (a straight copy, then
+independently gain-boosted) -- the user's call that ו and an undageshed
+(soft) ב are genuinely homophonous in Modern Hebrew, both a plain "v" sound,
+so the existing soft-ב clip (see the "not yet wired in" entry above for its
+own provenance: trimmed from אהבה, Buffer, CC BY-SA 4.0) works for ו without
+recording anything new. Also verified silence-free at -45dB; boosted +4.7dB,
+landing at peak -0.5dB. Note kamats/soft ב.wav itself is left unboosted/
+untouched at its original level, since it's still earmarked for the future
+soft-consonant level described above -- ו.wav is an independent copy, not a
+runtime alias to it.
+
+kamats/ז.wav, kamats/ח.wav: REPLACE the soundsofnikud.com clips above, same
+"broader project" reason, not because they were reported bad. Both are
+ORIGINAL recordings made directly by the user (2026-07-30), same as ה --
+no third-party source/license applies. Both verified silence-free at -45dB
+(no leading/trailing padding), so only needed a calibrated gain boost:
+ז +4.7dB, ח +6.7dB, both landing at peak -0.5dB to match the rest of the
+folder.

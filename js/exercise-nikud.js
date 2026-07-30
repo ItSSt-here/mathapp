@@ -20,10 +20,14 @@ function generateNikudExercise() {
     return { correct: randChoice(NIKUD_LEVEL1_LETTERS), options: NIKUD_LEVEL1_LETTERS };
   }
 
-  const correct = randChoice(HEBREW_LETTERS);
+  // Level 2: same random-5-of-pool mechanic as level 3, just drawn from the
+  // smaller NIKUD_LEVEL2_LETTERS pool (א-ח) instead of the full alphabet --
+  // see config.js for why this pool was added as a middle step.
+  const pool = exerciseDifficultyIndex === 1 ? NIKUD_LEVEL2_LETTERS : HEBREW_LETTERS;
+  const correct = randChoice(pool);
   const excluded = new Set([correct, ...nikudConfusablesOf(correct)]);
-  const pool = HEBREW_LETTERS.filter(l => !excluded.has(l));
-  const distractors = pickDistinctRandom(pool, 4);
+  const distractorPool = pool.filter(l => !excluded.has(l));
+  const distractors = pickDistinctRandom(distractorPool, 4);
   const options = pickDistinctRandom([correct, ...distractors], 5); // shuffles the order too
   return { correct, options };
 }
@@ -63,7 +67,13 @@ const NIKUD_AUDIO_OVERRIDE = { 'כ': 'ק' };
 // כ's own site clip is still in use *indirectly* via NIKUD_AUDIO_OVERRIDE
 // above (borrowing ק's) -- a candidate replacement word (כף) was found and
 // fetched but the recording wasn't clear enough either; postponed.
-const NIKUD_CLIP_EXT = { 'א': 'wav', 'ב': 'wav', 'ג': 'wav', 'ד': 'wav', 'פ': 'wav', 'ט': 'wav' };
+//
+// ה, ז, ח: self-recorded directly by the user (not extracted from a longer
+// word). ו: reuses the already-recorded "soft ב" clip outright (kamats/soft
+// ב.wav copied to kamats/ו.wav) rather than an NIKUD_AUDIO_OVERRIDE-style
+// runtime substitution, since ו and undageshed ב are genuinely homophonous
+// in Modern Hebrew (both a plain "v") -- see assets/nikud/CREDITS.txt.
+const NIKUD_CLIP_EXT = { 'א': 'wav', 'ב': 'wav', 'ג': 'wav', 'ד': 'wav', 'ה': 'wav', 'ו': 'wav', 'ז': 'wav', 'ח': 'wav', 'פ': 'wav', 'ט': 'wav' };
 let currentNikudAudio = null;
 
 function playNikudSound(letter) {
