@@ -431,3 +431,4 @@ preloadCastleSprites();
   // load, so there's time for the phantom-viewport quirk (if present) to
   // have already kicked in.
   setTimeout(() => { update(); alert(box.textContent); }, 1000);
+})();
