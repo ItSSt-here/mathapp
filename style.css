@@ -850,7 +850,11 @@ hr {
 
 .soldiers-layer {
   position: absolute;
-  inset: 0;
+  /* Longhand instead of `inset` -- see the .overlay rule's comment above for why. */
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
 }
 
 /* ---------- Soldier figures (sprite-based, see assets/sprites/knight) ---------- */
@@ -888,7 +892,16 @@ hr {
 /* Overlay */
 .overlay {
   position: fixed;
-  inset: 0;
+  /* top/right/bottom/left instead of the `inset` shorthand -- some phone
+     browsers (seen on a Xiaomi/Android device) silently ignore `inset`,
+     leaving position:fixed with no edges to stretch to, so it collapses to
+     its content size and sits wherever it naturally flows instead of
+     covering the screen. Longhand is the exact same result everywhere else
+     and has been supported forever. */
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   background: rgba(20, 25, 45, 0.65);
   display: none;
   align-items: center;
