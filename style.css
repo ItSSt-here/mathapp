@@ -1,12 +1,17 @@
 html, body {
-  /* Belt-and-suspenders against the Android overlay-positioning bug (see
-     .overlay's own comment below): even if nothing on the page overflows,
-     this guarantees the page itself can never become horizontally
-     scrollable/pannable, which is the actual mechanism (some phones report
-     a layout viewport many times wider than what's visible, and
-     position:fixed elements -- including the overlays -- get laid out
-     against that phantom width, only reachable by panning to it). */
-  overflow-x: hidden;
+  /* Locks the page so it can never scroll at all, in either direction --
+     see .overlay's own comment below for why this matters (2026-08-05,
+     round 5 of the Android overlay-positioning bug): real device numbers
+     showed position:fixed elements' actual painted position drifting by
+     exactly the page's scroll offset, i.e. position:fixed isn't behaving
+     as fixed at all on this phone/browser -- it's being painted as if it
+     scrolled with the document. Switching .overlay to position:absolute
+     sidesteps that broken mechanism, but only actually looks identical to
+     "fixed" if the document can never scroll out from under it, since
+     absolute (unlike fixed) is anchored to the document, not the viewport.
+     .card has its own overflow-y:auto as the fallback for content taller
+     than the screen, instead of relying on the page itself to scroll. */
+  overflow: hidden;
 }
 
 body {
@@ -51,6 +56,13 @@ body {
      without changing anything the player sees. */
   display: flex;
   flex-direction: column;
+  /* Fallback for content taller than the screen, now that html/body can
+     never scroll at all (see that rule's comment) -- .card becomes the
+     thing that scrolls internally instead of the page. No visible effect
+     when content fits (the common case), since max-height only constrains
+     it when content would otherwise exceed the viewport. */
+  max-height: 100vh;
+  overflow-y: auto;
 }
 
 /* Pulls #castleRow (the battlefield/HP-bars block) to the very top of
@@ -911,7 +923,25 @@ hr {
 
 /* Overlay */
 .overlay {
-  position: fixed;
+  /* absolute, not fixed (changed 2026-08-05, round 5 of the Android
+     overlay-positioning bug) -- real device numbers proved position:fixed
+     itself doesn't behave as fixed on the affected phone/browser (its
+     painted position drifted by exactly the page's scroll offset, as if it
+     were actually position:absolute all along). Deliberately embracing
+     that instead of fighting it: absolute is anchored to the document
+     (the initial containing block), same as fixed's *default* reference
+     frame, and since html/body now can never scroll at all (see that
+     rule's comment), "anchored to the document" and "anchored to the
+     viewport" become the same thing in practice -- so this should render
+     identically to a working `fixed` while sidestepping whatever's broken
+     about this device's actual `fixed` implementation. No more JS-computed
+     inline width/height/left/top needed either (removed
+     syncOverlayViewport() from main.js entirely) -- plain top/right/
+     bottom/left:0 with auto width/height now stretches to the same
+     initial-containing-block frame that the rest of the page (.card etc,
+     which has never once been reported mispositioned) already lays out
+     against correctly. */
+  position: absolute;
   /* top/right/bottom/left instead of the `inset` shorthand -- some phone
      browsers (seen on a Xiaomi/Android device) silently ignore `inset`,
      leaving position:fixed with no edges to stretch to, so it collapses to

@@ -208,49 +208,6 @@ function placeBattlefield() {
   document.getElementById('castleRow').classList.toggle('castle-row-top', isMobile);
 }
 
-// Some phone browsers report window.innerWidth/innerHeight (what CSS
-// position:fixed sizes itself against) much larger than what's actually
-// visible on screen (window.visualViewport, the API built specifically to
-// know the true visible area) -- confirmed on two Android phones, where the
-// full-screen overlays (topic/difficulty/speed pickers) were stretching to
-// this phantom oversized area and centering their content in the middle of
-// it, landing it off to the side of the real screen instead of visible.
-// CSS's own position:fixed sizing can't be trusted here, so this pins each
-// .overlay's actual pixel size directly from visualViewport (falling back
-// to innerWidth/innerHeight where visualViewport isn't supported, which
-// just reproduces the plain CSS behavior harmlessly).
-//
-// Size alone wasn't enough, though (found 2026-08-05 after the user could
-// still reach the topic picker only by panning ~2 screens to the side): the
-// .overlay CSS rule sets *both* left:0 and right:0 so it stretches full-
-// width by default. Once this function also pins an explicit pixel width,
-// the box has left+right+width all specified at once (over-constrained),
-// and per the CSS spec the browser resolves that by dropping 'left' on an
-// rtl page (this site is dir="rtl") -- so the overlay anchored itself to
-// right:0 of the phantom oversized layout viewport instead of to wherever
-// the real visible screen actually was, which is exactly a multi-screen-
-// widths pan away from it. Explicitly pinning left/top (and forcing
-// right/bottom to auto so they can't win the tie-break) from
-// visualViewport.offsetLeft/offsetTop -- the pan/zoom offset of the real
-// visible area within that phantom layout viewport -- keeps the overlay
-// glued to the actual screen regardless of which edge CSS would have
-// otherwise picked.
-function syncOverlayViewport() {
-  const vv = window.visualViewport;
-  const w = vv ? vv.width : window.innerWidth;
-  const h = vv ? vv.height : window.innerHeight;
-  const left = vv ? vv.offsetLeft : 0;
-  const top = vv ? vv.offsetTop : 0;
-  document.querySelectorAll('.overlay').forEach(el => {
-    el.style.width = `${w}px`;
-    el.style.height = `${h}px`;
-    el.style.left = `${left}px`;
-    el.style.top = `${top}px`;
-    el.style.right = 'auto';
-    el.style.bottom = 'auto';
-  });
-}
-
 // ---------- Events ----------
 document.getElementById('checkBtn').addEventListener('click', checkAnswer);
 // Two-blank exercises (currentAnswer is a {numerator, denominator} object)
@@ -363,18 +320,6 @@ document.getElementById('exDiffDownBtn').addEventListener('click', () => changeE
 window.addEventListener('resize', recalcSiegeThresholds);
 window.addEventListener('resize', placeBuyBtn);
 window.addEventListener('resize', placeBattlefield);
-window.addEventListener('resize', syncOverlayViewport);
-window.addEventListener('scroll', syncOverlayViewport);
-if (window.visualViewport) {
-  window.visualViewport.addEventListener('resize', syncOverlayViewport);
-  // 'scroll' fires as the visible area pans within an oversized layout
-  // viewport (the exact scenario this function is compensating for) --
-  // without this, panning after the overlay's first paint would drift the
-  // pinned left/top out of sync with the offsetLeft/offsetTop that produced
-  // them, reintroducing the same offset bug on pan alone.
-  window.visualViewport.addEventListener('scroll', syncOverlayViewport);
-}
-syncOverlayViewport();
 showInitialOverlay();
 applyLinkModeUI();
 updateDifficultyLabel();
