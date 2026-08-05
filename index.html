@@ -4,7 +4,16 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>קרב הטירות</title>
-<link rel="stylesheet" href="style.css">
+<!-- ASSET_VERSION: bump this on every push that touches style.css or any
+     js/*.js file, and copy the same value into every ?v= below (including
+     the script tags near the end of this file). GitHub Pages caches each
+     file for 10 minutes independently (see Cache-Control response header),
+     so an update to some files but not others can leave a visitor's phone
+     with a stale mix mid-window; changing the query string forces a fresh
+     fetch of everything together instead of relying on cache timing to
+     line up. No build step in this project, so this is manual -- there's
+     nothing to automate it. -->
+<link rel="stylesheet" href="style.css?v=202608051538">
 </head>
 <body>
 
@@ -240,18 +249,18 @@
      (see preloadSoldierSprites() in render.js). -->
 <div id="spritePreload" style="position:fixed; left:-9999px; top:-9999px; width:1px; height:1px; overflow:hidden;" aria-hidden="true"></div>
 
-<script src="js/config.js"></script>
-<script src="js/helpers.js"></script>
-<script src="js/exercise-core.js"></script>
-<script src="js/exercise-fractions.js"></script>
-<script src="js/exercise-addfractions.js"></script>
-<script src="js/exercise-letters.js"></script>
-<script src="js/exercise-abc.js"></script>
-<script src="js/exercise-nikud.js"></script>
-<script src="js/exercise-compare.js"></script>
-<script src="js/combat.js"></script>
-<script src="js/render.js"></script>
-<script src="js/main.js"></script>
+<script src="js/config.js?v=202608051538"></script>
+<script src="js/helpers.js?v=202608051538"></script>
+<script src="js/exercise-core.js?v=202608051538"></script>
+<script src="js/exercise-fractions.js?v=202608051538"></script>
+<script src="js/exercise-addfractions.js?v=202608051538"></script>
+<script src="js/exercise-letters.js?v=202608051538"></script>
+<script src="js/exercise-abc.js?v=202608051538"></script>
+<script src="js/exercise-nikud.js?v=202608051538"></script>
+<script src="js/exercise-compare.js?v=202608051538"></script>
+<script src="js/combat.js?v=202608051538"></script>
+<script src="js/render.js?v=202608051538"></script>
+<script src="js/main.js?v=202608051538"></script>
 
 </body>
 </html>
