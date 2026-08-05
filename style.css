@@ -1,3 +1,14 @@
+html, body {
+  /* Belt-and-suspenders against the Android overlay-positioning bug (see
+     .overlay's own comment below): even if nothing on the page overflows,
+     this guarantees the page itself can never become horizontally
+     scrollable/pannable, which is the actual mechanism (some phones report
+     a layout viewport many times wider than what's visible, and
+     position:fixed elements -- including the overlays -- get laid out
+     against that phantom width, only reachable by panning to it). */
+  overflow-x: hidden;
+}
+
 body {
   font-family: Arial, Helvetica, sans-serif;
   background: linear-gradient(180deg, #bfe3ff 0%, #eaf6ff 55%, #f5f0e0 100%);
@@ -15,8 +26,17 @@ body {
   box-shadow: 0 12px 32px rgba(30, 50, 100, 0.2);
   padding: 26px 30px;
   text-align: center;
-  width: 1200px;
-  max-width: 95vw;
+  /* min() instead of a plain `width: 1200px; max-width: 95vw;` pair --
+     same computed result (whichever is smaller), but this never gives the
+     browser a bare large fixed-pixel width to key off of. A leading theory
+     (unconfirmed) for the Android overlay-positioning bug is that some
+     phones' viewport-adaptation heuristics widen the whole page's layout
+     viewport in reaction to spotting a wide fixed-pixel element like the
+     old `width: 1200px`, ignoring the <meta viewport> tag that says not to
+     -- worth eliminating even though it wasn't proven, since two rounds of
+     purely JS-side position compensation haven't fully fixed the bug on a
+     real device. */
+  width: min(1200px, 95vw);
 }
 
 h1 {

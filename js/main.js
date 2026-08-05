@@ -421,4 +421,13 @@ preloadCastleSprites();
   }
   setTimeout(update, 500);
   setTimeout(update, 1500);
-})();
+  // The on-page box above is itself position:fixed, so on a phone hitting
+  // this exact bug it can end up just as unreachable as the overlay it's
+  // trying to diagnose (reported 2026-08-05: box wasn't visible on the
+  // affected phone even though it rendered fine on desktop). A native
+  // alert() is drawn by the browser/OS chrome, not the page, so it can't be
+  // mispositioned by any page-CSS/viewport bug -- guaranteed visible
+  // regardless of what's going on with .overlay. Fires once, shortly after
+  // load, so there's time for the phantom-viewport quirk (if present) to
+  // have already kicked in.
+  setTimeout(() => { update(); alert(box.textContent); }, 1000);
