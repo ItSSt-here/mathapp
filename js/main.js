@@ -29,7 +29,7 @@ function changeExerciseDifficulty(delta) {
 }
 
 function formatLevelInfo() {
-  const modeLabels = { fractions: 'שברים', comparefractions: 'השוואת שברים', addfractions: 'חיבור שברים', letters: 'אותיות', abc: 'ABC', nikud: 'ניקוד' };
+  const modeLabels = { fractions: 'שברים', comparefractions: 'השוואת שברים', addfractions: 'חיבור שברים', subtractfractions: 'חיסור שברים', letters: 'אותיות', abc: 'ABC', nikud: 'ניקוד' };
   const modeLabel = modeLabels[gameMode] || 'כפל';
   return `נושא: ${modeLabel} | מהירות: ${DIFFICULTIES[difficultyIndex]} | קושי תרגילים: ${EXERCISE_DIFFICULTIES[exerciseDifficultyIndex]}`;
 }
@@ -271,6 +271,7 @@ const MODE_BUTTON_TOPICS = {
   modeMultiplyBtn: 'multiplication',
   modeFractionsBtn: 'fractions',
   modeAddFractionsBtn: 'addfractions',
+  modeSubtractFractionsBtn: 'subtractfractions',
   modeCompareFractionsBtn: 'comparefractions',
   modeLettersBtn: 'letters',
   modeAbcBtn: 'abc',

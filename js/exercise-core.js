@@ -125,6 +125,31 @@ function newExercise() {
       answer2.classList.remove('fraction-answer-input');
       answer2Home.appendChild(answer2);
     }
+  } else if (gameMode === 'subtractfractions') {
+    const ex = generateFractionSubtractionExercise();
+    currentAnswer = ex.answer;
+    if (ex.missing === 'both') simplifyLabel.style.display = '';
+    questionText.innerHTML =
+      '<span class="frac-eq">' +
+        fractionBlockHTML(ex.pNum, ex.pDen) +
+        '<span class="frac-op">−</span>' +
+        fractionBlockHTML(ex.qNum, ex.qDen) +
+        '<span class="frac-op">=</span>' +
+        fractionAnswerBlockHTML(ex.missing, ex.targetNumerator, ex.targetDenominator) +
+      '</span>';
+    answerInput.classList.add('fraction-answer-input');
+    const slot = document.getElementById('fracAnswerSlot');
+
+    if (ex.missing === 'both') {
+      answerInput.setAttribute('enterkeyhint', 'next');
+      slot.insertBefore(answerInput, slot.querySelector('.frac-bar'));
+      answer2.classList.add('fraction-answer-input');
+      slot.appendChild(answer2);
+    } else {
+      slot.prepend(answerInput);
+      answer2.classList.remove('fraction-answer-input');
+      answer2Home.appendChild(answer2);
+    }
   } else if (gameMode === 'fractions') {
     const ex = generateFractionExercise();
     currentAnswer = ex.answer;

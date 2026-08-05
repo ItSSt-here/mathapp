@@ -93,7 +93,7 @@ let arrivedStage = 'mode';
 const URL_PARAM_TOPIC = 'topic';
 const URL_PARAM_DIFFICULTY = 'difficulty';
 const URL_PARAM_SPEED = 'speed';
-const VALID_TOPICS = ['multiplication', 'fractions', 'comparefractions', 'addfractions', 'letters', 'abc', 'nikud']; // matches gameMode's own values, no translation table needed
+const VALID_TOPICS = ['multiplication', 'fractions', 'comparefractions', 'addfractions', 'subtractfractions', 'letters', 'abc', 'nikud']; // matches gameMode's own values, no translation table needed
 
 // Letters exercise (recognition, for younger children): child taps a sound
 // button to hear the letter's name (a recorded clip, see
@@ -257,6 +257,14 @@ const FRAC_ADD_L3_B1_CHANCE = 0.10; // b=1 folds this into level 1's same-denomi
 // -- same relationship level 2 has to level 1.
 const FRAC_ADD_L4_REDUCTION_CHANCE = 0.7;
 
+// Fraction-subtraction exercise ("חיסור שברים", added 2026-08-05): p/n - q/n
+// = [?]/n, same-denominator mechanic as addition's level 1. Own denominator
+// range (separate constants from FRAC_ADD_DEN_MIN/MAX) so it can be tuned
+// independently as more levels are added later. See
+// generateFractionSubtractionLevel1Exercise() in exercise-subtractfractions.js.
+const FRAC_SUB_DEN_MIN = 3;
+const FRAC_SUB_DEN_MAX = 20;
+
 // Compare-fractions exercise ("השוואת שברים"): pick either two proper
 // fractions sharing a denominator (p/n vs q/n, compare numerators directly)
 // or two sharing a numerator (n/p vs n/q, compare denominators inverted --
@@ -351,6 +359,7 @@ const EXERCISE_TOPIC_LEVEL_COUNTS = {
   fractions: 5,
   comparefractions: 4, // level 5 was identical to level 4
   addfractions: 4,
+  subtractfractions: 1,
   letters: 2,          // levels 2-5 were identical to each other
   abc: 4,               // level 5 was identical to level 4
   nikud: 3,
@@ -401,6 +410,10 @@ const EXERCISE_LEVEL_DESCRIPTIONS = {
     'מוצגים שני שברים עם אותו מכנה (בין 3 ל-20) שסכומם קטן מהמכנה -- יש להשלים את מונה תוצאת החיבור. לדוגמה: 2/7 + 3/7 = ?/7. התוצאה תמיד שבר תקין ומצומצם מראש.',
     'כמו ברמה 1, אבל בכל תרגיל -- בלי יוצא מן הכלל -- יש להשלים גם את המונה וגם את המכנה של תוצאת החיבור בצורתה המצומצמת. ב-70% מהמקרים באמת נדרש צמצום; ב-30% הנותרים סכום המונים והמכנה כבר זרים זה לזה, כך שאין מה לצמצם -- אבל אי אפשר לדעת מראש איזה מהם זה, כי הצורה זהה תמיד.',
     'מוצגים שני שברים שבהם המכנה של השבר השני הוא כפולה של מכנה השבר הראשון (למשל 2/3 ו-5/9, כי 9=3×3) -- יש להרחיב את השבר הראשון למכנה המשותף (2/3=6/9) ואז לחבר את המונים. ב-10% מהמקרים המכנים זהים מלכתחילה (בדיוק כמו ברמה 1). התוצאה תמיד שבר תקין ומצומצם מראש.',
+    'כמו ברמה 3, אבל בכל תרגיל -- בלי יוצא מן הכלל -- יש להשלים גם את המונה וגם את המכנה של תוצאת החיבור בצורתה המצומצמת. ב-70% מהמקרים באמת נדרש צמצום; ב-30% הנותרים אין מה לצמצם -- אבל אי אפשר לדעת מראש איזה מהם זה, כי הצורה זהה תמיד.',
+  ],
+  subtractfractions: [
+    'מוצגים שני שברים עם אותו מכנה (בין 3 ל-20), כשהמונה הראשון גדול מהשני -- יש להשלים את מונה תוצאת החיסור. לדוגמה: 5/7 - 2/7 = ?/7. התוצאה תמיד שבר תקין ומצומצם מראש.',
   ],
   comparefractions: [
     'מוצגים שני שברים -- לפעמים עם אותו מכנה, לפעמים עם אותו מונה (באקראי) -- ויש לבחור > או < כדי לקבוע איזה מהם גדול יותר.',
