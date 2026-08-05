@@ -198,14 +198,14 @@ function placeBuyBtn() {
 // while the player is typing. Moving it to the very top of the card avoids
 // that regardless of how tall the keyboard is, at the cost of the title and
 // exercise controls sitting below it instead of above.
+//
+// A CSS `order` class toggle instead of a DOM move (used to be
+// `.prepend()`/`.after()`) -- see the .card/.castle-row-top comments in
+// style.css for why: an early DOM mutation was a flagged-but-untested
+// suspect for the Android overlay-positioning bug.
 function placeBattlefield() {
-  const castleRow = document.getElementById('castleRow');
   const isMobile = window.matchMedia('(max-width: 600px)').matches;
-  if (isMobile) {
-    document.querySelector('.card').prepend(castleRow);
-  } else {
-    document.getElementById('castleRowDesktopAnchor').after(castleRow);
-  }
+  document.getElementById('castleRow').classList.toggle('castle-row-top', isMobile);
 }
 
 // Some phone browsers report window.innerWidth/innerHeight (what CSS

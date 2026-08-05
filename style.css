@@ -37,6 +37,29 @@ body {
      purely JS-side position compensation haven't fully fixed the bug on a
      real device. */
   width: min(1200px, 95vw);
+  /* flex column instead of relying on plain block stacking -- lets
+     placeBattlefield() (main.js) reorder #castleRow to the top on mobile
+     purely via a CSS `order` toggle instead of physically moving it in the
+     DOM (`.prepend()`). Visually identical to block stacking since column
+     flex items default to full cross-axis width (same as a block). Tried
+     2026-08-05 as an experiment after two rounds of JS viewport-position
+     compensation didn't fully fix the Android overlay bug -- an early
+     DOM mutation (the old prepend(), which ran during page-init, before
+     first layout/paint settles) was flagged back in the original
+     investigation as a plausible trigger for exactly this class of mobile
+     layout-viewport bug but was never actually tested; this removes it
+     without changing anything the player sees. */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Pulls #castleRow (the battlefield/HP-bars block) to the very top of
+   .card -- toggled by placeBattlefield() (main.js) on narrow screens, so
+   the keyboard covering the bottom of the screen while typing doesn't hide
+   it. See the .card comment above for why this is a CSS order flip instead
+   of a DOM move. */
+.castle-row-top {
+  order: -1;
 }
 
 h1 {
