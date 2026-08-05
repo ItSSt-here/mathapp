@@ -251,6 +251,12 @@ const FRAC_ADD_L3_B_MIN = 2;
 const FRAC_ADD_L3_B_MAX = 4;
 const FRAC_ADD_L3_B1_CHANCE = 0.10; // b=1 folds this into level 1's same-denominator mechanic
 
+// Level 4 (see generateFractionAdditionLevel4Exercise() in
+// exercise-addfractions.js): same p/a + q/(b*a) setup as level 3, but this
+// fraction of exercises forces gcd(p*b+q, b*a) > 1 so the sum needs reducing
+// -- same relationship level 2 has to level 1.
+const FRAC_ADD_L4_REDUCTION_CHANCE = 0.7;
+
 // Compare-fractions exercise ("השוואת שברים"): pick either two proper
 // fractions sharing a denominator (p/n vs q/n, compare numerators directly)
 // or two sharing a numerator (n/p vs n/q, compare denominators inverted --
@@ -344,7 +350,7 @@ const EXERCISE_TOPIC_LEVEL_COUNTS = {
   multiplication: 5,
   fractions: 5,
   comparefractions: 4, // level 5 was identical to level 4
-  addfractions: 3,
+  addfractions: 4,
   letters: 2,          // levels 2-5 were identical to each other
   abc: 4,               // level 5 was identical to level 4
   nikud: 3,
