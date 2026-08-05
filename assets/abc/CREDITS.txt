@@ -47,3 +47,38 @@ CC0 / Public domain (no attribution required):
 Original file pages (for provenance): each recording's Commons file page is
 linked from the corresponding letter's entry at https://en.wiktionary.org/wiki/<letter>
 (e.g. https://commons.wikimedia.org/wiki/File:En-us-z.ogg for z.ogg).
+
+Loudness pass (2026-08-05): the user reported some clips had a noticeable
+quiet/dead patch at the start. All 26 originals were backed up to
+_raw-audio-src/_pre-loudness-backup-abc-2026-08-05/ before touching
+anything, same silence-padding diagnosis and fix as the earlier nikud/
+letters passes (see feedback_hebrew_letter_audio.md memory) -- most of the
+padding was leading silence before the spoken letter name starts (some had
+trailing silence too), not a peak-level problem, so a manual silencedetect-
+driven edge-only trim (never the unsafe `silenceremove` filter) plus a
+calibrated `-af volume=XdB` gain baked into the file. Two refinements versus
+the earlier passes:
+  - A single fixed silencedetect threshold wasn't enough here -- these
+    Commons recordings vary in background noise floor per speaker, so a
+    few clips (g, j, k, z) never registered true digital silence at the
+    safe -45dB threshold even though they clearly had a quiet lead-in a
+    human would call padding. Fixed with a per-edge fallback: try -45dB
+    first (safest, matches the letters-topic lesson about not clipping
+    real quiet consonants), then -40dB, -35dB, -30dB in turn, using
+    whichever threshold is the first to find a silence period actually
+    touching that edge.
+  - Target peak was set to -1.0dB, not the -0.4dB used for nikud/letters'
+    lossless WAV clips -- ogg/vorbis is lossy on both the trim step and the
+    boost step here, and reconstruction ripple can overshoot the nominal
+    peak past 0dBFS even when the pre-encode PCM looked fine (caught via
+    `astats`'s true-peak reading on a first attempt at -0.4dB: c.ogg came
+    back at +0.05dBFS, genuine clipping that volumedetect's own peak
+    reading didn't show). -1.0dB leaves enough headroom to absorb that.
+Net effect: most clips lost 0.1-0.7s of dead air (e.g. b.ogg: 1.77s -> 1.12s)
+and got noticeably louder (up to +14dB on the quietest, e.g. z.ogg), with
+zero clipping (verified via `astats` true-peak on all 26 post-pass, every
+one landed between -0.5 and -1.6dBFS). k.ogg's lead-in only shrank by
+~30ms despite looking like ~0.25s of padding at a looser threshold -- its
+noise floor sits high enough that a confident, safe cut wasn't possible
+without risking real content; worth another pass if it's still reported as
+noticeably quiet-fronted after this.

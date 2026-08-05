@@ -138,3 +138,19 @@ no third-party source/license applies. Both verified silence-free at -45dB
 (no leading/trailing padding), so only needed a calibrated gain boost:
 ז +4.7dB, ח +6.7dB, both landing at peak -0.5dB to match the rest of the
 folder.
+
+kamats/י.wav, kamats/ל.wav, kamats/מ.wav: REPLACE the soundsofnikud.com
+clips above, same "broader project" reason. Self-made from real word
+recordings, same word-final-syllable technique as ג/ד above (trailing
+<letter>+קמץ+silent ה, so the recording's own natural trailing silence
+marks the back edge). All verified silence-free at -45dB (the faint tail
+picked up at -30dB on ל/מ was a quiet-but-real word-final consonant, same
+false-positive risk noted for the `letters` topic, not actual padding -- so
+no edge-trim needed, just gain). Trimmed by the user, boosted with ffmpeg,
+all landing at peak -0.5dB:
+  י.wav <- LL-Q9288 (heb)-YaronSh-בעיה.wav (בְּעָיָה/"be'aya", "problem",
+    CC0), the trailing "-yָה" syllable. +9.4dB.
+  ל.wav <- LL-Q9288 (heb)-Buffer-שאלה.wav (שְׁאֵלָה/"she'ela", "question",
+    CC BY-SA 4.0), the trailing "-lָה" syllable. +9.1dB.
+  מ.wav <- LL-Q9288 (heb)-Buffer-נשמה.wav (נְשָׁמָה/"neshama", "soul",
+    CC BY-SA 4.0), the trailing "-mָה" syllable. +8.9dB.

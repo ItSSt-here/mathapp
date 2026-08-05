@@ -72,8 +72,10 @@ const NIKUD_AUDIO_OVERRIDE = { 'כ': 'ק' };
 // word). ו: reuses the already-recorded "soft ב" clip outright (kamats/soft
 // ב.wav copied to kamats/ו.wav) rather than an NIKUD_AUDIO_OVERRIDE-style
 // runtime substitution, since ו and undageshed ב are genuinely homophonous
-// in Modern Hebrew (both a plain "v") -- see assets/nikud/CREDITS.txt.
-const NIKUD_CLIP_EXT = { 'א': 'wav', 'ב': 'wav', 'ג': 'wav', 'ד': 'wav', 'ה': 'wav', 'ו': 'wav', 'ז': 'wav', 'ח': 'wav', 'פ': 'wav', 'ט': 'wav' };
+// in Modern Hebrew (both a plain "v"). י/ל/מ: trimmed from real word
+// recordings (בעיה/שאלה/נשמה) same as א/ב/ג/ד/ט/פ -- see
+// assets/nikud/CREDITS.txt for all sources.
+const NIKUD_CLIP_EXT = { 'א': 'wav', 'ב': 'wav', 'ג': 'wav', 'ד': 'wav', 'ה': 'wav', 'ו': 'wav', 'ז': 'wav', 'ח': 'wav', 'ט': 'wav', 'י': 'wav', 'ל': 'wav', 'מ': 'wav', 'פ': 'wav' };
 let currentNikudAudio = null;
 
 function playNikudSound(letter) {
