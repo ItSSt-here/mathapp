@@ -265,6 +265,29 @@ const FRAC_ADD_L4_REDUCTION_CHANCE = 0.7;
 const FRAC_SUB_DEN_MIN = 3;
 const FRAC_SUB_DEN_MAX = 20;
 
+// Level 2 (see generateFractionSubtractionLevel2Exercise() in
+// exercise-subtractfractions.js): this fraction of exercises forces
+// gcd(p-q, n) > 1 so the difference needs reducing -- same relationship
+// addfractions level 2 has to level 1.
+const FRAC_SUB_L2_REDUCTION_CHANCE = 0.7;
+
+// Level 3 (see generateFractionSubtractionLevel3Exercise() in
+// exercise-subtractfractions.js): X = m/a and Y = k/(b*a) -- one denominator
+// a multiple of the other. Ranges mirror addfractions level 3's own
+// constants (FRAC_ADD_L3_*), kept separate so this topic can be tuned
+// independently.
+const FRAC_SUB_L3_A_MIN = 2;
+const FRAC_SUB_L3_A_MAX = 9;
+const FRAC_SUB_L3_B_MIN = 2;
+const FRAC_SUB_L3_B_MAX = 4;
+const FRAC_SUB_L3_B1_CHANCE = 0.10; // b=1 folds this into levels 1-2's same-denominator mechanic
+
+// Level 4 (see generateFractionSubtractionLevel4Exercise() in
+// exercise-subtractfractions.js): same X=m/a, Y=k/(b*a) setup as level 3,
+// but this fraction of exercises forces gcd(diff, b*a) > 1 so the result
+// needs reducing -- same relationship level 2 has to level 1.
+const FRAC_SUB_L4_REDUCTION_CHANCE = 0.7;
+
 // Compare-fractions exercise ("השוואת שברים"): pick either two proper
 // fractions sharing a denominator (p/n vs q/n, compare numerators directly)
 // or two sharing a numerator (n/p vs n/q, compare denominators inverted --
@@ -359,7 +382,7 @@ const EXERCISE_TOPIC_LEVEL_COUNTS = {
   fractions: 5,
   comparefractions: 4, // level 5 was identical to level 4
   addfractions: 4,
-  subtractfractions: 1,
+  subtractfractions: 4,
   letters: 2,          // levels 2-5 were identical to each other
   abc: 4,               // level 5 was identical to level 4
   nikud: 3,
@@ -414,6 +437,9 @@ const EXERCISE_LEVEL_DESCRIPTIONS = {
   ],
   subtractfractions: [
     'מוצגים שני שברים עם אותו מכנה (בין 3 ל-20), כשהמונה הראשון גדול מהשני -- יש להשלים את מונה תוצאת החיסור. לדוגמה: 5/7 - 2/7 = ?/7. התוצאה תמיד שבר תקין ומצומצם מראש.',
+    'כמו ברמה 1, אבל בכל תרגיל -- בלי יוצא מן הכלל -- יש להשלים גם את המונה וגם את המכנה של תוצאת החיסור בצורתה המצומצמת. ב-70% מהמקרים באמת נדרש צמצום; ב-30% הנותרים אין מה לצמצם -- אבל אי אפשר לדעת מראש איזה מהם זה, כי הצורה זהה תמיד.',
+    'מוצגים שני שברים שבהם המכנה של אחד מהם הוא כפולה של מכנה השני (למשל 2/3 ו-5/9, כי 9=3×3) -- באקראי, לפעמים השבר הראשון גדול יותר ולפעמים השני, כך שהחיסור פועל בשני הכיוונים. יש להרחיב את השבר בעל המכנה הקטן יותר למכנה המשותף ואז לחסר את המונים. ב-10% מהמקרים המכנים זהים מלכתחילה (בדיוק כמו ברמות 1-2). התוצאה תמיד שבר תקין (חיובי) ומצומצם מראש.',
+    'כמו ברמה 3, אבל בכל תרגיל -- בלי יוצא מן הכלל -- יש להשלים גם את המונה וגם את המכנה של תוצאת החיסור בצורתה המצומצמת. ב-70% מהמקרים באמת נדרש צמצום; ב-30% הנותרים אין מה לצמצם -- אבל אי אפשר לדעת מראש איזה מהם זה, כי הצורה זהה תמיד.',
   ],
   comparefractions: [
     'מוצגים שני שברים -- לפעמים עם אותו מכנה, לפעמים עם אותו מונה (באקראי) -- ויש לבחור > או < כדי לקבוע איזה מהם גדול יותר.',
