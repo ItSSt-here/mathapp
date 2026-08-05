@@ -952,6 +952,20 @@ hr {
   right: 0;
   bottom: 0;
   left: 0;
+  /* Explicit stacking priority (added 2026-08-05, round 6) -- on the same
+     Android phone this whole investigation has been chasing, the topic
+     picker became visible after switching to position:absolute (round 5),
+     but the battlefield behind it was showing through undimmed, painting
+     *above* the overlay's dark backdrop instead of under it, obscuring a
+     couple of the topic buttons. Ordinary stacking rules say a later,
+     positioned sibling like this should already paint on top of an
+     earlier, static one (`.card`) with no z-index needed -- but numbers
+     from this same device have already proven unreliable more than once
+     this investigation (e.g. reporting `left=1178` for a box a screenshot
+     confirmed was actually on-screen), so rather than keep reasoning about
+     *why* the normal rule might not be holding here, just make the
+     ordering explicit and unambiguous instead of implicit. */
+  z-index: 1000;
   background: rgba(20, 25, 45, 0.65);
   display: none;
   align-items: flex-start;
