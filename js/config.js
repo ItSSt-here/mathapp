@@ -78,13 +78,21 @@ let exerciseDifficultyIndex = DEFAULT_EXERCISE_DIFFICULTY_INDEX;
 // falls back to multiplication questions in fractions mode for now.
 let gameMode = 'multiplication';
 
-// True when the page loaded with a valid ?topic=&difficulty= URL (a
-// teacher-generated student link). Suppresses every path back to the
-// topic/difficulty screens for the rest of the session (see parseUrlParams()
-// and applyLinkModeUI() in main.js).
-let arrivedViaLink = false;
+// How far a teacher-generated link skips ahead, based on which URL params
+// were present at load: 'mode' (no/invalid ?topic=, land on the topic
+// picker as normal), 'difficulty' (?topic= only -- topic locked, land on
+// the difficulty picker with ?difficulty= as its pre-filled starting
+// position if given, still changeable), or 'speed' (?topic=&difficulty=&
+// speed= all present -- topic+difficulty locked, land on the speed picker
+// with ?speed= as its pre-filled starting position, still changeable).
+// Suppresses the paths back to whichever screens got locked in for the
+// rest of the session (see parseUrlParams() and applyLinkModeUI() in
+// main.js). Each of the three pre-start screens has its own "העתק קישור"
+// button building a link at that screen's own stage (buildShareLink()).
+let arrivedStage = 'mode';
 const URL_PARAM_TOPIC = 'topic';
 const URL_PARAM_DIFFICULTY = 'difficulty';
+const URL_PARAM_SPEED = 'speed';
 const VALID_TOPICS = ['multiplication', 'fractions', 'comparefractions', 'letters', 'abc', 'nikud']; // matches gameMode's own values, no translation table needed
 
 // Letters exercise (recognition, for younger children): child taps a sound

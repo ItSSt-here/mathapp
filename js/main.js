@@ -35,59 +35,93 @@ function formatLevelInfo() {
 }
 
 // ---------- Teacher link: URL config parsing + share-link generation ----------
+// Returns which screen to land on -- see arrivedStage's comment in
+// config.js for what each stage means and how it was decided.
 function parseUrlParams() {
   const params = new URLSearchParams(location.search);
   const topic = params.get(URL_PARAM_TOPIC);
-  const difficultyNum = Number(params.get(URL_PARAM_DIFFICULTY));
-  if (!VALID_TOPICS.includes(topic)) return false;
-  if (!Number.isInteger(difficultyNum) || difficultyNum < 1 || difficultyNum > EXERCISE_DIFFICULTIES.length) return false;
+  if (!VALID_TOPICS.includes(topic)) return 'mode';
   gameMode = topic;
+
+  const difficultyNum = Number(params.get(URL_PARAM_DIFFICULTY));
+  const hasDifficulty = Number.isInteger(difficultyNum) && difficultyNum >= 1;
   // Clamped rather than rejected: an older link generated before a topic's
   // level count shrank (see EXERCISE_TOPIC_LEVEL_COUNTS in config.js) should
-  // still auto-start the game instead of dumping the student back at the
-  // mode-select screen -- and for every topic shrunk so far, the removed
-  // levels were exact duplicates of a lower one anyway, so clamping produces
+  // still work instead of dumping the student back at the mode-select
+  // screen -- and for every topic shrunk so far, the removed levels were
+  // exact duplicates of a lower one anyway, so clamping reproduces
   // identical gameplay to what the link originally pointed at.
-  exerciseDifficultyIndex = Math.min(difficultyNum, getExerciseLevelCount()) - 1;
-  arrivedViaLink = true;
-  return true;
+  exerciseDifficultyIndex = hasDifficulty ? Math.min(difficultyNum, getExerciseLevelCount()) - 1 : 0;
+  if (!hasDifficulty) return 'difficulty';
+
+  const speedNum = Number(params.get(URL_PARAM_SPEED));
+  const hasSpeed = Number.isInteger(speedNum) && speedNum >= 1 && speedNum <= DIFFICULTIES.length;
+  if (!hasSpeed) return 'difficulty';
+  difficultyIndex = speedNum - 1;
+  return 'speed';
 }
 
+const ARRIVED_STAGE_OVERLAY = { mode: 'modeOverlay', difficulty: 'exDifficultyOverlay', speed: 'startOverlay' };
+
 function showInitialOverlay() {
-  const viaLink = parseUrlParams();
-  document.getElementById(viaLink ? 'startOverlay' : 'modeOverlay').classList.add('show');
+  arrivedStage = parseUrlParams();
+  document.getElementById(ARRIVED_STAGE_OVERLAY[arrivedStage]).classList.add('show');
 }
 
 function applyLinkModeUI() {
-  document.getElementById('backToLinkBtn').style.display = arrivedViaLink ? 'none' : '';
-  document.getElementById('reconfigureBtn').style.display = arrivedViaLink ? 'none' : '';
+  // Hide the escape hatch back to any screen whose choice got locked in by
+  // the link the student arrived on -- 'difficulty'/'speed' both lock the
+  // topic (hide the difficulty screen's "back to topics" button), and
+  // 'speed' additionally locks the difficulty level (hide the speed
+  // screen's "back to difficulty" button too).
+  document.getElementById('backToModeBtn').style.display = arrivedStage === 'mode' ? '' : 'none';
+  document.getElementById('backToLinkBtn').style.display = arrivedStage === 'speed' ? 'none' : '';
+  document.getElementById('reconfigureBtn').style.display = arrivedStage === 'mode' ? '' : 'none';
 }
 
-function buildShareLink() {
+// stage controls how much of the current selection gets baked into the
+// link: 'mode' includes nothing (topic not chosen yet), 'difficulty'
+// includes topic+difficulty (the difficulty screen's own "suggested
+// starting level" for whoever opens it), 'speed' includes topic+difficulty
+// +speed (the speed screen's "suggested starting speed"). See arrivedStage
+// in config.js for how parseUrlParams() turns these back into a landing
+// screen.
+function buildShareLink(stage) {
   const params = new URLSearchParams();
-  params.set(URL_PARAM_TOPIC, gameMode);
-  params.set(URL_PARAM_DIFFICULTY, String(exerciseDifficultyIndex + 1));
+  if (stage === 'difficulty' || stage === 'speed') {
+    params.set(URL_PARAM_TOPIC, gameMode);
+    params.set(URL_PARAM_DIFFICULTY, String(exerciseDifficultyIndex + 1));
+  }
+  if (stage === 'speed') {
+    params.set(URL_PARAM_SPEED, String(difficultyIndex + 1));
+  }
+  const query = params.toString();
   // location.origin is the literal string "null" when the page is opened
   // directly as a file:// URL (no local server) -- protocol+host stays
   // correct in that case (host is just empty) so building from those
   // instead keeps the link usable while testing locally that way too.
-  return `${location.protocol}//${location.host}${location.pathname}?${params.toString()}`;
+  return `${location.protocol}//${location.host}${location.pathname}${query ? '?' + query : ''}`;
 }
 
-function copyShareLink() {
-  const input = document.getElementById('shareLinkInput');
-  const feedback = document.getElementById('copyFeedback');
+// feedbackEl gets a transient "הועתק!" confirmation. The legacy
+// execCommand('copy') fallback (for file:// pages, where
+// navigator.clipboard is unavailable) needs a real input to select from --
+// shareLinkFallbackInput is a single shared, visually-hidden input kept
+// just for that, since the link itself is never shown to the user anymore.
+function copyShareLink(link, feedbackEl) {
   const showCopied = () => {
-    feedback.textContent = 'הועתק!';
-    setTimeout(() => { feedback.textContent = ''; }, 2000);
+    feedbackEl.textContent = 'הועתק!';
+    setTimeout(() => { feedbackEl.textContent = ''; }, 2000);
   };
   const legacyCopy = () => {
-    input.select();
-    document.execCommand('copy'); // works over file:// where navigator.clipboard is unavailable
+    const fallback = document.getElementById('shareLinkFallbackInput');
+    fallback.value = link;
+    fallback.select();
+    document.execCommand('copy');
     showCopied();
   };
   if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(input.value).then(showCopied).catch(legacyCopy);
+    navigator.clipboard.writeText(link).then(showCopied).catch(legacyCopy);
   } else {
     legacyCopy();
   }
@@ -250,26 +284,21 @@ document.getElementById('backToModeBtn').addEventListener('click', () => {
   document.getElementById('modeOverlay').classList.add('show');
 });
 document.getElementById('exDiffContinueBtn').addEventListener('click', () => {
-  document.getElementById('shareLinkRow').classList.remove('show');
   document.getElementById('exDifficultyOverlay').classList.remove('show');
-  document.getElementById('linkOverlay').classList.add('show');
-});
-document.getElementById('backToExDiffBtn').addEventListener('click', () => {
-  document.getElementById('linkOverlay').classList.remove('show');
-  document.getElementById('exDifficultyOverlay').classList.add('show');
-});
-document.getElementById('teacherContinueBtn').addEventListener('click', () => {
-  document.getElementById('linkOverlay').classList.remove('show');
   document.getElementById('startOverlay').classList.add('show');
 });
-document.getElementById('createLinkBtn').addEventListener('click', () => {
-  document.getElementById('shareLinkInput').value = buildShareLink();
-  document.getElementById('shareLinkRow').classList.add('show');
-});
-document.getElementById('copyLinkBtn').addEventListener('click', copyShareLink);
 document.getElementById('backToLinkBtn').addEventListener('click', () => {
   document.getElementById('startOverlay').classList.remove('show');
-  document.getElementById('linkOverlay').classList.add('show');
+  document.getElementById('exDifficultyOverlay').classList.add('show');
+});
+document.getElementById('copyLinkModeBtn').addEventListener('click', () => {
+  copyShareLink(buildShareLink('mode'), document.getElementById('copyFeedbackMode'));
+});
+document.getElementById('copyLinkDifficultyBtn').addEventListener('click', () => {
+  copyShareLink(buildShareLink('difficulty'), document.getElementById('copyFeedbackDifficulty'));
+});
+document.getElementById('copyLinkSpeedBtn').addEventListener('click', () => {
+  copyShareLink(buildShareLink('speed'), document.getElementById('copyFeedbackSpeed'));
 });
 document.getElementById('startBtn').addEventListener('click', () => {
   document.getElementById('startOverlay').classList.remove('show');

@@ -147,6 +147,11 @@
       <button class="restart-btn" id="modeAbcBtn">ABC</button>
       <button class="restart-btn" id="modeNikudBtn">ניקוד</button>
     </div>
+
+    <div class="link-row">
+      <button class="copy-link-btn" id="copyLinkModeBtn">העתק קישור</button>
+    </div>
+    <div class="copy-feedback" id="copyFeedbackMode"></div>
   </div>
 </div>
 
@@ -170,25 +175,11 @@
       <button class="home-btn" id="backToModeBtn">חזרה</button>
       <button class="restart-btn" id="exDiffContinueBtn">המשך</button>
     </div>
-  </div>
-</div>
 
-<div class="overlay" id="linkOverlay">
-  <div class="overlay-card">
-    <div class="overlay-title" style="color:#4a3fd1;">קרב טירות ⚔️</div>
-    <p class="overlay-text">אפשר להמשיך למשחק, או ליצור קישור לשליחה לתלמיד</p>
-
-    <div class="postgame-buttons">
-      <button class="home-btn" id="backToExDiffBtn">חזרה</button>
-      <button class="restart-btn" id="createLinkBtn">צור קישור</button>
-      <button class="restart-btn" id="teacherContinueBtn">המשך</button>
+    <div class="link-row">
+      <button class="copy-link-btn" id="copyLinkDifficultyBtn">העתק קישור</button>
     </div>
-
-    <div class="share-link-row" id="shareLinkRow">
-      <input type="text" id="shareLinkInput" class="share-link-input" readonly>
-      <button class="copy-link-btn" id="copyLinkBtn">העתק</button>
-    </div>
-    <div class="copy-feedback" id="copyFeedback"></div>
+    <div class="copy-feedback" id="copyFeedbackDifficulty"></div>
   </div>
 </div>
 
@@ -210,8 +201,18 @@
       <button class="home-btn" id="backToLinkBtn">חזרה</button>
       <button class="restart-btn" id="startBtn">התחל משחק</button>
     </div>
+
+    <div class="link-row">
+      <button class="copy-link-btn" id="copyLinkSpeedBtn">העתק קישור</button>
+    </div>
+    <div class="copy-feedback" id="copyFeedbackSpeed"></div>
   </div>
 </div>
+
+<!-- Off-screen, never shown to the user -- exists only so copyShareLink()'s
+     document.execCommand('copy') fallback (file:// pages, where
+     navigator.clipboard is unavailable) has a real input to select from. -->
+<input type="text" id="shareLinkFallbackInput" class="share-link-fallback-input" readonly tabindex="-1" aria-hidden="true">
 
 <div class="overlay" id="overlay">
   <div class="overlay-card">

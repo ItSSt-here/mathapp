@@ -1017,28 +1017,18 @@ hr {
   box-shadow: 0 1px 0 #cc6f00;
 }
 
-.share-link-row {
-  display: none;
-  align-items: center;
-  gap: 8px;
-  margin: 16px 0 8px;
-  flex-wrap: wrap;
-}
-
-.share-link-row.show {
+.link-row {
   display: flex;
+  justify-content: center;
+  margin: 16px 0 8px;
 }
 
-.share-link-input {
-  flex: 1;
-  font-size: 13px;
-  padding: 8px 10px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  direction: ltr;
-  unicode-bidi: isolate;
-  background: #f5f5f7;
-  color: #333;
+.share-link-fallback-input {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
 }
 
 .copy-link-btn {
