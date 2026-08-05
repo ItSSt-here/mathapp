@@ -240,6 +240,17 @@ const FRAC_ADD_DEN_MAX = 20;
 // already-reduced mechanic.
 const FRAC_ADD_L2_REDUCTION_CHANCE = 0.7;
 
+// Level 3 (see generateFractionAdditionLevel3Exercise() in
+// exercise-addfractions.js): p/a + q/(b*a) -- the second denominator is
+// always a multiple of the first. a/b ranges mirror the compare-fractions
+// topic's level 3 (same "one denominator a multiple of the other" idea),
+// which keeps the resulting denominator b*a from growing unwieldy.
+const FRAC_ADD_L3_A_MIN = 2;
+const FRAC_ADD_L3_A_MAX = 9;
+const FRAC_ADD_L3_B_MIN = 2;
+const FRAC_ADD_L3_B_MAX = 4;
+const FRAC_ADD_L3_B1_CHANCE = 0.10; // b=1 folds this into level 1's same-denominator mechanic
+
 // Compare-fractions exercise ("השוואת שברים"): pick either two proper
 // fractions sharing a denominator (p/n vs q/n, compare numerators directly)
 // or two sharing a numerator (n/p vs n/q, compare denominators inverted --
@@ -333,7 +344,7 @@ const EXERCISE_TOPIC_LEVEL_COUNTS = {
   multiplication: 5,
   fractions: 5,
   comparefractions: 4, // level 5 was identical to level 4
-  addfractions: 2,
+  addfractions: 3,
   letters: 2,          // levels 2-5 were identical to each other
   abc: 4,               // level 5 was identical to level 4
   nikud: 3,
@@ -383,6 +394,7 @@ const EXERCISE_LEVEL_DESCRIPTIONS = {
   addfractions: [
     'מוצגים שני שברים עם אותו מכנה (בין 3 ל-20) שסכומם קטן מהמכנה -- יש להשלים את מונה תוצאת החיבור. לדוגמה: 2/7 + 3/7 = ?/7. התוצאה תמיד שבר תקין ומצומצם מראש.',
     'כמו ברמה 1, אבל בכל תרגיל -- בלי יוצא מן הכלל -- יש להשלים גם את המונה וגם את המכנה של תוצאת החיבור בצורתה המצומצמת. ב-70% מהמקרים באמת נדרש צמצום; ב-30% הנותרים סכום המונים והמכנה כבר זרים זה לזה, כך שאין מה לצמצם -- אבל אי אפשר לדעת מראש איזה מהם זה, כי הצורה זהה תמיד.',
+    'מוצגים שני שברים שבהם המכנה של השבר השני הוא כפולה של מכנה השבר הראשון (למשל 2/3 ו-5/9, כי 9=3×3) -- יש להרחיב את השבר הראשון למכנה המשותף (2/3=6/9) ואז לחבר את המונים. ב-10% מהמקרים המכנים זהים מלכתחילה (בדיוק כמו ברמה 1). התוצאה תמיד שבר תקין ומצומצם מראש.',
   ],
   comparefractions: [
     'מוצגים שני שברים -- לפעמים עם אותו מכנה, לפעמים עם אותו מונה (באקראי) -- ויש לבחור > או < כדי לקבוע איזה מהם גדול יותר.',

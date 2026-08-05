@@ -1,4 +1,9 @@
-// ---------- Fraction-addition exercise (p/n + q/n = [?]/n) ----------
+// ---------- Fraction-addition exercise (p/n + q/n = [?]/n, and variants) ----------
+// Every level's generator returns {pNum, pDen, qNum, qDen, missing,
+// targetNumerator, targetDenominator, answer} -- newExercise() in
+// exercise-core.js renders pNum/pDen and qNum/qDen as the two shown addends
+// regardless of whether they share a denominator (levels 1-2) or not
+// (level 3), and fills the blank(s) from missing/targetNumerator/targetDenominator.
 
 // Level 1: same-denominator addition, always a proper and already-reduced
 // result -- n is drawn wide (3-20, see FRAC_ADD_DEN_MIN/MAX in config.js)
@@ -6,9 +11,7 @@
 // many denominators. sum (=p+q) is drawn first from [2, n-1] so it's always
 // < n (proper result), then split into p/q (each >=1). Rejects draws where
 // gcd(sum, n) !== 1 so the result is always already reduced -- no
-// simplification step at this level. missing/targetNumerator/targetDenominator
-// are included (even though they never vary here) so newExercise() in
-// exercise-core.js can treat both levels' return shape identically.
+// simplification step at this level.
 function generateFractionAdditionLevel1Exercise() {
   let n, sum;
   do {
@@ -19,7 +22,7 @@ function generateFractionAdditionLevel1Exercise() {
   const p = randInt(1, sum - 1);
   const q = sum - p;
 
-  return { p, q, n, missing: 'numerator', targetNumerator: sum, targetDenominator: n, answer: sum };
+  return { pNum: p, pDen: n, qNum: q, qDen: n, missing: 'numerator', targetNumerator: sum, targetDenominator: n, answer: sum };
 }
 
 // Level 2: same mechanic, but FRAC_ADD_L2_REDUCTION_CHANCE (70%) of the time
@@ -49,11 +52,44 @@ function generateFractionAdditionLevel2Exercise() {
   const targetNumerator = sum / g;
   const targetDenominator = n / g;
 
-  return { p, q, n, missing: 'both', targetNumerator, targetDenominator, answer: { numerator: targetNumerator, denominator: targetDenominator } };
+  return { pNum: p, pDen: n, qNum: q, qDen: n, missing: 'both', targetNumerator, targetDenominator, answer: { numerator: targetNumerator, denominator: targetDenominator } };
+}
+
+// Level 3: p/a + q/(b*a) -- the second denominator is a multiple of the
+// first, so the trick is expanding p/a to (p*b)/(b*a) and adding numerators:
+// (p*b+q)/(b*a). FRAC_ADD_L3_B1_CHANCE (10%) of exercises use b=1, which
+// collapses this into level 1's same-denominator mechanic (a = b*a) -- same
+// fold-in idea as the "fractions" topic's level 5 b2=1 case. p and q are
+// each drawn proper against their own shown denominator (p<a, q<b*a); q's
+// range is then capped so p*b+q < b*a too (proper result, never a mixed
+// number -- the game has no UI for those). Both shown fractions are also
+// rejected unless already in lowest terms (gcd(p,a)=1, gcd(q,b*a)=1) --
+// otherwise q/(b*a) in particular would often look reducible on its own
+// (e.g. 6/9) with no way for the student to act on that, since the blank
+// only asks for the sum's numerator over the fixed denominator b*a; real
+// textbook fraction problems always present givens already in simplest
+// form. Also rejects gcd(p*b+q, b*a) !== 1, so like level 1 the result is
+// always already reduced too -- no simplification step at this level either.
+function generateFractionAdditionLevel3Exercise() {
+  let a, b, p, q, denom, sum;
+  do {
+    a = randInt(FRAC_ADD_L3_A_MIN, FRAC_ADD_L3_A_MAX);
+    b = Math.random() < FRAC_ADD_L3_B1_CHANCE ? 1 : randInt(FRAC_ADD_L3_B_MIN, FRAC_ADD_L3_B_MAX);
+    p = randInt(1, a - 1);
+    denom = b * a;
+    const qMax = denom - b * p - 1; // keeps p*b+q < b*a (proper result)
+    q = qMax >= 1 ? randInt(1, qMax) : 0;
+    sum = p * b + q;
+  } while (q < 1 || gcd(p, a) !== 1 || gcd(q, denom) !== 1 || gcd(sum, denom) !== 1);
+
+  return { pNum: p, pDen: a, qNum: q, qDen: denom, missing: 'numerator', targetNumerator: sum, targetDenominator: denom, answer: sum };
 }
 
 function generateFractionAdditionExercise() {
   const level = exerciseDifficultyIndex + 1;
+  if (level === 3) {
+    return generateFractionAdditionLevel3Exercise();
+  }
   if (level === 2) {
     return generateFractionAdditionLevel2Exercise();
   }

@@ -106,9 +106,9 @@ function newExercise() {
     if (ex.missing === 'both') simplifyLabel.style.display = '';
     questionText.innerHTML =
       '<span class="frac-eq">' +
-        fractionBlockHTML(ex.p, ex.n) +
+        fractionBlockHTML(ex.pNum, ex.pDen) +
         '<span class="frac-op">+</span>' +
-        fractionBlockHTML(ex.q, ex.n) +
+        fractionBlockHTML(ex.qNum, ex.qDen) +
         '<span class="frac-op">=</span>' +
         fractionAnswerBlockHTML(ex.missing, ex.targetNumerator, ex.targetDenominator) +
       '</span>';
