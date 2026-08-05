@@ -26,6 +26,13 @@ function newExercise() {
   const simplifyLabel = document.getElementById('simplifyLabel');
   simplifyLabel.style.display = 'none';
 
+  // Mobile numeric keypads (inputmode="numeric") often have no visible
+  // Enter/Go key by default -- enterkeyhint gives them a real one. Defaults
+  // to "done" (submit); the two-blank branches below switch #answer to
+  // "next" since Enter there moves to #answer2 instead of submitting.
+  answerInput.setAttribute('enterkeyhint', 'done');
+  answer2.setAttribute('enterkeyhint', 'done');
+
   // Park the numeric-answer inputs back in their neutral home before any
   // topic-specific branch below rewrites questionText's markup -- otherwise
   // a topic that doesn't reuse them (compare-fractions) would destroy them
@@ -93,7 +100,32 @@ function newExercise() {
     return;
   }
 
-  if (gameMode === 'fractions') {
+  if (gameMode === 'addfractions') {
+    const ex = generateFractionAdditionExercise();
+    currentAnswer = ex.answer;
+    if (ex.missing === 'both') simplifyLabel.style.display = '';
+    questionText.innerHTML =
+      '<span class="frac-eq">' +
+        fractionBlockHTML(ex.p, ex.n) +
+        '<span class="frac-op">+</span>' +
+        fractionBlockHTML(ex.q, ex.n) +
+        '<span class="frac-op">=</span>' +
+        fractionAnswerBlockHTML(ex.missing, ex.targetNumerator, ex.targetDenominator) +
+      '</span>';
+    answerInput.classList.add('fraction-answer-input');
+    const slot = document.getElementById('fracAnswerSlot');
+
+    if (ex.missing === 'both') {
+      answerInput.setAttribute('enterkeyhint', 'next');
+      slot.insertBefore(answerInput, slot.querySelector('.frac-bar'));
+      answer2.classList.add('fraction-answer-input');
+      slot.appendChild(answer2);
+    } else {
+      slot.prepend(answerInput);
+      answer2.classList.remove('fraction-answer-input');
+      answer2Home.appendChild(answer2);
+    }
+  } else if (gameMode === 'fractions') {
     const ex = generateFractionExercise();
     currentAnswer = ex.answer;
     if (ex.missing === 'both') simplifyLabel.style.display = '';
@@ -107,6 +139,7 @@ function newExercise() {
     const slot = document.getElementById('fracAnswerSlot');
 
     if (ex.missing === 'both') {
+      answerInput.setAttribute('enterkeyhint', 'next');
       slot.insertBefore(answerInput, slot.querySelector('.frac-bar'));
       answer2.classList.add('fraction-answer-input');
       slot.appendChild(answer2);

@@ -93,7 +93,7 @@ let arrivedStage = 'mode';
 const URL_PARAM_TOPIC = 'topic';
 const URL_PARAM_DIFFICULTY = 'difficulty';
 const URL_PARAM_SPEED = 'speed';
-const VALID_TOPICS = ['multiplication', 'fractions', 'comparefractions', 'letters', 'abc', 'nikud']; // matches gameMode's own values, no translation table needed
+const VALID_TOPICS = ['multiplication', 'fractions', 'comparefractions', 'addfractions', 'letters', 'abc', 'nikud']; // matches gameMode's own values, no translation table needed
 
 // Letters exercise (recognition, for younger children): child taps a sound
 // button to hear the letter's name (a recorded clip, see
@@ -224,6 +224,22 @@ const FRACTION_LEVEL4_FULL_REDUCTION_CHANCE = 0.8;
 // level 3-style exercises as a subset without any special-casing.
 const FRACTION_B2_MIN = 1;
 
+// Fraction-addition exercise ("חיבור שברים"): p/n + q/n = [?]/n. n is drawn
+// from a wide range since this topic comes after "שברים", where the student
+// has already met many denominators. p and q are each >=1 with p+q<n (so the
+// result is always a proper fraction) and gcd(p+q,n)=1 (so the result is
+// always already reduced -- no simplification step at level 1). See
+// generateFractionAdditionExercise() in exercise-addfractions.js.
+const FRAC_ADD_DEN_MIN = 3;
+const FRAC_ADD_DEN_MAX = 20;
+
+// Level 2 (see generateFractionAdditionLevel2Exercise() in
+// exercise-addfractions.js): this fraction of exercises forces gcd(p+q, n) > 1
+// so the sum needs reducing (both numerator and denominator blanked, same
+// full-reduction UI as the "fractions" topic); the rest fall back to level 1's
+// already-reduced mechanic.
+const FRAC_ADD_L2_REDUCTION_CHANCE = 0.7;
+
 // Compare-fractions exercise ("השוואת שברים"): pick either two proper
 // fractions sharing a denominator (p/n vs q/n, compare numerators directly)
 // or two sharing a numerator (n/p vs n/q, compare denominators inverted --
@@ -317,6 +333,7 @@ const EXERCISE_TOPIC_LEVEL_COUNTS = {
   multiplication: 5,
   fractions: 5,
   comparefractions: 4, // level 5 was identical to level 4
+  addfractions: 2,
   letters: 2,          // levels 2-5 were identical to each other
   abc: 4,               // level 5 was identical to level 4
   nikud: 3,
@@ -362,6 +379,10 @@ const EXERCISE_LEVEL_DESCRIPTIONS = {
     'שומעים אחת מ-4 האותיות א, ב, ג, ד עם ניקוד קמץ (לחיצה על 🔊) ובוחרים אותה מתוך 4 כפתורים קבועים, תמיד באותו סדר.',
     'שומעים אות עם ניקוד קמץ (לחיצה על 🔊) ובוחרים אותה מתוך 5 אותיות עם קמץ, מתוך 8 האותיות הראשונות (א-ח).',
     'שומעים אות עם ניקוד קמץ (לחיצה על 🔊) ובוחרים אותה מתוך 5 אותיות עם קמץ, מתוך כל האלף-בית.',
+  ],
+  addfractions: [
+    'מוצגים שני שברים עם אותו מכנה (בין 3 ל-20) שסכומם קטן מהמכנה -- יש להשלים את מונה תוצאת החיבור. לדוגמה: 2/7 + 3/7 = ?/7. התוצאה תמיד שבר תקין ומצומצם מראש.',
+    'כמו ברמה 1, אבל בכל תרגיל -- בלי יוצא מן הכלל -- יש להשלים גם את המונה וגם את המכנה של תוצאת החיבור בצורתה המצומצמת. ב-70% מהמקרים באמת נדרש צמצום; ב-30% הנותרים סכום המונים והמכנה כבר זרים זה לזה, כך שאין מה לצמצם -- אבל אי אפשר לדעת מראש איזה מהם זה, כי הצורה זהה תמיד.',
   ],
   comparefractions: [
     'מוצגים שני שברים -- לפעמים עם אותו מכנה, לפעמים עם אותו מונה (באקראי) -- ויש לבחור > או < כדי לקבוע איזה מהם גדול יותר.',

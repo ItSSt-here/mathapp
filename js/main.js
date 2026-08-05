@@ -29,7 +29,7 @@ function changeExerciseDifficulty(delta) {
 }
 
 function formatLevelInfo() {
-  const modeLabels = { fractions: 'שברים', comparefractions: 'השוואת שברים', letters: 'אותיות', abc: 'ABC', nikud: 'ניקוד' };
+  const modeLabels = { fractions: 'שברים', comparefractions: 'השוואת שברים', addfractions: 'חיבור שברים', letters: 'אותיות', abc: 'ABC', nikud: 'ניקוד' };
   const modeLabel = modeLabels[gameMode] || 'כפל';
   return `נושא: ${modeLabel} | מהירות: ${DIFFICULTIES[difficultyIndex]} | קושי תרגילים: ${EXERCISE_DIFFICULTIES[exerciseDifficultyIndex]}`;
 }
@@ -210,27 +210,35 @@ function placeBattlefield() {
 
 // ---------- Events ----------
 document.getElementById('checkBtn').addEventListener('click', checkAnswer);
+// Two-blank exercises (currentAnswer is a {numerator, denominator} object)
+// move focus to the other box on Enter instead of a digit-count guess --
+// jumping once a box "looks full" would itself hint how many digits the
+// real answer needs (e.g. whether addfractions level 2's reduced result
+// came out one digit or two) before the student's even gotten it right.
+// Enter only submits once both boxes actually have something in them.
 document.getElementById('answer').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') checkAnswer();
+  if (e.key !== 'Enter') return;
+  const answer2 = document.getElementById('answer2');
+  if (typeof currentAnswer === 'object' && answer2.value.trim() === '') {
+    answer2.focus();
+    return;
+  }
+  checkAnswer();
 });
 document.getElementById('answer').addEventListener('input', (e) => {
   e.target.value = e.target.value.replace(/[^0-9]/g, '');
-  // Full-reduction fraction exercises (both numerator and denominator
-  // blank) always target a single digit each, so one digit reliably means
-  // "done with this box" -- jump to the other one instead of making the
-  // student reach for it themselves.
-  if (typeof currentAnswer === 'object' && e.target.value.length === 1) {
-    document.getElementById('answer2').focus();
-  }
 });
 document.getElementById('answer2').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') checkAnswer();
+  if (e.key !== 'Enter') return;
+  const answerInput = document.getElementById('answer');
+  if (typeof currentAnswer === 'object' && answerInput.value.trim() === '') {
+    answerInput.focus();
+    return;
+  }
+  checkAnswer();
 });
 document.getElementById('answer2').addEventListener('input', (e) => {
   e.target.value = e.target.value.replace(/[^0-9]/g, '');
-  if (typeof currentAnswer === 'object' && e.target.value.length === 1) {
-    document.getElementById('answer').focus();
-  }
 });
 document.getElementById('buyBtn').addEventListener('click', () => {
   buySoldier();
@@ -262,6 +270,7 @@ document.getElementById('reconfigureBtn').addEventListener('click', () => {
 const MODE_BUTTON_TOPICS = {
   modeMultiplyBtn: 'multiplication',
   modeFractionsBtn: 'fractions',
+  modeAddFractionsBtn: 'addfractions',
   modeCompareFractionsBtn: 'comparefractions',
   modeLettersBtn: 'letters',
   modeAbcBtn: 'abc',

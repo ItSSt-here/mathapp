@@ -33,7 +33,7 @@
     </div>
   </div>
   <div id="answerHome">
-    <input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" id="answer" autofocus>
+    <input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" enterkeyhint="done" id="answer" autofocus>
   </div>
   <!-- Letters exercise, two directions depending on exercise level (see
        newExercise() in js/exercise.js). Hidden except in letters mode. -->
@@ -65,7 +65,7 @@
   <!-- Second blank, only used for fraction exercises where both the
        numerator and denominator are hidden; parked here (hidden) otherwise. -->
   <div id="answer2Home" style="display:none;">
-    <input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" id="answer2">
+    <input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" enterkeyhint="done" id="answer2">
   </div>
   <!-- On wide screens this is just the check button on its own line, same
        as always -- .mobile-buy-row is empty and hidden there. On narrow
@@ -142,6 +142,7 @@
     <div class="postgame-buttons">
       <button class="restart-btn" id="modeMultiplyBtn">לוח הכפל</button>
       <button class="restart-btn" id="modeFractionsBtn">שברים</button>
+      <button class="restart-btn" id="modeAddFractionsBtn">חיבור שברים</button>
       <button class="restart-btn" id="modeCompareFractionsBtn">השוואת שברים</button>
       <button class="restart-btn" id="modeLettersBtn">אותיות</button>
       <button class="restart-btn" id="modeAbcBtn">ABC</button>
@@ -243,6 +244,7 @@
 <script src="js/helpers.js"></script>
 <script src="js/exercise-core.js"></script>
 <script src="js/exercise-fractions.js"></script>
+<script src="js/exercise-addfractions.js"></script>
 <script src="js/exercise-letters.js"></script>
 <script src="js/exercise-abc.js"></script>
 <script src="js/exercise-nikud.js"></script>
