@@ -82,7 +82,14 @@ function generateFractionAdditionLevel3Exercise() {
     sum = p * b + q;
   } while (q < 1 || gcd(p, a) !== 1 || gcd(q, denom) !== 1 || gcd(sum, denom) !== 1);
 
-  return { pNum: p, pDen: a, qNum: q, qDen: denom, missing: 'numerator', targetNumerator: sum, targetDenominator: denom, answer: sum };
+  // Which fraction needs expanding (p/a) is randomized between the left and
+  // right shown slots -- otherwise it's always p/a first (left), letting the
+  // student learn "always expand the left one" instead of recognizing which
+  // denominator is the multiple. See [[feedback_exercise_no_giveaway_design]].
+  const swap = Math.random() < 0.5;
+  return swap
+    ? { pNum: q, pDen: denom, qNum: p, qDen: a, missing: 'numerator', targetNumerator: sum, targetDenominator: denom, answer: sum }
+    : { pNum: p, pDen: a, qNum: q, qDen: denom, missing: 'numerator', targetNumerator: sum, targetDenominator: denom, answer: sum };
 }
 
 function generateFractionAdditionExercise() {
