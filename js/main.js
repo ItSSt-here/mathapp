@@ -208,6 +208,27 @@ function placeBattlefield() {
   }
 }
 
+// Some phone browsers report window.innerWidth/innerHeight (what CSS
+// position:fixed sizes itself against) much larger than what's actually
+// visible on screen (window.visualViewport, the API built specifically to
+// know the true visible area) -- confirmed on two Android phones, where the
+// full-screen overlays (topic/difficulty/speed pickers) were stretching to
+// this phantom oversized area and centering their content in the middle of
+// it, landing it off to the side of the real screen instead of visible.
+// CSS's own position:fixed sizing can't be trusted here, so this pins each
+// .overlay's actual pixel size directly from visualViewport (falling back
+// to innerWidth/innerHeight where visualViewport isn't supported, which
+// just reproduces the plain CSS behavior harmlessly).
+function syncOverlayViewport() {
+  const vv = window.visualViewport;
+  const w = vv ? vv.width : window.innerWidth;
+  const h = vv ? vv.height : window.innerHeight;
+  document.querySelectorAll('.overlay').forEach(el => {
+    el.style.width = `${w}px`;
+    el.style.height = `${h}px`;
+  });
+}
+
 // ---------- Events ----------
 document.getElementById('checkBtn').addEventListener('click', checkAnswer);
 // Two-blank exercises (currentAnswer is a {numerator, denominator} object)
@@ -320,6 +341,11 @@ document.getElementById('exDiffDownBtn').addEventListener('click', () => changeE
 window.addEventListener('resize', recalcSiegeThresholds);
 window.addEventListener('resize', placeBuyBtn);
 window.addEventListener('resize', placeBattlefield);
+window.addEventListener('resize', syncOverlayViewport);
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', syncOverlayViewport);
+}
+syncOverlayViewport();
 showInitialOverlay();
 applyLinkModeUI();
 updateDifficultyLabel();
@@ -328,3 +354,34 @@ placeBuyBtn();
 placeBattlefield();
 preloadSoldierSprites();
 preloadCastleSprites();
+
+// TEMP DEBUG -- remove once the mobile overlay-sizing bug (topic-picker
+// screen not covering the phone screen, reported on two Android phones) is
+// diagnosed. Shows live viewport/overlay measurements in an on-screen
+// readout so we get real numbers from an affected phone instead of
+// guessing blind from a desktop testing tool that can't reproduce it.
+(function() {
+  const box = document.createElement('div');
+  box.id = 'debugInfo';
+  box.style.cssText = 'position:fixed;top:0;left:0;z-index:999999;background:rgba(255,255,0,0.95);color:#000;font-size:11px;padding:4px;font-family:monospace;direction:ltr;white-space:pre-wrap;max-width:100vw;overflow:auto;';
+  document.body.appendChild(box);
+  function update() {
+    const shown = document.querySelector('.overlay.show');
+    const r = shown ? shown.getBoundingClientRect() : null;
+    const cardEl = shown ? shown.querySelector('.overlay-card') : null;
+    const cr = cardEl ? cardEl.getBoundingClientRect() : null;
+    box.textContent =
+      `iw=${window.innerWidth} ih=${window.innerHeight} ` +
+      `vv=${window.visualViewport ? Math.round(window.visualViewport.width) + 'x' + Math.round(window.visualViewport.height) : 'n/a'} ` +
+      `dpr=${window.devicePixelRatio} mq600=${window.matchMedia('(max-width: 600px)').matches}\n` +
+      `docScrollW=${document.documentElement.scrollWidth} bodyScrollW=${document.body.scrollWidth}\n` +
+      `shownOverlay=${shown ? shown.id : 'none'}\n` +
+      (r ? `overlay rect: left=${Math.round(r.left)} top=${Math.round(r.top)} w=${Math.round(r.width)} h=${Math.round(r.height)}\n` : '') +
+      (cr ? `card rect: left=${Math.round(cr.left)} top=${Math.round(cr.top)} w=${Math.round(cr.width)} h=${Math.round(cr.height)}` : '');
+  }
+  update();
+  window.addEventListener('resize', update);
+  window.addEventListener('load', update);
+  setTimeout(update, 500);
+  setTimeout(update, 1500);
+})();
