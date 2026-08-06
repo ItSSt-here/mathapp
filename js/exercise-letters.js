@@ -80,6 +80,11 @@ function renderLetterChoices(ex) {
     btn.addEventListener('click', () => checkLetterAnswer(option, ex.correct, btn));
     container.appendChild(btn);
   });
+  // Focus starts on the sound button, not a letter -- the natural order is
+  // "hear it, then pick," and starting here means a keyboard-only player
+  // needs no mouse/tap at all: Enter plays the sound, ArrowDown reaches the
+  // letters (see the letterSoundBtn/letterChoices keydown wiring in main.js).
+  document.getElementById('letterSoundBtn').focus();
 }
 
 // Wrong pick: that option is eliminated (stays disabled) and the same
@@ -114,6 +119,12 @@ function checkLetterAnswer(selected, correct, btnEl) {
       container.classList.remove('letter-choices-locked');
       feedback.textContent = '';
       feedback.className = 'feedback';
+      // Disabling btnEl above force-blurred it (a disabled button can't hold
+      // focus) -- without this, keyboard focus is left on nothing at all
+      // once the retry window reopens, and arrow keys have no element to
+      // move from, silently stranding a keyboard-only player.
+      const target = container.querySelector('button:not(:disabled)');
+      if (target) target.focus();
     }, 800);
   }
 }
@@ -139,6 +150,10 @@ function renderLetterReverseChoices(ex) {
     btn.addEventListener('click', () => selectLetterReverseOption(option, btn));
     container.appendChild(btn);
   });
+  // No sound has been played yet and nothing is selected -- unlike listen
+  // mode there's no separate "hear it first" button here, so starting focus
+  // directly on the first (rightmost) candidate is the natural entry point.
+  if (container.firstElementChild) container.firstElementChild.focus();
 }
 
 // Tapping a sound button plays it and selects it as the current answer --
@@ -188,7 +203,13 @@ function checkLetterReverseAnswer() {
       container.classList.remove('letter-choices-locked');
       feedback.textContent = '';
       feedback.className = 'feedback';
-      // checkBtn stays disabled until the child selects another option
+      // checkBtn stays disabled until the child selects another option.
+      // Disabling btnEl above force-blurred it (a disabled button can't hold
+      // focus) -- without this, keyboard focus is left on nothing at all
+      // once the retry window reopens, stranding a keyboard-only player the
+      // same way checkLetterAnswer()'s retry path could.
+      const target = container.querySelector('button:not(:disabled)');
+      if (target) target.focus();
     }, 800);
   }
 }

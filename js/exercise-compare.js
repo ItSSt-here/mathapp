@@ -116,6 +116,7 @@ function renderCompareChoices(options) {
     btn.addEventListener('click', () => checkCompareAnswer(option, btn));
     container.appendChild(btn);
   });
+  if (container.firstElementChild) container.firstElementChild.focus();
 }
 
 // Only two options exist, so unlike checkLetterAnswer()'s eliminate-and-retry

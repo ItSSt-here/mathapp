@@ -293,6 +293,13 @@ button.check-btn:active {
   box-shadow: 0 1px 0 #3349b0;
 }
 
+/* Same reasoning as .letter-sound-btn:focus above -- already solid blue, so
+   a contrasting outline ring shows up where a fill change wouldn't. */
+button.check-btn:focus {
+  outline: 3px solid #2b3a67;
+  outline-offset: 2px;
+}
+
 .swap-btn {
   font-size: 13px;
   padding: 9px 16px;
@@ -373,6 +380,14 @@ button.check-btn:active {
   cursor: not-allowed;
 }
 
+/* Keyboard focus ring: this button is already solid blue, so a fill change
+   (like .letter-choice-btn:focus below) wouldn't read as different -- a
+   contrasting outline shows up regardless of the button's own color. */
+.letter-sound-btn:focus {
+  outline: 3px solid #2b3a67;
+  outline-offset: 2px;
+}
+
 .letter-choices {
   display: flex;
   flex-wrap: wrap;
@@ -404,6 +419,20 @@ button.check-btn:active {
   cursor: not-allowed;
 }
 
+/* Keyboard focus: a thin ring only, no fill change -- deliberately the
+   *weaker* of the two blue treatments here. .letter-selected below (a full
+   fill) means "this is what I've actually chosen"; :focus just means "the
+   keyboard cursor happens to be here," which can be a *different* button
+   from the selected one (reverse mode: a player can arrow away from their
+   already-confirmed pick to preview another option before deciding) -- the
+   more important state (selected) needs to stay the more visually dominant
+   one, or a player can't tell them apart at a glance. */
+.letter-choice-btn:focus {
+  outline: none;
+  border-color: #4a6cf7;
+  box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.35), 0 3px 0 #b9c4e6;
+}
+
 .letter-choice-btn.letter-correct {
   background: linear-gradient(180deg, #7ee29a, #2e9e4f);
   color: white;
@@ -418,10 +447,17 @@ button.check-btn:active {
   opacity: 1;
 }
 
-/* Levels 2-5: the sound button the child last tapped, pending "בדוק". */
+/* Levels 2-5: the sound button the child last tapped, pending "בדוק". A full
+   fill, not just a ring -- see the :focus comment above for why this needs
+   to read as the *stronger* of the two blue states. Combines fine with
+   :focus when they're the same button (the common case, right after
+   picking): fill plus ring just reads as "selected, and that's also where
+   the keyboard cursor is." */
 .letter-choice-btn.letter-selected {
+  background: linear-gradient(180deg, #a8c0ff, #7e9fff);
+  color: white;
   border-color: #4a6cf7;
-  box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.35), 0 3px 0 #3349b0;
+  box-shadow: 0 3px 0 #3349b0;
 }
 
 /* ABC mode only (see .abc-mode toggle in newExercise(), exercise-core.js):

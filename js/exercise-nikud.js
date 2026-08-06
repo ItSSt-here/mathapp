@@ -123,4 +123,7 @@ function renderNikudChoices(ex) {
     btn.addEventListener('click', () => checkLetterAnswer(option, ex.correct, btn));
     container.appendChild(btn);
   });
+  // Same "hear it, then pick" entry point as renderLetterChoices() -- see the
+  // comment there.
+  document.getElementById('letterSoundBtn').focus();
 }

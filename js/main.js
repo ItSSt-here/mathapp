@@ -210,16 +210,39 @@ function placeBattlefield() {
 
 // ---------- Events ----------
 document.getElementById('checkBtn').addEventListener('click', checkAnswer);
-// Two-blank exercises (currentAnswer is a {numerator, denominator} object)
-// move focus to the other box on Enter instead of a digit-count guess --
-// jumping once a box "looks full" would itself hint how many digits the
-// real answer needs (e.g. whether addfractions level 2's reduced result
-// came out one digit or two) before the student's even gotten it right.
-// Enter only submits once both boxes actually have something in them.
+// Two-blank exercises (currentAnswer is a {numerator, denominator} object):
+// Enter only ever moves forward (like Tab) or submits -- it never moves
+// backward, and it does nothing at all while the box you're currently in is
+// empty. That second part is deliberate, not just a nicety: a future
+// exercise type needs one of these two boxes to be a legitimate blank
+// answer, and if Enter could still fire while that box is empty, an
+// absent-minded double Enter-press could submit a half-considered answer.
+// Making Enter a no-op on an empty box closes that off -- the *only* way to
+// leave a box blank on purpose is an explicit ArrowUp/ArrowDown move (or a
+// click/tap), never a stray Enter, so Enter alone can never submit a box
+// that was left empty by accident. Going back to fix a forgotten box is an
+// arrow-key (or mouse) action only; Enter never does it, so a student can
+// never be trained to expect Enter to send them backward.
+// ArrowUp/ArrowDown move directly between the two boxes (they're stacked
+// numerator-over-denominator in one .frac-block, so Up/Down matches what's
+// on screen) -- fires unconditionally, regardless of cursor position. Unlike
+// ArrowLeft/Right, a single-line text input has no native meaning for
+// Up/Down at all (confirmed empirically -- pressing it doesn't even move the
+// cursor to an edge first), so there's no in-box behavior to protect by
+// gating on cursor position; gating here would only make the jump silently
+// fail whenever the cursor wasn't already at the exact edge, e.g. after
+// clicking into the middle of a two-digit value to fix it.
 document.getElementById('answer').addEventListener('keydown', (e) => {
-  if (e.key !== 'Enter') return;
   const answer2 = document.getElementById('answer2');
-  if (typeof currentAnswer === 'object' && answer2.value.trim() === '') {
+  const isTwoBlank = typeof currentAnswer === 'object';
+  if (e.key === 'ArrowDown' && isTwoBlank) {
+    e.preventDefault();
+    answer2.focus();
+    return;
+  }
+  if (e.key !== 'Enter') return;
+  if (e.target.value.trim() === '') return; // no-op on an empty box -- never advances or submits
+  if (isTwoBlank && answer2.value.trim() === '') {
     answer2.focus();
     return;
   }
@@ -229,16 +252,112 @@ document.getElementById('answer').addEventListener('input', (e) => {
   e.target.value = e.target.value.replace(/[^0-9]/g, '');
 });
 document.getElementById('answer2').addEventListener('keydown', (e) => {
-  if (e.key !== 'Enter') return;
   const answerInput = document.getElementById('answer');
-  if (typeof currentAnswer === 'object' && answerInput.value.trim() === '') {
+  const isTwoBlank = typeof currentAnswer === 'object';
+  if (e.key === 'ArrowUp' && isTwoBlank) {
+    e.preventDefault();
     answerInput.focus();
     return;
   }
+  if (e.key !== 'Enter') return;
+  if (e.target.value.trim() === '') return; // no-op on an empty box -- never advances or submits
   checkAnswer();
 });
 document.getElementById('answer2').addEventListener('input', (e) => {
   e.target.value = e.target.value.replace(/[^0-9]/g, '');
+});
+// Multiple-choice topics (letters/abc/nikud's #letterChoices and
+// #letterSoundChoices, comparefractions' #compareChoices) get the same
+// "move between answer widgets with arrow keys, no mouse required" treatment
+// as the two-blank numeric boxes above. Attached once to each container
+// (event delegation via keydown bubbling) rather than re-wired every render,
+// since the container element itself persists across newExercise() calls --
+// only its button children get recreated.
+// Direction matters here in a way it didn't for the numeric boxes: this page
+// is dir="rtl", and #letterChoices/#letterSoundChoices inherit that (first
+// DOM button renders rightmost, confirmed by checking actual button
+// positions) while #compareChoices forces direction:ltr (its '<'/'>' glyphs
+// would otherwise render mirrored -- see the CSS). So ArrowRight/ArrowLeft
+// have to map to opposite DOM-sibling directions depending on the
+// container's own direction, or the arrows would visibly move the wrong way
+// in one of the two cases.
+function wireChoiceArrowNav(containerId) {
+  const container = document.getElementById(containerId);
+  container.addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    const buttons = Array.from(container.querySelectorAll('button:not(:disabled)'));
+    const currentIndex = buttons.indexOf(document.activeElement);
+    if (currentIndex === -1) return; // focus isn't on one of this container's buttons
+    e.preventDefault();
+    const isRtl = getComputedStyle(container).direction === 'rtl';
+    const movingToNextSibling = (e.key === 'ArrowRight') !== isRtl;
+    const nextIndex = (currentIndex + (movingToNextSibling ? 1 : -1) + buttons.length) % buttons.length;
+    buttons[nextIndex].focus();
+  });
+}
+wireChoiceArrowNav('letterChoices');
+wireChoiceArrowNav('letterSoundChoices');
+wireChoiceArrowNav('compareChoices');
+// Vertical bridges between a choice row and the single button next to it
+// (the sound-play button above #letterChoices in listen mode, checkBtn below
+// #letterSoundChoices in reverse mode). Both remember exactly which button
+// in the row was focused when the player left it, and return there --
+// deliberately *not* "return to whichever button is currently
+// selected/correct," since those are different things: a player can arrow
+// through several candidates to preview/reconsider them without
+// re-confirming each one, and ArrowUp should undo the ArrowDown move, not
+// silently teleport them back to an older selection. The remembered button
+// is revalidated (still in the DOM, still enabled) before reuse, since a new
+// exercise (fresh buttons) or an elimination (disabled) can invalidate it
+// between visits -- falls back to the row's first available button then.
+function focusRowRemembering(row, getLastFocused) {
+  const last = getLastFocused();
+  const target = (last && last.isConnected && !last.disabled) ? last : row.querySelector('button:not(:disabled)');
+  if (target) target.focus();
+}
+
+// Listen mode (letters L1, abc L1-3, nikud): letterSoundBtn sits above
+// #letterChoices, so ArrowDown from it enters the row and ArrowUp from the
+// row leaves it -- opposite order from the reverse-mode bridge below, where
+// checkBtn sits below its row instead.
+let letterChoicesLastFocused = null;
+document.getElementById('letterSoundBtn').addEventListener('keydown', (e) => {
+  if (e.key !== 'ArrowDown') return;
+  e.preventDefault();
+  focusRowRemembering(document.getElementById('letterChoices'), () => letterChoicesLastFocused);
+});
+document.getElementById('letterChoices').addEventListener('keydown', (e) => {
+  if (e.key !== 'ArrowUp') return;
+  e.preventDefault();
+  letterChoicesLastFocused = e.target;
+  document.getElementById('letterSoundBtn').focus();
+});
+
+// Reverse mode (letters L2, abc L4): checkBtn is a genuinely separate
+// "confirm" step only here -- letterChoices/compareChoices submit
+// immediately on a button click and hide checkBtn entirely (see
+// newExercise() in exercise-core.js), so this bridge doesn't apply to them.
+// #letterSoundChoices sits above checkBtn, so ArrowDown leaves the row and
+// ArrowUp enters it -- opposite order from the listen-mode bridge above.
+// checkBtn is shared with the numeric exercises too (always visible there),
+// so ArrowUp is scoped to reverse mode specifically, or pressing it during a
+// numeric exercise would try to jump into a hidden row; checkBtn.disabled
+// (true until a sound option is actually selected, see
+// selectLetterReverseOption() in exercise-letters.js) is what stops
+// ArrowDown from focusing an unconfirmable checkBtn before that.
+let letterSoundChoicesLastFocused = null;
+document.getElementById('letterSoundChoices').addEventListener('keydown', (e) => {
+  if (e.key !== 'ArrowDown') return;
+  const checkBtn = document.getElementById('checkBtn');
+  if (checkBtn.disabled) return;
+  e.preventDefault();
+  letterSoundChoicesLastFocused = e.target;
+  checkBtn.focus();
+});
+document.getElementById('checkBtn').addEventListener('keydown', (e) => {
+  if (e.key !== 'ArrowUp' || !isLetterReverseMode()) return;
+  e.preventDefault();
+  focusRowRemembering(document.getElementById('letterSoundChoices'), () => letterSoundChoicesLastFocused);
 });
 document.getElementById('buyBtn').addEventListener('click', () => {
   buySoldier();
