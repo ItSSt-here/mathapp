@@ -29,7 +29,7 @@ function changeExerciseDifficulty(delta) {
 }
 
 function formatLevelInfo() {
-  const modeLabels = { fractions: 'שברים', comparefractions: 'השוואת שברים', addfractions: 'חיבור שברים', subtractfractions: 'חיסור שברים', letters: 'אותיות', abc: 'ABC', nikud: 'ניקוד' };
+  const modeLabels = { fractions: 'שברים', comparefractions: 'השוואת שברים', addfractions: 'חיבור שברים', subtractfractions: 'חיסור שברים', mixednumbers: 'מספרים מעורבים', letters: 'אותיות', abc: 'ABC', nikud: 'ניקוד' };
   const modeLabel = modeLabels[gameMode] || 'כפל';
   return `נושא: ${modeLabel} | מהירות: ${DIFFICULTIES[difficultyIndex]} | קושי תרגילים: ${EXERCISE_DIFFICULTIES[exerciseDifficultyIndex]}`;
 }
@@ -235,9 +235,27 @@ document.getElementById('checkBtn').addEventListener('click', checkAnswer);
 document.getElementById('answer').addEventListener('keydown', (e) => {
   const answer2 = document.getElementById('answer2');
   const isTwoBlank = typeof currentAnswer === 'object';
-  if (e.key === 'ArrowDown' && isTwoBlank) {
+  // Mixed numbers is also a {whole, remainderNumerator} object, but its two
+  // boxes sit side by side (whole box, then the fraction block) rather than
+  // stacked -- see the ArrowRight/Left block below for its own nav instead.
+  const isStackedTwoBlank = isTwoBlank && gameMode !== 'mixednumbers';
+  if (e.key === 'ArrowDown' && isStackedTwoBlank) {
     e.preventDefault();
     answer2.focus();
+    return;
+  }
+  // Mixed numbers: the whole box renders to the left of the fraction box in
+  // this equation (.exercise/.frac-eq force direction:ltr regardless of the
+  // page's own RTL, see style.css), so ArrowRight is "toward the fraction"
+  // here -- only once the cursor's at the box's right edge (or the box is
+  // empty), so normal in-box cursor movement isn't hijacked.
+  if (e.key === 'ArrowRight' && gameMode === 'mixednumbers') {
+    const atEnd = e.target.value === '' ||
+      (e.target.selectionStart === e.target.value.length && e.target.selectionEnd === e.target.value.length);
+    if (atEnd) {
+      e.preventDefault();
+      answer2.focus();
+    }
     return;
   }
   if (e.key !== 'Enter') return;
@@ -251,12 +269,36 @@ document.getElementById('answer').addEventListener('keydown', (e) => {
 document.getElementById('answer').addEventListener('input', (e) => {
   e.target.value = e.target.value.replace(/[^0-9]/g, '');
 });
+// Mixed numbers only: the whole-number box is a legitimate blank (it
+// asserts 0, see checkMixedNumberAnswer() in exercise-mixednumbers.js) --
+// this is a purely visual affordance showing it was left blank on purpose,
+// never a validity gate. Toggled on blur/focus rather than on every
+// keystroke since it should only appear once the player has actually moved
+// on from the box.
+document.getElementById('answer').addEventListener('blur', (e) => {
+  if (gameMode === 'mixednumbers' && e.target.value.trim() === '') {
+    e.target.classList.add('answer-left-blank');
+  }
+});
+document.getElementById('answer').addEventListener('focus', (e) => {
+  e.target.classList.remove('answer-left-blank');
+});
 document.getElementById('answer2').addEventListener('keydown', (e) => {
   const answerInput = document.getElementById('answer');
   const isTwoBlank = typeof currentAnswer === 'object';
-  if (e.key === 'ArrowUp' && isTwoBlank) {
+  const isStackedTwoBlank = isTwoBlank && gameMode !== 'mixednumbers';
+  if (e.key === 'ArrowUp' && isStackedTwoBlank) {
     e.preventDefault();
     answerInput.focus();
+    return;
+  }
+  if (e.key === 'ArrowLeft' && gameMode === 'mixednumbers') {
+    const atStart = e.target.value === '' ||
+      (e.target.selectionStart === 0 && e.target.selectionEnd === 0);
+    if (atStart) {
+      e.preventDefault();
+      answerInput.focus();
+    }
     return;
   }
   if (e.key !== 'Enter') return;
@@ -411,6 +453,7 @@ const MODE_BUTTON_TOPICS = {
   modeAddFractionsBtn: 'addfractions',
   modeSubtractFractionsBtn: 'subtractfractions',
   modeCompareFractionsBtn: 'comparefractions',
+  modeMixedNumbersBtn: 'mixednumbers',
   modeLettersBtn: 'letters',
   modeAbcBtn: 'abc',
   modeNikudBtn: 'nikud',

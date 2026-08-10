@@ -93,7 +93,7 @@ let arrivedStage = 'mode';
 const URL_PARAM_TOPIC = 'topic';
 const URL_PARAM_DIFFICULTY = 'difficulty';
 const URL_PARAM_SPEED = 'speed';
-const VALID_TOPICS = ['multiplication', 'fractions', 'comparefractions', 'addfractions', 'subtractfractions', 'letters', 'abc', 'nikud']; // matches gameMode's own values, no translation table needed
+const VALID_TOPICS = ['multiplication', 'fractions', 'comparefractions', 'addfractions', 'subtractfractions', 'mixednumbers', 'letters', 'abc', 'nikud']; // matches gameMode's own values, no translation table needed
 
 // Letters exercise (recognition, for younger children): child taps a sound
 // button to hear the letter's name (a recorded clip, see
@@ -257,6 +257,21 @@ const FRAC_ADD_L3_B1_CHANCE = 0.10; // b=1 folds this into level 1's same-denomi
 // -- same relationship level 2 has to level 1.
 const FRAC_ADD_L4_REDUCTION_CHANCE = 0.7;
 
+// Mixed-numbers exercise ("מספרים מעורבים"): shows an improper-looking
+// fraction p/b and asks for the equivalent mixed number w  r/b (denominator
+// b fixed/shown, never editable). MIXED_NUM_L1_ZERO_CHANCE of draws are the
+// "already proper" sub-case (p<b, so w=0 -- the whole-number box is left
+// blank rather than typed as "0"); the rest are genuinely improper (p>b,
+// w>=1). Both sub-cases render through the exact same template (see
+// mixedNumberAnswerBlockHTML() in exercise-core.js), so the student can't
+// tell which case they're in from the UI alone -- see
+// [[feedback_exercise_no_giveaway_design]] in memory. See
+// generateMixedNumberLevel1Exercise() in exercise-mixednumbers.js.
+const MIXED_NUM_DEN_MIN = 3;
+const MIXED_NUM_DEN_MAX = 12;
+const MIXED_NUM_WHOLE_MAX = 5;      // caps w in the normal (p>b) case
+const MIXED_NUM_L1_ZERO_CHANCE = 0.10;
+
 // Fraction-subtraction exercise ("חיסור שברים", added 2026-08-05): p/n - q/n
 // = [?]/n, same-denominator mechanic as addition's level 1. Own denominator
 // range (separate constants from FRAC_ADD_DEN_MIN/MAX) so it can be tuned
@@ -383,6 +398,7 @@ const EXERCISE_TOPIC_LEVEL_COUNTS = {
   comparefractions: 4, // level 5 was identical to level 4
   addfractions: 4,
   subtractfractions: 4,
+  mixednumbers: 1,
   letters: 2,          // levels 2-5 were identical to each other
   abc: 4,               // level 5 was identical to level 4
   nikud: 3,
@@ -440,6 +456,9 @@ const EXERCISE_LEVEL_DESCRIPTIONS = {
     'כמו ברמה 1, אבל בכל תרגיל -- בלי יוצא מן הכלל -- יש להשלים גם את המונה וגם את המכנה של תוצאת החיסור בצורתה המצומצמת. ב-70% מהמקרים באמת נדרש צמצום; ב-30% הנותרים אין מה לצמצם -- אבל אי אפשר לדעת מראש איזה מהם זה, כי הצורה זהה תמיד.',
     'מוצגים שני שברים שבהם המכנה של אחד מהם הוא כפולה של מכנה השני (למשל 2/3 ו-5/9, כי 9=3×3) -- באקראי, לפעמים השבר הראשון גדול יותר ולפעמים השני, כך שהחיסור פועל בשני הכיוונים. יש להרחיב את השבר בעל המכנה הקטן יותר למכנה המשותף ואז לחסר את המונים. ב-10% מהמקרים המכנים זהים מלכתחילה (בדיוק כמו ברמות 1-2). התוצאה תמיד שבר תקין (חיובי) ומצומצם מראש.',
     'כמו ברמה 3, אבל בכל תרגיל -- בלי יוצא מן הכלל -- יש להשלים גם את המונה וגם את המכנה של תוצאת החיסור בצורתה המצומצמת. ב-70% מהמקרים באמת נדרש צמצום; ב-30% הנותרים אין מה לצמצם -- אבל אי אפשר לדעת מראש איזה מהם זה, כי הצורה זהה תמיד.',
+  ],
+  mixednumbers: [
+    'מוצג שבר (p/b) שברוב המקרים (כ-90%) הוא שבר לא-תקין, ויש להמיר אותו למספר מעורב: למלא את מספר השלמים ואת מונה השארית מעל b (המכנה b נשאר קבוע ולא ניתן לשינוי). בכ-10% מהמקרים השבר בעצם תקין (החלק השלם הוא 0) -- במקרה כזה יש להשאיר את תיבת השלמים ריקה ולעבור לתיבת השארית בעזרת חץ ימינה, ולא להזין 0. אין צמצום ברמה זו.',
   ],
   comparefractions: [
     'מוצגים שני שברים -- לפעמים עם אותו מכנה, לפעמים עם אותו מונה (באקראי) -- ויש לבחור > או < כדי לקבוע איזה מהם גדול יותר.',

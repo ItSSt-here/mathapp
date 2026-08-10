@@ -276,6 +276,31 @@ input.answer-revealed:disabled {
   margin: 0 !important;
 }
 
+/* Mixed numbers: the whole-number box is the one case where a plain
+   (non-.fraction-answer-input) input sits inside .frac-eq -- the default
+   input's margin-bottom would otherwise sink it below the fraction block's
+   vertical center. */
+.frac-eq input {
+  margin-bottom: 0;
+}
+
+/* Mixed numbers' whole-number box: always a single digit (0-MIXED_NUM_WHOLE_MAX,
+   see config.js), so the app's default plain-input width (90px, sized for
+   multi-digit multiplication answers) is unnecessarily wide here. */
+.mixed-whole-input {
+  width: 45px !important;
+}
+
+/* Mixed numbers only: the whole-number box is a legitimate blank (it
+   asserts 0), toggled purely visually on blur/focus (see main.js) -- never
+   disabled, never a validity gate (that lives entirely in
+   checkMixedNumberAnswer() in exercise-mixednumbers.js). */
+input.answer-left-blank {
+  background: #eee;
+  border-color: #bbb;
+  color: #999;
+}
+
 button.check-btn {
   font-size: 18px;
   padding: 9px 28px;

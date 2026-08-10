@@ -17,6 +17,14 @@ function fractionAnswerBlockHTML(missing, targetNumerator, targetDenominator) {
   return `<span class="frac-block frac-answer-block" id="fracAnswerSlot">${numPart}<span class="frac-bar"></span>${denPart}</span>`;
 }
 
+// Same idea as fractionAnswerBlockHTML, but for a mixed number w  r/b: the
+// whole part gets a plain slot (newExercise() parks the plain #answer input
+// there, no fraction-sized styling), the remainder numerator lives in a
+// normal frac-block above the fixed, shown denominator b.
+function mixedNumberAnswerBlockHTML(targetDenominator) {
+  return `<span id="mixedWholeSlot"></span><span class="frac-block" id="mixedFracSlot"><span class="frac-bar"></span><span class="frac-den">${targetDenominator}</span></span>`;
+}
+
 function newExercise() {
   const questionText = document.getElementById('questionText');
   const answerInput = document.getElementById('answer');
@@ -100,7 +108,24 @@ function newExercise() {
     return;
   }
 
-  if (gameMode === 'addfractions') {
+  if (gameMode === 'mixednumbers') {
+    const ex = generateMixedNumberExercise();
+    currentAnswer = ex.answer;
+    questionText.innerHTML =
+      '<span class="frac-eq">' +
+        fractionBlockHTML(ex.improperNumerator, ex.improperDenominator) +
+        '<span class="frac-op">=</span>' +
+        mixedNumberAnswerBlockHTML(ex.targetDenominator) +
+      '</span>';
+    answerInput.setAttribute('enterkeyhint', 'next'); // Enter moves to #answer2 instead of submitting
+    answerInput.classList.remove('fraction-answer-input');
+    answerInput.classList.add('mixed-whole-input'); // narrower box -- w is always a single digit (0-MIXED_NUM_WHOLE_MAX), see config.js
+    const wholeSlot = document.getElementById('mixedWholeSlot');
+    const fracSlot = document.getElementById('mixedFracSlot');
+    wholeSlot.appendChild(answerInput);
+    answer2.classList.add('fraction-answer-input'); // remainder box: fraction-slot sizing
+    fracSlot.insertBefore(answer2, fracSlot.querySelector('.frac-bar'));
+  } else if (gameMode === 'addfractions') {
     const ex = generateFractionAdditionExercise();
     currentAnswer = ex.answer;
     if (ex.missing === 'both') simplifyLabel.style.display = '';
@@ -191,6 +216,8 @@ function newExercise() {
   answer2.value = '';
   answerInput.classList.remove('answer-revealed');
   answer2.classList.remove('answer-revealed');
+  answerInput.classList.remove('answer-left-blank');
+  if (gameMode !== 'mixednumbers') answerInput.classList.remove('mixed-whole-input');
   answerInput.focus();
   document.getElementById('feedback').textContent = '';
   document.getElementById('feedback').className = 'feedback';
@@ -243,6 +270,11 @@ function checkAnswer() {
 
   if (isLetterReverseMode()) {
     checkLetterReverseAnswer();
+    return;
+  }
+
+  if (gameMode === 'mixednumbers') {
+    checkMixedNumberAnswer();
     return;
   }
 
@@ -327,15 +359,26 @@ function changeQuestion() {
   answerInput.disabled = true;
   answer2.disabled = true;
 
-  // Fill the blank(s) themselves in red, in place -- both exercise types
-  // show the answer inside the equation now, so this is the same for either.
+  // Fill the blank(s) themselves in red, in place -- most exercise types
+  // show the answer inside the equation now, so this is the same for them.
+  // Mixed numbers is the one shape that doesn't fit: currentAnswer there is
+  // {whole, remainderNumerator}, not the generic two-blank {numerator,
+  // denominator}, so it needs its own branch here too (see
+  // checkMixedNumberAnswer() in exercise-mixednumbers.js for the same split).
   const isTwoBlank = typeof currentAnswer === 'object';
-  answerInput.value = isTwoBlank ? currentAnswer.numerator : currentAnswer;
-  answerInput.classList.add('answer-revealed');
-  if (isTwoBlank) {
-    answer2.value = currentAnswer.denominator;
+  answerInput.classList.remove('answer-left-blank');
+  if (gameMode === 'mixednumbers') {
+    answerInput.value = currentAnswer.whole;
+    answer2.value = currentAnswer.remainderNumerator;
     answer2.classList.add('answer-revealed');
+  } else {
+    answerInput.value = isTwoBlank ? currentAnswer.numerator : currentAnswer;
+    if (isTwoBlank) {
+      answer2.value = currentAnswer.denominator;
+      answer2.classList.add('answer-revealed');
+    }
   }
+  answerInput.classList.add('answer-revealed');
 
   document.getElementById('feedback').textContent = '';
   document.getElementById('feedback').className = 'feedback';
