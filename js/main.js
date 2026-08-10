@@ -363,6 +363,25 @@ document.getElementById('buyBtn').addEventListener('click', () => {
   buySoldier();
   document.getElementById('answer').focus();
 });
+// Global "buy soldier" hotkey (ח, first letter of חייל) -- the only
+// document-level keydown listener in the app, since every other key binding
+// so far is scoped to a specific focused element. Deliberately not scoped to
+// any particular element (works no matter what currently has focus,
+// including mid-typing in #answer/#answer2 -- ח isn't a digit so it's
+// already silently stripped by their own input filter either way) since
+// buying is a resource-spend action independent of whatever's currently
+// being answered. Routes through the real button via .click() instead of
+// calling buySoldier() directly so it automatically inherits every existing
+// safeguard for free: the button's own disabled state (managed by
+// updateCoinsDisplay()), buySoldier()'s own gameOver/insufficient-funds
+// guard, and the click handler's refocus-to-#answer -- which itself already
+// silently no-ops during letters/comparefractions exercises, since #answer
+// sits inside the hidden #answerHome there, so this never yanks focus away
+// from a letter-choice button mid-navigation.
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'ח') return;
+  document.getElementById('buyBtn').click();
+});
 document.getElementById('swapBtn').addEventListener('click', changeQuestion);
 document.getElementById('letterSoundBtn').addEventListener('click', () => {
   if (currentLetterAnswer) playCurrentTopicSound(currentLetterAnswer);
