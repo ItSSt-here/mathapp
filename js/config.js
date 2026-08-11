@@ -257,20 +257,41 @@ const FRAC_ADD_L3_B1_CHANCE = 0.10; // b=1 folds this into level 1's same-denomi
 // -- same relationship level 2 has to level 1.
 const FRAC_ADD_L4_REDUCTION_CHANCE = 0.7;
 
-// Mixed-numbers exercise ("מספרים מעורבים"): shows an improper-looking
-// fraction p/b and asks for the equivalent mixed number w  r/b (denominator
-// b fixed/shown, never editable). MIXED_NUM_L1_ZERO_CHANCE of draws are the
-// "already proper" sub-case (p<b, so w=0 -- the whole-number box is left
-// blank rather than typed as "0"); the rest are genuinely improper (p>b,
-// w>=1). Both sub-cases render through the exact same template (see
-// mixedNumberAnswerBlockHTML() in exercise-core.js), so the student can't
-// tell which case they're in from the UI alone -- see
-// [[feedback_exercise_no_giveaway_design]] in memory. See
-// generateMixedNumberLevel1Exercise() in exercise-mixednumbers.js.
+// Mixed-numbers exercise ("מספרים מעורבים"). Level 1: shows an
+// improper-looking fraction p/b and asks for the equivalent mixed number
+// w  r/b (denominator b fixed/shown, never editable). MIXED_NUM_L1_ZERO_CHANCE
+// of draws are the "already proper" sub-case (p<b, so w=0 -- the
+// whole-number box is left blank rather than typed as "0"); the rest are
+// genuinely improper (p>b, w>=1). Both sub-cases render through the exact
+// same template (see mixedNumberAnswerBlockHTML() in exercise-core.js), so
+// the student can't tell which case they're in from the UI alone -- see
+// [[feedback_exercise_no_giveaway_design]] in memory. Level 2 is the reverse
+// direction (given w  r/b, complete the improper fraction's numerator over
+// the same fixed b) -- reuses the same MIXED_NUM_DEN_MIN/MAX and
+// MIXED_NUM_WHOLE_MAX ranges rather than its own constants, since w>=1
+// always there too (no zero-whole sub-case in this direction: w is a given,
+// not something the student has to notice). See
+// generateMixedNumberLevel1Exercise()/generateMixedNumberLevel2Exercise() in
+// exercise-mixednumbers.js.
 const MIXED_NUM_DEN_MIN = 3;
 const MIXED_NUM_DEN_MAX = 12;
-const MIXED_NUM_WHOLE_MAX = 5;      // caps w in the normal (p>b) case
+const MIXED_NUM_WHOLE_MAX = 5;      // caps w in all three levels
 const MIXED_NUM_L1_ZERO_CHANCE = 0.10;
+
+// Level 3 (see generateMixedNumberLevel3Exercise() in
+// exercise-mixednumbers.js): this fraction of exercises forces gcd(r,b)>1
+// so the remainder fraction needs reducing -- same relationship every other
+// topic's own "level N+1 adds reduction" step has to its predecessor
+// (addfractions/subtractfractions level 2, fractions level 4).
+const MIXED_NUM_L3_REDUCTION_CHANCE = 0.70;
+
+// Level 4 (see generateMixedNumberLevel4Exercise() in
+// exercise-mixednumbers.js): same relationship level 2 has to level 4 that
+// level 1 has to level 3 -- this fraction of exercises forces gcd(r,a)>1 on
+// the *given* mixed number's fractional part, so the resulting improper
+// fraction needs reducing too (same gcd(w*a+r,a)=gcd(r,a) identity level 3
+// relies on, just applied in the mixed-to-improper direction).
+const MIXED_NUM_L4_REDUCTION_CHANCE = 0.70;
 
 // Fraction-subtraction exercise ("חיסור שברים", added 2026-08-05): p/n - q/n
 // = [?]/n, same-denominator mechanic as addition's level 1. Own denominator
@@ -398,7 +419,7 @@ const EXERCISE_TOPIC_LEVEL_COUNTS = {
   comparefractions: 4, // level 5 was identical to level 4
   addfractions: 4,
   subtractfractions: 4,
-  mixednumbers: 1,
+  mixednumbers: 4,
   letters: 2,          // levels 2-5 were identical to each other
   abc: 4,               // level 5 was identical to level 4
   nikud: 3,
@@ -459,6 +480,9 @@ const EXERCISE_LEVEL_DESCRIPTIONS = {
   ],
   mixednumbers: [
     'מוצג שבר (p/b) שברוב המקרים (כ-90%) הוא שבר לא-תקין, ויש להמיר אותו למספר מעורב: למלא את מספר השלמים ואת מונה השארית מעל b (המכנה b נשאר קבוע ולא ניתן לשינוי). בכ-10% מהמקרים השבר בעצם תקין (החלק השלם הוא 0) -- במקרה כזה יש להשאיר את תיבת השלמים ריקה ולעבור לתיבת השארית בעזרת חץ ימינה, ולא להזין 0. אין צמצום ברמה זו.',
+    'הכיוון ההפוך: מוצג מספר מעורב (מספר שלם ולידו שבר תקין ומצומצם, למשל 3 וגם 2/5) ויש להמיר אותו לשבר לא-תקין: להשלים רק את המונה מעל b (המכנה b נשאר קבוע). החלק השלם תמיד לפחות 1 (לעולם לא 0), ותיבת התשובה חייבת תמיד להיות מלאה.',
+    'כמו ברמה 1 (כולל האפשרות להשאיר את תיבת החלק השלם ריקה כשהוא 0), אבל בנוסף -- בכל תרגיל, בלי יוצא מן הכלל -- יש להשלים גם את המונה וגם את המכנה של שארית השבר בצורתה המצומצמת. ב-70% מהמקרים באמת נדרש צמצום; ב-30% הנותרים אין מה לצמצם -- אבל אי אפשר לדעת מראש איזה מהם זה, כי הצורה זהה תמיד.',
+    'כמו ברמה 2 (מספר מעורב נתון, ויש להמיר לשבר לא-תקין), אבל בכל תרגיל -- בלי יוצא מן הכלל -- יש להשלים גם את המונה וגם את המכנה של השבר הלא-תקין בצורתו המצומצמת. ב-70% מהמקרים באמת נדרש צמצום; ב-30% הנותרים אין מה לצמצם -- אבל אי אפשר לדעת מראש איזה מהם זה, כי הצורה זהה תמיד.',
   ],
   comparefractions: [
     'מוצגים שני שברים -- לפעמים עם אותו מכנה, לפעמים עם אותו מונה (באקראי) -- ויש לבחור > או < כדי לקבוע איזה מהם גדול יותר.',
