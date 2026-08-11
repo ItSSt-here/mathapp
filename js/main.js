@@ -40,7 +40,14 @@ function formatLevelInfo() {
 function parseUrlParams() {
   const params = new URLSearchParams(location.search);
   const topic = params.get(URL_PARAM_TOPIC);
-  if (!VALID_TOPICS.includes(topic)) return 'mode';
+  if (!VALID_TOPICS.includes(topic)) {
+    // A hub link (?group=fractions) with no resolved topic yet lands on the
+    // subtopic screen instead of the full mode list -- only checked once
+    // topic itself fails to resolve, so a link carrying both a valid topic
+    // and a group param still prefers the topic (skips straight past the hub,
+    // same as it already skips modeOverlay).
+    return params.get(URL_PARAM_GROUP) === 'fractions' ? 'subtopic' : 'mode';
+  }
   gameMode = topic;
 
   const difficultyNum = Number(params.get(URL_PARAM_DIFFICULTY));
@@ -61,7 +68,7 @@ function parseUrlParams() {
   return 'speed';
 }
 
-const ARRIVED_STAGE_OVERLAY = { mode: 'modeOverlay', difficulty: 'exDifficultyOverlay', speed: 'startOverlay' };
+const ARRIVED_STAGE_OVERLAY = { mode: 'modeOverlay', subtopic: 'fractionsSubtopicOverlay', difficulty: 'exDifficultyOverlay', speed: 'startOverlay' };
 
 function showInitialOverlay() {
   arrivedStage = parseUrlParams();
@@ -71,23 +78,31 @@ function showInitialOverlay() {
 function applyLinkModeUI() {
   // Hide the escape hatch back to any screen whose choice got locked in by
   // the link the student arrived on -- 'difficulty'/'speed' both lock the
-  // topic (hide the difficulty screen's "back to topics" button), and
-  // 'speed' additionally locks the difficulty level (hide the speed
-  // screen's "back to difficulty" button too).
-  document.getElementById('backToModeBtn').style.display = arrivedStage === 'mode' ? '' : 'none';
+  // topic (hide the difficulty screen's "back to topics" button), 'speed'
+  // additionally locks the difficulty level (hide the speed screen's "back
+  // to difficulty" button too), and 'subtopic' locks the fraction-family
+  // choice one level up (hide the subtopic hub's "back to full topic list"
+  // button) without yet locking which fraction sub-topic.
+  const topicLocked = arrivedStage === 'difficulty' || arrivedStage === 'speed';
+  document.getElementById('backToModeBtn').style.display = topicLocked ? 'none' : '';
+  document.getElementById('backToModeFromSubtopicBtn').style.display = arrivedStage === 'subtopic' ? 'none' : '';
   document.getElementById('backToLinkBtn').style.display = arrivedStage === 'speed' ? 'none' : '';
   document.getElementById('reconfigureBtn').style.display = arrivedStage === 'mode' ? '' : 'none';
 }
 
 // stage controls how much of the current selection gets baked into the
-// link: 'mode' includes nothing (topic not chosen yet), 'difficulty'
-// includes topic+difficulty (the difficulty screen's own "suggested
-// starting level" for whoever opens it), 'speed' includes topic+difficulty
-// +speed (the speed screen's "suggested starting speed"). See arrivedStage
-// in config.js for how parseUrlParams() turns these back into a landing
-// screen.
+// link: 'mode' includes nothing (topic not chosen yet), 'subtopic' includes
+// just the fraction-family marker (which fraction sub-topic is still open),
+// 'difficulty' includes topic+difficulty (the difficulty screen's own
+// "suggested starting level" for whoever opens it), 'speed' includes
+// topic+difficulty+speed (the speed screen's "suggested starting speed").
+// See arrivedStage in config.js for how parseUrlParams() turns these back
+// into a landing screen.
 function buildShareLink(stage) {
   const params = new URLSearchParams();
+  if (stage === 'subtopic') {
+    params.set(URL_PARAM_GROUP, 'fractions');
+  }
   if (stage === 'difficulty' || stage === 'speed') {
     params.set(URL_PARAM_TOPIC, gameMode);
     params.set(URL_PARAM_DIFFICULTY, String(exerciseDifficultyIndex + 1));
@@ -486,32 +501,60 @@ document.getElementById('reconfigureBtn').addEventListener('click', () => {
 // Each mode button just sets gameMode to its own topic string and advances
 // to the difficulty picker -- looped over a table instead of one near-
 // identical listener per button, so a future topic is a one-line entry here.
+// The 5 fraction-family topics live on their own subtopic hub screen (see
+// FRACTIONS_SUBTOPIC_BUTTONS below) instead of this flat list.
 const MODE_BUTTON_TOPICS = {
   modeMultiplyBtn: 'multiplication',
+  modeLettersBtn: 'letters',
+  modeAbcBtn: 'abc',
+  modeNikudBtn: 'nikud',
+};
+// Shared by both the flat mode-select buttons above and the fraction
+// subtopic hub's buttons below -- committing to a real topic always means
+// the same thing regardless of which screen it was picked from.
+function selectTopicAndContinue(topic) {
+  gameMode = topic;
+  // The previously-picked level can be out of range for the new topic
+  // (e.g. coming from multiplication's 5 levels into letters' 2) --
+  // clamp down instead of leaving it pointing past what this topic offers.
+  exerciseDifficultyIndex = Math.min(exerciseDifficultyIndex, getExerciseLevelCount() - 1);
+  updateExerciseDifficultyLabel();
+  document.getElementById('exDifficultyOverlay').classList.add('show');
+}
+for (const [btnId, topic] of Object.entries(MODE_BUTTON_TOPICS)) {
+  document.getElementById(btnId).addEventListener('click', () => {
+    document.getElementById('modeOverlay').classList.remove('show');
+    selectTopicAndContinue(topic);
+  });
+}
+document.getElementById('modeFractionsHubBtn').addEventListener('click', () => {
+  document.getElementById('modeOverlay').classList.remove('show');
+  document.getElementById('fractionsSubtopicOverlay').classList.add('show');
+});
+const FRACTIONS_SUBTOPIC_BUTTONS = {
   modeFractionsBtn: 'fractions',
   modeAddFractionsBtn: 'addfractions',
   modeSubtractFractionsBtn: 'subtractfractions',
   modeCompareFractionsBtn: 'comparefractions',
   modeMixedNumbersBtn: 'mixednumbers',
-  modeLettersBtn: 'letters',
-  modeAbcBtn: 'abc',
-  modeNikudBtn: 'nikud',
 };
-for (const [btnId, topic] of Object.entries(MODE_BUTTON_TOPICS)) {
+for (const [btnId, topic] of Object.entries(FRACTIONS_SUBTOPIC_BUTTONS)) {
   document.getElementById(btnId).addEventListener('click', () => {
-    gameMode = topic;
-    // The previously-picked level can be out of range for the new topic
-    // (e.g. coming from multiplication's 5 levels into letters' 2) --
-    // clamp down instead of leaving it pointing past what this topic offers.
-    exerciseDifficultyIndex = Math.min(exerciseDifficultyIndex, getExerciseLevelCount() - 1);
-    updateExerciseDifficultyLabel();
-    document.getElementById('modeOverlay').classList.remove('show');
-    document.getElementById('exDifficultyOverlay').classList.add('show');
+    document.getElementById('fractionsSubtopicOverlay').classList.remove('show');
+    selectTopicAndContinue(topic);
   });
 }
+document.getElementById('backToModeFromSubtopicBtn').addEventListener('click', () => {
+  document.getElementById('fractionsSubtopicOverlay').classList.remove('show');
+  document.getElementById('modeOverlay').classList.add('show');
+});
+// Returns to whichever screen this topic was actually picked from, so a
+// student refining a fraction sub-topic choice doesn't get bounced all the
+// way out to the full topic list.
 document.getElementById('backToModeBtn').addEventListener('click', () => {
   document.getElementById('exDifficultyOverlay').classList.remove('show');
-  document.getElementById('modeOverlay').classList.add('show');
+  const backOverlayId = FRACTIONS_GROUP_TOPICS.includes(gameMode) ? 'fractionsSubtopicOverlay' : 'modeOverlay';
+  document.getElementById(backOverlayId).classList.add('show');
 });
 document.getElementById('exDiffContinueBtn').addEventListener('click', () => {
   document.getElementById('exDifficultyOverlay').classList.remove('show');
@@ -523,6 +566,9 @@ document.getElementById('backToLinkBtn').addEventListener('click', () => {
 });
 document.getElementById('copyLinkModeBtn').addEventListener('click', () => {
   copyShareLink(buildShareLink('mode'), document.getElementById('copyFeedbackMode'));
+});
+document.getElementById('copyLinkSubtopicBtn').addEventListener('click', () => {
+  copyShareLink(buildShareLink('subtopic'), document.getElementById('copyFeedbackSubtopic'));
 });
 document.getElementById('copyLinkDifficultyBtn').addEventListener('click', () => {
   copyShareLink(buildShareLink('difficulty'), document.getElementById('copyFeedbackDifficulty'));

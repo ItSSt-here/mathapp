@@ -93,7 +93,14 @@ let arrivedStage = 'mode';
 const URL_PARAM_TOPIC = 'topic';
 const URL_PARAM_DIFFICULTY = 'difficulty';
 const URL_PARAM_SPEED = 'speed';
+const URL_PARAM_GROUP = 'group';
 const VALID_TOPICS = ['multiplication', 'fractions', 'comparefractions', 'addfractions', 'subtractfractions', 'mixednumbers', 'letters', 'abc', 'nikud']; // matches gameMode's own values, no translation table needed
+// The mode-select screen groups these 5 behind one "שברים" hub button
+// (fractionsSubtopicOverlay in index.html) instead of listing them flat --
+// see backToModeBtn's handler and parseUrlParams()/buildShareLink() in
+// main.js for how this list is used to route "back" navigation and the
+// hub's own ?group=fractions share link.
+const FRACTIONS_GROUP_TOPICS = ['fractions', 'comparefractions', 'addfractions', 'subtractfractions', 'mixednumbers'];
 
 // Letters exercise (recognition, for younger children): child taps a sound
 // button to hear the letter's name (a recorded clip, see

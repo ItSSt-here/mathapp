@@ -13,7 +13,7 @@
      fetch of everything together instead of relying on cache timing to
      line up. No build step in this project, so this is manual -- there's
      nothing to automate it. -->
-<link rel="stylesheet" href="style.css?v=202608110838">
+<link rel="stylesheet" href="style.css?v=202608111001">
 </head>
 <body>
 
@@ -151,11 +151,7 @@
 
     <div class="postgame-buttons">
       <button class="restart-btn" id="modeMultiplyBtn">לוח הכפל</button>
-      <button class="restart-btn" id="modeFractionsBtn">שברים</button>
-      <button class="restart-btn" id="modeAddFractionsBtn">חיבור שברים</button>
-      <button class="restart-btn" id="modeSubtractFractionsBtn">חיסור שברים</button>
-      <button class="restart-btn" id="modeCompareFractionsBtn">השוואת שברים</button>
-      <button class="restart-btn" id="modeMixedNumbersBtn">מספרים מעורבים</button>
+      <button class="restart-btn" id="modeFractionsHubBtn">שברים</button>
       <button class="restart-btn" id="modeLettersBtn">אותיות</button>
       <button class="restart-btn" id="modeAbcBtn">ABC</button>
       <button class="restart-btn" id="modeNikudBtn">ניקוד</button>
@@ -165,6 +161,27 @@
       <button class="copy-link-btn" id="copyLinkModeBtn">העתק קישור</button>
     </div>
     <div class="copy-feedback" id="copyFeedbackMode"></div>
+  </div>
+</div>
+
+<div class="overlay" id="fractionsSubtopicOverlay">
+  <div class="overlay-card">
+    <div class="overlay-title" style="color:#4a3fd1;">קרב טירות ⚔️</div>
+    <p class="overlay-text">איזה תרגיל שברים תרצו לתרגל?</p>
+
+    <div class="postgame-buttons">
+      <button class="restart-btn" id="modeFractionsBtn">שברים</button>
+      <button class="restart-btn" id="modeAddFractionsBtn">חיבור שברים</button>
+      <button class="restart-btn" id="modeSubtractFractionsBtn">חיסור שברים</button>
+      <button class="restart-btn" id="modeCompareFractionsBtn">השוואת שברים</button>
+      <button class="restart-btn" id="modeMixedNumbersBtn">מספרים מעורבים</button>
+      <button class="home-btn" id="backToModeFromSubtopicBtn">חזרה</button>
+    </div>
+
+    <div class="link-row">
+      <button class="copy-link-btn" id="copyLinkSubtopicBtn">העתק קישור</button>
+    </div>
+    <div class="copy-feedback" id="copyFeedbackSubtopic"></div>
   </div>
 </div>
 
@@ -252,20 +269,20 @@
      (see preloadSoldierSprites() in render.js). -->
 <div id="spritePreload" style="position:fixed; left:-9999px; top:-9999px; width:1px; height:1px; overflow:hidden;" aria-hidden="true"></div>
 
-<script src="js/config.js?v=202608110838"></script>
-<script src="js/helpers.js?v=202608110838"></script>
-<script src="js/exercise-core.js?v=202608110838"></script>
-<script src="js/exercise-fractions.js?v=202608110838"></script>
-<script src="js/exercise-addfractions.js?v=202608110838"></script>
-<script src="js/exercise-subtractfractions.js?v=202608110838"></script>
-<script src="js/exercise-mixednumbers.js?v=202608110838"></script>
-<script src="js/exercise-letters.js?v=202608110838"></script>
-<script src="js/exercise-abc.js?v=202608110838"></script>
-<script src="js/exercise-nikud.js?v=202608110838"></script>
-<script src="js/exercise-compare.js?v=202608110838"></script>
-<script src="js/combat.js?v=202608110838"></script>
-<script src="js/render.js?v=202608110838"></script>
-<script src="js/main.js?v=202608110838"></script>
+<script src="js/config.js?v=202608111001"></script>
+<script src="js/helpers.js?v=202608111001"></script>
+<script src="js/exercise-core.js?v=202608111001"></script>
+<script src="js/exercise-fractions.js?v=202608111001"></script>
+<script src="js/exercise-addfractions.js?v=202608111001"></script>
+<script src="js/exercise-subtractfractions.js?v=202608111001"></script>
+<script src="js/exercise-mixednumbers.js?v=202608111001"></script>
+<script src="js/exercise-letters.js?v=202608111001"></script>
+<script src="js/exercise-abc.js?v=202608111001"></script>
+<script src="js/exercise-nikud.js?v=202608111001"></script>
+<script src="js/exercise-compare.js?v=202608111001"></script>
+<script src="js/combat.js?v=202608111001"></script>
+<script src="js/render.js?v=202608111001"></script>
+<script src="js/main.js?v=202608111001"></script>
 
 </body>
 </html>
