@@ -28,10 +28,40 @@ function changeExerciseDifficulty(delta) {
   updateExerciseDifficultyLabel();
 }
 
+const MODE_LABELS = { fractions: 'מבוא לשברים', comparefractions: 'השוואת שברים', addfractions: 'חיבור שברים', subtractfractions: 'חיסור שברים', mixednumbers: 'מספרים מעורבים', addfractionsadvanced: 'חיבור שברים מתקדם', letters: 'אותיות', abc: 'ABC', nikud: 'ניקוד' };
+
 function formatLevelInfo() {
-  const modeLabels = { fractions: 'מבוא לשברים', comparefractions: 'השוואת שברים', addfractions: 'חיבור שברים', subtractfractions: 'חיסור שברים', mixednumbers: 'מספרים מעורבים', addfractionsadvanced: 'חיבור שברים מתקדם', letters: 'אותיות', abc: 'ABC', nikud: 'ניקוד' };
-  const modeLabel = modeLabels[gameMode] || 'כפל';
+  const modeLabel = MODE_LABELS[gameMode] || 'כפל';
   return `נושא: ${modeLabel} | מהירות: ${DIFFICULTIES[difficultyIndex]} | קושי תרגילים: ${EXERCISE_DIFFICULTIES[exerciseDifficultyIndex]}`;
+}
+
+// Parent-facing progress log, viewed separately via stats.html (not linked
+// from anywhere in this app's own UI) -- see logRoundStats() below for what
+// gets written. STATS_LOG_KEY must stay byte-identical to the key stats.html
+// reads, since that file intentionally doesn't load any of this app's JS.
+const STATS_LOG_KEY = 'mathapp_stats_log';
+
+// One entry per finished round (win, loss, or surrender -- anything that
+// reaches endGame()). Deliberately just the same summary numbers already
+// shown on the win/lose overlay, not per-answer detail. Kept as a flat array
+// in localStorage rather than anything fancier -- it only has to survive
+// long enough for a parent to glance at stats.html, and localStorage is
+// plenty for that.
+function logRoundStats(playerWon) {
+  const entry = {
+    date: new Date().toISOString(),
+    topic: MODE_LABELS[gameMode] || 'כפל',
+    speed: DIFFICULTIES[difficultyIndex],
+    level: EXERCISE_DIFFICULTIES[exerciseDifficultyIndex],
+    correct: correctCount,
+    wrong: wrongCount,
+    swap: swapCount,
+    won: playerWon,
+    durationMs: battleElapsedMs,
+  };
+  const log = JSON.parse(localStorage.getItem(STATS_LOG_KEY) || '[]');
+  log.push(entry);
+  localStorage.setItem(STATS_LOG_KEY, JSON.stringify(log));
 }
 
 // ---------- Teacher link: URL config parsing + share-link generation ----------
@@ -158,6 +188,7 @@ function endGame(playerWon) {
   document.getElementById('overlayCorrectCount').textContent = correctCount;
   document.getElementById('overlayWrongCount').textContent = wrongCount;
   document.getElementById('overlaySwapCount').textContent = swapCount;
+  logRoundStats(playerWon);
   overlay.classList.add('show');
 }
 

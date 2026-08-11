@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>יומן התקדמות</title>
+<!-- Parent-facing progress log. Deliberately not linked from index.html or
+     any of the game's own screens -- reached by typing this file's URL
+     directly. Standalone on purpose: no dependency on any js/*.js file, only
+     on STATS_LOG_KEY matching the exact string logRoundStats() in main.js
+     writes to. Reads localStorage live, so it always shows whatever browser
+     it's opened in -- see the discussion this came out of for why that's
+     fine (each family/device only ever sees its own data). -->
+<style>
+  body { font-family: Arial, sans-serif; max-width: 900px; margin: 24px auto; padding: 0 16px; background: #f6f5fb; color: #2b2b3a; }
+  h1 { font-size: 1.4rem; margin-bottom: 4px; }
+  .sub { color: #666; margin-bottom: 20px; }
+  table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+  th, td { padding: 8px 10px; text-align: right; border-bottom: 1px solid #eee; font-size: 0.95rem; }
+  th { background: #4a3fd1; color: #fff; font-weight: 600; }
+  tr:last-child td { border-bottom: none; }
+  tr.win { background: #eefaf0; }
+  tr.lose { background: #fdf1f1; }
+  .empty { color: #777; padding: 20px 0; }
+  .actions { margin-top: 20px; display: flex; gap: 10px; align-items: center; }
+  button { cursor: pointer; border: none; border-radius: 6px; padding: 8px 16px; font-size: 0.95rem; }
+  #clearBtn { background: #d64545; color: #fff; }
+  #clearBtn:hover { background: #b83636; }
+  #count { color: #666; font-size: 0.9rem; }
+</style>
+</head>
+<body>
+
+<h1>יומן התקדמות - קרב הטירות</h1>
+<p class="sub">רשומה אחת לכל סבב שהסתיים (ניצחון, הפסד, או כניעה), מהחדש לישן.</p>
+
+<div id="tableWrap"></div>
+
+<div class="actions">
+  <button id="clearBtn">נקה יומן</button>
+  <span id="count"></span>
+</div>
+
+<script>
+const STATS_LOG_KEY = 'mathapp_stats_log';
+
+function formatDuration(ms) {
+  const totalSec = Math.floor(ms / 1000);
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+function formatDate(iso) {
+  const d = new Date(iso);
+  return d.toLocaleString('he-IL', { dateStyle: 'short', timeStyle: 'short' });
+}
+
+function loadLog() {
+  return JSON.parse(localStorage.getItem(STATS_LOG_KEY) || '[]');
+}
+
+function render() {
+  const log = loadLog();
+  const wrap = document.getElementById('tableWrap');
+  document.getElementById('count').textContent = log.length ? `${log.length} רשומות` : '';
+
+  if (log.length === 0) {
+    wrap.innerHTML = '<p class="empty">אין עדיין רשומות.</p>';
+    return;
+  }
+
+  const rows = log.slice().reverse().map(e => `
+    <tr class="${e.won ? 'win' : 'lose'}">
+      <td>${formatDate(e.date)}</td>
+      <td>${e.topic}</td>
+      <td>${e.level}</td>
+      <td>${e.speed}</td>
+      <td>${e.correct}</td>
+      <td>${e.wrong}</td>
+      <td>${e.swap}</td>
+      <td>${formatDuration(e.durationMs)}</td>
+      <td>${e.won ? 'ניצחון' : 'הפסד'}</td>
+    </tr>
+  `).join('');
+
+  wrap.innerHTML = `
+    <table>
+      <thead>
+        <tr>
+          <th>תאריך ושעה</th>
+          <th>נושא</th>
+          <th>רמה</th>
+          <th>מהירות</th>
+          <th>נכון</th>
+          <th>לא נכון</th>
+          <th>החלפות</th>
+          <th>משך</th>
+          <th>תוצאה</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+}
+
+document.getElementById('clearBtn').addEventListener('click', () => {
+  if (!confirm('לנקות את כל היומן? לא ניתן לשחזר.')) return;
+  localStorage.removeItem(STATS_LOG_KEY);
+  render();
+});
+
+render();
+</script>
+
+</body>
+</html>
