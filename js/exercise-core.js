@@ -33,6 +33,42 @@ function mixedNumberDisplayHTML(whole, remainderNumerator, denominator) {
   return `<span class="frac-num">${whole}</span>` + fractionBlockHTML(remainderNumerator, denominator);
 }
 
+// True whenever the current exercise's whole-number box (#answer) sits
+// beside a fraction (not stacked above it) and a blank there is a legitimate
+// answer (asserts 0) rather than "not yet answered" -- shared across every
+// topic using this exact answer shape: mixed numbers' own two such levels
+// (isMixedNumberWholeBoxLevel(), exercise-mixednumbers.js) and every
+// addfractionsadvanced level (isAddFractionsAdvancedLevel1()/2()/3()/4(),
+// exercise-addfractionsadvanced.js). main.js's #answer/#answer2 keydown/blur
+// handlers gate on this instead of either topic's own helper directly. Safe
+// despite load order -- both of those files load before main.js, and this
+// function's body isn't evaluated until called, same as newExercise() below
+// already calling generateMixedNumberExercise() from a later-loaded file.
+function isWholeBoxAnswerLevel() {
+  return isMixedNumberWholeBoxLevel() || isAddFractionsAdvancedLevel1() || isAddFractionsAdvancedLevel2() ||
+    isAddFractionsAdvancedLevel3() || isAddFractionsAdvancedLevel4();
+}
+
+// True whenever the current exercise is the *two*-box variant of the above
+// (#answer whole + #answer2 remainder numerator, fixed denominator) --
+// mixed-numbers level 1 and addfractionsadvanced levels 1 and 3 (level 3's
+// answer shape is identical to level 1's; only the *shown* addends differ).
+// Named to mirror isThreeBoxAnswerLevel() below.
+function isTwoBoxWholeAnswerLevel() {
+  return isMixedNumberLevel1() || isAddFractionsAdvancedLevel1() || isAddFractionsAdvancedLevel3();
+}
+
+// True whenever the current exercise is the *three*-box variant of the above
+// (#answer whole + #answer2/#answer3 reduced numerator/denominator) --
+// mixed-numbers level 3 and addfractionsadvanced levels 2/4. #answer3's own
+// keydown listener (wireMixedNumberLevel3Answer3Nav() in
+// exercise-mixednumbers.js) is already fully generic and needs no widening;
+// only the one guarded branch in #answer2's handler (main.js) and
+// changeQuestion()'s reveal below need to know which shape they're looking at.
+function isThreeBoxAnswerLevel() {
+  return isMixedNumberLevel3() || isAddFractionsAdvancedLevel2() || isAddFractionsAdvancedLevel4();
+}
+
 function newExercise() {
   const questionText = document.getElementById('questionText');
   const answerInput = document.getElementById('answer');
@@ -208,6 +244,72 @@ function newExercise() {
       answer2.classList.add('fraction-answer-input'); // remainder box: fraction-slot sizing
       fracSlot.insertBefore(answer2, fracSlot.querySelector('.frac-bar'));
     }
+  } else if (gameMode === 'addfractionsadvanced') {
+    const ex = generateFractionAdditionAdvancedExercise();
+    currentAnswer = ex.answer;
+    // Levels 3-4 show both addends as given mixed numbers instead of plain
+    // fractions (W=0 shown as a plain fraction with no whole part -- same
+    // "never write a literal zero whole part" convention mixed-numbers
+    // already established for a *typed* answer, applied here to a *shown*
+    // given instead). Levels 1-2 show plain fractions. Shared across both
+    // the two-box and three-box answer templates below, since which addends
+    // are shown is independent of whether the *answer* needs reducing.
+    const showsMixedAddends = isAddFractionsAdvancedLevel3() || isAddFractionsAdvancedLevel4();
+    const leftAddendHTML = showsMixedAddends
+      ? (ex.pWhole === 0 ? fractionBlockHTML(ex.pNum, ex.pDen) : mixedNumberDisplayHTML(ex.pWhole, ex.pNum, ex.pDen))
+      : fractionBlockHTML(ex.pNum, ex.pDen);
+    const rightAddendHTML = showsMixedAddends
+      ? (ex.qWhole === 0 ? fractionBlockHTML(ex.qNum, ex.qDen) : mixedNumberDisplayHTML(ex.qWhole, ex.qNum, ex.qDen))
+      : fractionBlockHTML(ex.qNum, ex.qDen);
+    if (isAddFractionsAdvancedLevel2() || isAddFractionsAdvancedLevel4()) {
+      // Levels 2/4: the remainder fraction may need reducing, so it takes
+      // *two* boxes (#answer2 numerator, #answer3 denominator) instead of
+      // the single fixed-denominator box levels 1/3 use -- same composition
+      // mixed-numbers level 3 uses (mixedWholeSlot + the standard "both
+      // blank" fraction template).
+      simplifyLabel.style.display = '';
+      questionText.innerHTML =
+        '<span class="frac-eq">' +
+          leftAddendHTML +
+          '<span class="frac-op">+</span>' +
+          rightAddendHTML +
+          '<span class="frac-op">=</span>' +
+          '<span id="mixedWholeSlot"></span>' +
+          fractionAnswerBlockHTML('both', ex.targetNumerator, ex.targetDenominator) +
+        '</span>';
+      answerInput.setAttribute('enterkeyhint', 'next'); // Enter moves to #answer2
+      answer2.setAttribute('enterkeyhint', 'next'); // Enter moves to #answer3
+      answerInput.classList.remove('fraction-answer-input');
+      answerInput.classList.add('mixed-whole-input');
+      document.getElementById('mixedWholeSlot').appendChild(answerInput);
+      answer2.classList.add('fraction-answer-input');
+      answer3.classList.add('fraction-answer-input');
+      const slot = document.getElementById('fracAnswerSlot');
+      slot.insertBefore(answer2, slot.querySelector('.frac-bar'));
+      slot.appendChild(answer3);
+    } else {
+      // Levels 1/3: the target is a mixed number (whole + remainder over the
+      // fixed denominator) instead of a single blank numerator -- reuses
+      // mixedNumberAnswerBlockHTML() and the exact same #mixedWholeSlot/
+      // #mixedFracSlot DOM wiring as mixed-numbers level 1 below, since the
+      // answer shape is identical ({whole, remainderNumerator}).
+      questionText.innerHTML =
+        '<span class="frac-eq">' +
+          leftAddendHTML +
+          '<span class="frac-op">+</span>' +
+          rightAddendHTML +
+          '<span class="frac-op">=</span>' +
+          mixedNumberAnswerBlockHTML(ex.targetDenominator) +
+        '</span>';
+      answerInput.setAttribute('enterkeyhint', 'next'); // Enter moves to #answer2 instead of submitting
+      answerInput.classList.remove('fraction-answer-input');
+      answerInput.classList.add('mixed-whole-input');
+      const wholeSlot = document.getElementById('mixedWholeSlot');
+      const fracSlot = document.getElementById('mixedFracSlot');
+      wholeSlot.appendChild(answerInput);
+      answer2.classList.add('fraction-answer-input');
+      fracSlot.insertBefore(answer2, fracSlot.querySelector('.frac-bar'));
+    }
   } else if (gameMode === 'addfractions') {
     const ex = generateFractionAdditionExercise();
     currentAnswer = ex.answer;
@@ -302,7 +404,7 @@ function newExercise() {
   answer2.classList.remove('answer-revealed');
   answer3.classList.remove('answer-revealed');
   answerInput.classList.remove('answer-left-blank');
-  if (gameMode !== 'mixednumbers') answerInput.classList.remove('mixed-whole-input');
+  if (gameMode !== 'mixednumbers' && gameMode !== 'addfractionsadvanced') answerInput.classList.remove('mixed-whole-input');
   answerInput.focus();
   document.getElementById('feedback').textContent = '';
   document.getElementById('feedback').className = 'feedback';
@@ -360,6 +462,11 @@ function checkAnswer() {
 
   if (gameMode === 'mixednumbers') {
     checkMixedNumberAnswer();
+    return;
+  }
+
+  if (gameMode === 'addfractionsadvanced') {
+    checkFractionAdditionAdvancedAnswer();
     return;
   }
 
@@ -448,20 +555,23 @@ function changeQuestion() {
 
   // Fill the blank(s) themselves in red, in place -- most exercise types
   // show the answer inside the equation now, so this is the same for them.
-  // Mixed-numbers level 1 is the one shape that doesn't fit the generic
-  // two-blank branch: currentAnswer there is {whole, remainderNumerator},
-  // not {numerator, denominator}. Level 3 doesn't fit either shape -- it's
-  // {whole, numerator, denominator} across *three* boxes -- so it gets its
-  // own branch too. Level 2's answer is a plain number, which the generic
-  // branch already handles (see checkMixedNumberAnswer() in
-  // exercise-mixednumbers.js for the matching level-based validation split).
+  // Mixed-numbers level 1 and addfractionsadvanced levels 1/3 are the one
+  // shape that doesn't fit the generic two-blank branch: currentAnswer there
+  // is {whole, remainderNumerator}, not {numerator, denominator}
+  // (isTwoBoxWholeAnswerLevel()). Mixed-numbers level 3 and addfractionsadvanced
+  // level 2 don't fit either shape -- it's {whole, numerator, denominator}
+  // across *three* boxes -- so they get their own branch too
+  // (isThreeBoxAnswerLevel()). Mixed-numbers level 2's answer is a plain
+  // number, which the generic branch already handles (see
+  // checkMixedNumberAnswer() in exercise-mixednumbers.js for the matching
+  // level-based validation split).
   const isTwoBlank = typeof currentAnswer === 'object';
   answerInput.classList.remove('answer-left-blank');
-  if (isMixedNumberLevel1()) {
+  if (isTwoBoxWholeAnswerLevel()) {
     answerInput.value = currentAnswer.whole;
     answer2.value = currentAnswer.remainderNumerator;
     answer2.classList.add('answer-revealed');
-  } else if (isMixedNumberLevel3()) {
+  } else if (isThreeBoxAnswerLevel()) {
     answerInput.value = currentAnswer.whole;
     answer2.value = currentAnswer.numerator;
     answer3.value = currentAnswer.denominator;

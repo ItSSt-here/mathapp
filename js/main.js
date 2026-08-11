@@ -29,7 +29,7 @@ function changeExerciseDifficulty(delta) {
 }
 
 function formatLevelInfo() {
-  const modeLabels = { fractions: 'שברים', comparefractions: 'השוואת שברים', addfractions: 'חיבור שברים', subtractfractions: 'חיסור שברים', mixednumbers: 'מספרים מעורבים', letters: 'אותיות', abc: 'ABC', nikud: 'ניקוד' };
+  const modeLabels = { fractions: 'מבוא לשברים', comparefractions: 'השוואת שברים', addfractions: 'חיבור שברים', subtractfractions: 'חיסור שברים', mixednumbers: 'מספרים מעורבים', addfractionsadvanced: 'חיבור שברים מתקדם', letters: 'אותיות', abc: 'ABC', nikud: 'ניקוד' };
   const modeLabel = modeLabels[gameMode] || 'כפל';
   return `נושא: ${modeLabel} | מהירות: ${DIFFICULTIES[difficultyIndex]} | קושי תרגילים: ${EXERCISE_DIFFICULTIES[exerciseDifficultyIndex]}`;
 }
@@ -251,26 +251,27 @@ document.getElementById('checkBtn').addEventListener('click', checkAnswer);
 document.getElementById('answer').addEventListener('keydown', (e) => {
   const answer2 = document.getElementById('answer2');
   const isTwoBlank = typeof currentAnswer === 'object';
-  // Mixed numbers levels 1 and 3 both put the whole-number box (#answer)
-  // side by side with the fraction part (not stacked) -- see
-  // isMixedNumberWholeBoxLevel() in exercise-mixednumbers.js. Every other
+  // Mixed numbers levels 1 and 3, plus addfractionsadvanced level 1, all put
+  // the whole-number box (#answer) side by side with the fraction part (not
+  // stacked) -- see isWholeBoxAnswerLevel() in exercise-core.js. Every other
   // two-blank exercise (including addfractions/subtractfractions/fractions'
   // own reduction levels) stacks its two boxes, so it stays in this
   // Up/Down group.
-  const isStackedTwoBlank = isTwoBlank && !isMixedNumberWholeBoxLevel();
+  const isStackedTwoBlank = isTwoBlank && !isWholeBoxAnswerLevel();
   if (e.key === 'ArrowDown' && isStackedTwoBlank) {
     e.preventDefault();
     answer2.focus();
     return;
   }
-  // Mixed numbers levels 1 and 3 only: the whole box renders to the left of
-  // the fraction box in this equation (.exercise/.frac-eq force
-  // direction:ltr regardless of the page's own RTL, see style.css), so
-  // ArrowRight is "toward the fraction" here -- only once the cursor's at
-  // the box's right edge (or the box is empty), so normal in-box cursor
-  // movement isn't hijacked. Lands on #answer2 either way -- level 1's only
-  // fraction box, or level 3's numerator (top of its own stack).
-  if (e.key === 'ArrowRight' && isMixedNumberWholeBoxLevel()) {
+  // Same levels as above: the whole box renders to the left of the fraction
+  // box in this equation (.exercise/.frac-eq force direction:ltr regardless
+  // of the page's own RTL, see style.css), so ArrowRight is "toward the
+  // fraction" here -- only once the cursor's at the box's right edge (or the
+  // box is empty), so normal in-box cursor movement isn't hijacked. Lands on
+  // #answer2 either way -- level 1's only fraction box (mixed numbers or
+  // addfractionsadvanced), or mixed-numbers level 3's numerator (top of its
+  // own stack).
+  if (e.key === 'ArrowRight' && isWholeBoxAnswerLevel()) {
     const atEnd = e.target.value === '' ||
       (e.target.selectionStart === e.target.value.length && e.target.selectionEnd === e.target.value.length);
     if (atEnd) {
@@ -296,13 +297,14 @@ document.getElementById('answer').addEventListener('input', (e) => {
 // purely visual affordance showing it was left blank on purpose, never a
 // validity gate. Toggled on blur/focus rather than on every keystroke since
 // it should only appear once the player has actually moved on from the box.
-// Gated on isMixedNumberWholeBoxLevel() (not just gameMode, and not just
-// "is an object" -- level 3's answer is also an object) because level 2
-// reuses this same #answer element for a box that's *always* required -- an
-// empty box there is just unanswered, not a deliberate omission, so it must
-// never get the "this was left blank on purpose" styling.
+// Gated on isWholeBoxAnswerLevel() (not just gameMode, and not just "is an
+// object" -- mixed-numbers level 3's answer is also an object) because
+// mixed-numbers level 2 reuses this same #answer element for a box that's
+// *always* required -- an empty box there is just unanswered, not a
+// deliberate omission, so it must never get the "this was left blank on
+// purpose" styling.
 document.getElementById('answer').addEventListener('blur', (e) => {
-  if (isMixedNumberWholeBoxLevel() && e.target.value.trim() === '') {
+  if (isWholeBoxAnswerLevel() && e.target.value.trim() === '') {
     e.target.classList.add('answer-left-blank');
   }
 });
@@ -312,13 +314,13 @@ document.getElementById('answer').addEventListener('focus', (e) => {
 document.getElementById('answer2').addEventListener('keydown', (e) => {
   const answerInput = document.getElementById('answer');
   const isTwoBlank = typeof currentAnswer === 'object';
-  const isStackedTwoBlank = isTwoBlank && !isMixedNumberWholeBoxLevel();
+  const isStackedTwoBlank = isTwoBlank && !isWholeBoxAnswerLevel();
   if (e.key === 'ArrowUp' && isStackedTwoBlank) {
     e.preventDefault();
     answerInput.focus();
     return;
   }
-  if (e.key === 'ArrowLeft' && isMixedNumberWholeBoxLevel()) {
+  if (e.key === 'ArrowLeft' && isWholeBoxAnswerLevel()) {
     const atStart = e.target.value === '' ||
       (e.target.selectionStart === 0 && e.target.selectionEnd === 0);
     if (atStart) {
@@ -327,16 +329,17 @@ document.getElementById('answer2').addEventListener('keydown', (e) => {
     }
     return;
   }
-  // Level 3 only: #answer2 (numerator) has a third box stacked directly
-  // below it (#answer3, denominator) that no other topic has -- #answer3's
-  // own keydown listener (exercise-mixednumbers.js) handles the reverse
-  // direction (ArrowUp back to #answer2), so this is the one place the
-  // shared #answer2 handler needs to know #answer3 exists at all. Kept as a
-  // single guarded branch here rather than a second listener on #answer2,
-  // which would double-handle every keydown (both would fire on the same
-  // event) -- see wireMixedNumberLevel3Answer3Nav() in
-  // exercise-mixednumbers.js for why #answer3 itself didn't need this.
-  if (isMixedNumberLevel3()) {
+  // Mixed-numbers level 3 and addfractionsadvanced level 2 only: #answer2
+  // (numerator) has a third box stacked directly below it (#answer3,
+  // denominator) that no other level has -- #answer3's own keydown listener
+  // (exercise-mixednumbers.js) handles the reverse direction (ArrowUp back
+  // to #answer2), so this is the one place the shared #answer2 handler needs
+  // to know #answer3 exists at all. Kept as a single guarded branch here
+  // rather than a second listener on #answer2, which would double-handle
+  // every keydown (both would fire on the same event) -- see
+  // wireMixedNumberLevel3Answer3Nav() in exercise-mixednumbers.js for why
+  // #answer3 itself didn't need this.
+  if (isThreeBoxAnswerLevel()) {
     const answer3 = document.getElementById('answer3');
     if (e.key === 'ArrowDown') {
       e.preventDefault();
@@ -533,10 +536,11 @@ document.getElementById('modeFractionsHubBtn').addEventListener('click', () => {
 });
 const FRACTIONS_SUBTOPIC_BUTTONS = {
   modeFractionsBtn: 'fractions',
+  modeCompareFractionsBtn: 'comparefractions',
   modeAddFractionsBtn: 'addfractions',
   modeSubtractFractionsBtn: 'subtractfractions',
-  modeCompareFractionsBtn: 'comparefractions',
   modeMixedNumbersBtn: 'mixednumbers',
+  modeAddFractionsAdvancedBtn: 'addfractionsadvanced',
 };
 for (const [btnId, topic] of Object.entries(FRACTIONS_SUBTOPIC_BUTTONS)) {
   document.getElementById(btnId).addEventListener('click', () => {

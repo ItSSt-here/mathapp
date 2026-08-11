@@ -94,13 +94,13 @@ const URL_PARAM_TOPIC = 'topic';
 const URL_PARAM_DIFFICULTY = 'difficulty';
 const URL_PARAM_SPEED = 'speed';
 const URL_PARAM_GROUP = 'group';
-const VALID_TOPICS = ['multiplication', 'fractions', 'comparefractions', 'addfractions', 'subtractfractions', 'mixednumbers', 'letters', 'abc', 'nikud']; // matches gameMode's own values, no translation table needed
-// The mode-select screen groups these 5 behind one "שברים" hub button
+const VALID_TOPICS = ['multiplication', 'fractions', 'comparefractions', 'addfractions', 'subtractfractions', 'mixednumbers', 'addfractionsadvanced', 'letters', 'abc', 'nikud']; // matches gameMode's own values, no translation table needed
+// The mode-select screen groups these 6 behind one "שברים" hub button
 // (fractionsSubtopicOverlay in index.html) instead of listing them flat --
 // see backToModeBtn's handler and parseUrlParams()/buildShareLink() in
 // main.js for how this list is used to route "back" navigation and the
 // hub's own ?group=fractions share link.
-const FRACTIONS_GROUP_TOPICS = ['fractions', 'comparefractions', 'addfractions', 'subtractfractions', 'mixednumbers'];
+const FRACTIONS_GROUP_TOPICS = ['fractions', 'comparefractions', 'addfractions', 'subtractfractions', 'mixednumbers', 'addfractionsadvanced'];
 
 // Letters exercise (recognition, for younger children): child taps a sound
 // button to hear the letter's name (a recorded clip, see
@@ -239,6 +239,32 @@ const FRACTION_B2_MIN = 1;
 // generateFractionAdditionExercise() in exercise-addfractions.js.
 const FRAC_ADD_DEN_MIN = 3;
 const FRAC_ADD_DEN_MAX = 20;
+
+// חיבור שברים מתקדם, level 1 (see generateFractionAdditionAdvancedLevel1Exercise()
+// in exercise-addfractionsadvanced.js): p/n + q/n, same same-denominator
+// mechanic as addfractions level 1, but both addends can be large enough
+// that the sum reaches/exceeds n -- the answer is a mixed number (whole +
+// remainder over the fixed denominator n) instead of a single blank
+// numerator. Own denominator range (separate from FRAC_ADD_DEN_MIN/MAX) so
+// it can be tuned independently, same convention subtractfractions used for
+// its own FRAC_SUB_DEN_MIN/MAX.
+const ADD_FRAC_ADV_L1_DEN_MIN = 3;
+const ADD_FRAC_ADV_L1_DEN_MAX = 20;
+// Fraction of exercises where the sum overflows past n (w=1) vs stays
+// proper (w=0). Sum is always p+q with p,q<n, so it's always <2n -- w is
+// only ever 0 or 1, no separate whole-number cap constant needed here
+// (unlike MIXED_NUM_WHOLE_MAX).
+const ADD_FRAC_ADV_L1_OVERFLOW_CHANCE = 0.80;
+
+// Level 2 (see generateFractionAdditionAdvancedLevel2Exercise() in
+// exercise-addfractionsadvanced.js): same p/n + q/n mechanic and the same
+// ADD_FRAC_ADV_L1_DEN_MIN/MAX and ADD_FRAC_ADV_L1_OVERFLOW_CHANCE as level 1
+// (reused, not a separate L2 range/chance -- same convention mixed-numbers
+// level 3 uses reusing MIXED_NUM_DEN_MIN/MAX and MIXED_NUM_L1_ZERO_CHANCE),
+// but this fraction of exercises forces gcd(r,n)>1 so the remainder needs
+// reducing -- same relationship every other topic's own "level N+1 adds
+// reduction" step has to its predecessor.
+const ADD_FRAC_ADV_L2_REDUCTION_CHANCE = 0.70;
 
 // Level 2 (see generateFractionAdditionLevel2Exercise() in
 // exercise-addfractions.js): this fraction of exercises forces gcd(p+q, n) > 1
@@ -427,6 +453,7 @@ const EXERCISE_TOPIC_LEVEL_COUNTS = {
   addfractions: 4,
   subtractfractions: 4,
   mixednumbers: 4,
+  addfractionsadvanced: 4,
   letters: 2,          // levels 2-5 were identical to each other
   abc: 4,               // level 5 was identical to level 4
   nikud: 3,
@@ -490,6 +517,12 @@ const EXERCISE_LEVEL_DESCRIPTIONS = {
     'הכיוון ההפוך: מוצג מספר מעורב (מספר שלם ולידו שבר תקין ומצומצם, למשל 3 וגם 2/5) ויש להמיר אותו לשבר לא-תקין: להשלים רק את המונה מעל b (המכנה b נשאר קבוע). החלק השלם תמיד לפחות 1 (לעולם לא 0), ותיבת התשובה חייבת תמיד להיות מלאה.',
     'כמו ברמה 1 (כולל האפשרות להשאיר את תיבת החלק השלם ריקה כשהוא 0), אבל בנוסף -- בכל תרגיל, בלי יוצא מן הכלל -- יש להשלים גם את המונה וגם את המכנה של שארית השבר בצורתה המצומצמת. ב-70% מהמקרים באמת נדרש צמצום; ב-30% הנותרים אין מה לצמצם -- אבל אי אפשר לדעת מראש איזה מהם זה, כי הצורה זהה תמיד.',
     'כמו ברמה 2 (מספר מעורב נתון, ויש להמיר לשבר לא-תקין), אבל בכל תרגיל -- בלי יוצא מן הכלל -- יש להשלים גם את המונה וגם את המכנה של השבר הלא-תקין בצורתו המצומצמת. ב-70% מהמקרים באמת נדרש צמצום; ב-30% הנותרים אין מה לצמצם -- אבל אי אפשר לדעת מראש איזה מהם זה, כי הצורה זהה תמיד.',
+  ],
+  addfractionsadvanced: [
+    'מוצגים שני שברים עם אותו מכנה (בין 3 ל-20), אבל הפעם סכומם עשוי לעבור את השלם -- יש להשלים את התוצאה כמספר מעורב: מספר שלם (0 או 1 בלבד) ולידו מונה השארית מעל המכנה הנתון. ב-80% מהמקרים הסכום עובר את השלם (החלק השלם הוא 1); ב-20% הנותרים הוא נשאר שבר תקין (החלק השלם הוא 0, ותיבת השלמים נשארת ריקה). שארית השבר תמיד כבר מצומצמת -- אין צמצום ברמה זו.',
+    'כמו ברמה 1, אבל בכל תרגיל -- בלי יוצא מן הכלל -- יש להשלים גם את המונה וגם את המכנה של שארית השבר בצורתה המצומצמת. ב-70% מהמקרים באמת נדרש צמצום; ב-30% הנותרים אין מה לצמצם -- אבל אי אפשר לדעת מראש איזה מהם זה, כי הצורה זהה תמיד.',
+    'כמו ברמה 1 (בלי צמצום), אבל הפעם שני האיברים המחוברים הם בעצמם מספרים מעורבים (חלק שלם ולידו שבר), לא רק שברים פשוטים -- יש לחבר גם את החלקים השלמים וגם את חלקי השבר, ולזכור להעביר 1 לחלק השלם אם סכום השברים חורג מהמכנה. בכ-10% מהמקרים כל אחד מהאיברים בנפרד הוא בעצם שבר פשוט ללא חלק שלם (מוצג בלי "0").',
+    'כמו ברמה 3 (שני מספרים מעורבים), אבל בכל תרגיל -- בלי יוצא מן הכלל -- יש להשלים גם את המונה וגם את המכנה של שארית השבר בצורתה המצומצמת. ב-70% מהמקרים באמת נדרש צמצום; ב-30% הנותרים אין מה לצמצם -- אבל אי אפשר לדעת מראש איזה מהם זה, כי הצורה זהה תמיד.',
   ],
   comparefractions: [
     'מוצגים שני שברים -- לפעמים עם אותו מכנה, לפעמים עם אותו מונה (באקראי) -- ויש לבחור > או < כדי לקבוע איזה מהם גדול יותר.',
