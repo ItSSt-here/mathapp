@@ -131,6 +131,17 @@ h1 {
   flex-wrap: wrap;
   gap: 14px;
   margin-bottom: 16px;
+  /* Without this, a flex item's default min-width:auto keeps it from ever
+     shrinking below its content's natural width -- harmless for short
+     equations, but a wide one (e.g. addfractionsadvanced level 4's two
+     mixed-number addends + a 3-box reduced answer) then pushes .card wider
+     than the phone screen instead of yielding to it, and since .card's own
+     overflow-x is visible (only overflow-y is set), the excess just spills
+     past the viewport edge and gets clipped by html/body's overflow:hidden
+     -- confirmed 2026-08-12 by measuring a 76px overflow on a 375px phone
+     width at that level. min-width:0 here lets this row actually shrink to
+     the available width instead. */
+  min-width: 0;
 }
 
 /* Shown only above a full-reduction fraction exercise (both numerator and
@@ -159,6 +170,7 @@ h1 {
   font-weight: bold;
   color: #2b3a67;
   direction: ltr; /* keep "a × b = c" in the correct left-to-right order despite the RTL page */
+  min-width: 0; /* see .exercise-row's min-width comment -- same flex-shrink fix, one level down */
 }
 
 input {
@@ -204,7 +216,15 @@ input.answer-revealed:disabled {
 .frac-eq {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 16px;
+  /* Lets a too-wide equation (see .exercise-row's min-width comment) break
+     onto a second line within the available width instead of overflowing
+     past it -- row-gap kept smaller than the column gap since a wrapped
+     line break is a cheaper visual seam than the gap between terms. */
+  flex-wrap: wrap;
+  row-gap: 8px;
+  max-width: 100%;
 }
 
 .frac-block {
