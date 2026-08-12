@@ -20,17 +20,24 @@ function fractionAnswerBlockHTML(missing, targetNumerator, targetDenominator) {
 // Same idea as fractionAnswerBlockHTML, but for a mixed number w  r/b: the
 // whole part gets a plain slot (newExercise() parks the plain #answer input
 // there, no fraction-sized styling), the remainder numerator lives in a
-// normal frac-block above the fixed, shown denominator b.
+// normal frac-block above the fixed, shown denominator b. Wrapped in a single
+// .mixed-num-group span rather than left as two bare siblings -- .frac-eq can
+// now wrap onto multiple lines on narrow screens (see its flex-wrap comment
+// in style.css), and without this wrapper the line break could land *between*
+// the whole box and its own fraction, splitting one mixed number across two
+// lines (reported by the user 2026-08-12 right after that flex-wrap change
+// shipped). Grouping them into one flex item makes the pair unsplittable.
 function mixedNumberAnswerBlockHTML(targetDenominator) {
-  return `<span id="mixedWholeSlot"></span><span class="frac-block" id="mixedFracSlot"><span class="frac-bar"></span><span class="frac-den">${targetDenominator}</span></span>`;
+  return `<span class="mixed-num-group"><span id="mixedWholeSlot"></span><span class="frac-block" id="mixedFracSlot"><span class="frac-bar"></span><span class="frac-den">${targetDenominator}</span></span></span>`;
 }
 
 // Level 2's left-hand side: a *given* mixed number w  r/b, both parts fixed
 // (not editable). Reuses .frac-num's own styling for the plain whole-number
 // text so it reads at the same visual weight as the fraction's digits,
-// without needing a dedicated CSS class.
+// without needing a dedicated CSS class. Same .mixed-num-group wrapping
+// reasoning as mixedNumberAnswerBlockHTML() above.
 function mixedNumberDisplayHTML(whole, remainderNumerator, denominator) {
-  return `<span class="frac-num">${whole}</span>` + fractionBlockHTML(remainderNumerator, denominator);
+  return `<span class="mixed-num-group"><span class="frac-num">${whole}</span>${fractionBlockHTML(remainderNumerator, denominator)}</span>`;
 }
 
 // True whenever the current exercise's whole-number box (#answer) sits
@@ -214,8 +221,10 @@ function newExercise() {
         '<span class="frac-eq">' +
           fractionBlockHTML(ex.improperNumerator, ex.improperDenominator) +
           '<span class="frac-op">=</span>' +
-          '<span id="mixedWholeSlot"></span>' +
-          fractionAnswerBlockHTML('both', ex.targetNumerator, ex.targetDenominator) +
+          '<span class="mixed-num-group">' +
+            '<span id="mixedWholeSlot"></span>' +
+            fractionAnswerBlockHTML('both', ex.targetNumerator, ex.targetDenominator) +
+          '</span>' +
         '</span>';
       answerInput.setAttribute('enterkeyhint', 'next'); // Enter moves to #answer2
       answer2.setAttribute('enterkeyhint', 'next'); // Enter moves to #answer3
@@ -274,8 +283,10 @@ function newExercise() {
           '<span class="frac-op">+</span>' +
           rightAddendHTML +
           '<span class="frac-op">=</span>' +
-          '<span id="mixedWholeSlot"></span>' +
-          fractionAnswerBlockHTML('both', ex.targetNumerator, ex.targetDenominator) +
+          '<span class="mixed-num-group">' +
+            '<span id="mixedWholeSlot"></span>' +
+            fractionAnswerBlockHTML('both', ex.targetNumerator, ex.targetDenominator) +
+          '</span>' +
         '</span>';
       answerInput.setAttribute('enterkeyhint', 'next'); // Enter moves to #answer2
       answer2.setAttribute('enterkeyhint', 'next'); // Enter moves to #answer3

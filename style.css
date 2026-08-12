@@ -233,6 +233,20 @@ input.answer-revealed:disabled {
   align-items: center;
 }
 
+/* Groups a mixed number's whole-number box with its own fraction (see
+   mixedNumberDisplayHTML()/mixedNumberAnswerBlockHTML() in exercise-core.js)
+   into one flex item -- same gap as .frac-eq's own, so visually nothing
+   changes versus the two parts being bare .frac-eq children directly. Exists
+   only so .frac-eq's flex-wrap (above) can never break a line *between* a
+   mixed number's own whole box and fraction -- without this wrapper that was
+   a legal wrap point, splitting one mixed number across two lines (reported
+   2026-08-12, right after flex-wrap shipped). */
+.mixed-num-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 16px;
+}
+
 .frac-num, .frac-den {
   font-size: 40px;
   line-height: 1.2;
