@@ -20,10 +20,14 @@ function generateNikudExercise() {
     return { correct: randChoice(NIKUD_LEVEL1_LETTERS), options: NIKUD_LEVEL1_LETTERS };
   }
 
-  // Level 2: same random-5-of-pool mechanic as level 3, just drawn from the
-  // smaller NIKUD_LEVEL2_LETTERS pool (א-ח) instead of the full alphabet --
-  // see config.js for why this pool was added as a middle step.
-  const pool = exerciseDifficultyIndex === 1 ? NIKUD_LEVEL2_LETTERS : HEBREW_LETTERS;
+  // Levels 2-3: same random-5-of-pool mechanic as level 4, just drawn from a
+  // smaller pool -- NIKUD_LEVEL2_LETTERS (א-ח) for level 2, NIKUD_LEVEL3_LETTERS
+  // (א-ל) for level 3 -- instead of the full alphabet. See config.js for why
+  // these pools were added as middle steps.
+  let pool;
+  if (exerciseDifficultyIndex === 1) pool = NIKUD_LEVEL2_LETTERS;
+  else if (exerciseDifficultyIndex === 2) pool = NIKUD_LEVEL3_LETTERS;
+  else pool = HEBREW_LETTERS;
   const correct = randChoice(pool);
   const excluded = new Set([correct, ...nikudConfusablesOf(correct)]);
   const distractorPool = pool.filter(l => !excluded.has(l));

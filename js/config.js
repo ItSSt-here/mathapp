@@ -150,7 +150,8 @@ const ABC_AUDIO_CONFUSABLE_PAIRS = [['M', 'N']];
 // same niqud mark), same mechanic/UI as HEBREW_LETTERS level 1 (see
 // generateNikudExercise()/renderNikudChoices() in exercise-nikud.js). At the
 // moment every difficulty level uses this same קמץ-only mechanic; more niqud
-// types may be added later. Level 3 uses the full HEBREW_LETTERS pool (5
+// types may be added later. Level 4 uses the full HEBREW_LETTERS pool (5
+// options); level 3 uses the medium NIKUD_LEVEL3_LETTERS pool (also 5
 // options); level 2 uses the smaller NIKUD_LEVEL2_LETTERS pool (also 5
 // options); level 1 is eligible as the target (including כ -- see
 // NIKUD_AUDIO_OVERRIDE in exercise-nikud.js for how its sound is sourced,
@@ -173,6 +174,14 @@ const NIKUD_LEVEL1_LETTERS = ['א', 'ב', 'ג', 'ד'];
 // showing all 8. None of NIKUD_CONFUSABLE_PAIRS falls within א-ח, so the
 // same exclusion logic that level 3 uses is safe to reuse unchanged here.
 const NIKUD_LEVEL2_LETTERS = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח'];
+
+// Level 3's letter pool (2026-08-23, added as a middle step between level 2's
+// 8 letters and level 4's full 22 -- same random-5-of-pool mechanic, just a
+// bigger pool). The first 12 base letters in alphabet order, א through ל.
+// Unlike level 2's pool, this one does contain a NIKUD_CONFUSABLE_PAIRS entry
+// (ח/כ) -- no special-casing needed though, since nikudConfusablesOf()'s
+// exclusion in generateNikudExercise() already applies regardless of pool.
+const NIKUD_LEVEL3_LETTERS = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט', 'י', 'כ', 'ל'];
 
 // Letter pairs that sound identical in Modern Hebrew once pointed -- never
 // let one appear as a distractor when the other is the correct/played
@@ -451,10 +460,12 @@ function getExerciseLevelConfig() {
 // updateExerciseDifficultyLabel() in main.js instead of a flat 5). Bump a
 // topic's count up the day a genuinely new level is implemented for it --
 // pair it with a new EXERCISE_LEVEL_DESCRIPTIONS entry below and nothing
-// else needs to change. nikud is at 3 now: level 1 is a fixed 4-letter pool
+// else needs to change. nikud is at 4 now: level 1 is a fixed 4-letter pool
 // (NIKUD_LEVEL1_LETTERS), level 2 is a random-5-of-8 pool (NIKUD_LEVEL2_LETTERS,
-// added 2026-07-30 as a middle step), level 3 is the original full-alphabet
-// mechanic (bumped from level 2 the same day).
+// added 2026-07-30 as a middle step), level 3 is a random-5-of-12 pool
+// (NIKUD_LEVEL3_LETTERS, added 2026-08-23 as a further middle step), level 4
+// is the original full-alphabet mechanic (bumped from level 2 on 2026-07-30,
+// then from level 3 to level 4 on 2026-08-23).
 const EXERCISE_TOPIC_LEVEL_COUNTS = {
   multiplication: 5,
   fractions: 5,
@@ -465,7 +476,7 @@ const EXERCISE_TOPIC_LEVEL_COUNTS = {
   addfractionsadvanced: 4,
   letters: 2,          // levels 2-5 were identical to each other
   abc: 4,               // level 5 was identical to level 4
-  nikud: 3,
+  nikud: 4,
   vocabulary: 1,
 };
 
@@ -511,6 +522,7 @@ const EXERCISE_LEVEL_DESCRIPTIONS = {
   nikud: [
     'שומעים אחת מ-4 האותיות א, ב, ג, ד עם ניקוד קמץ (לחיצה על 🔊) ובוחרים אותה מתוך 4 כפתורים קבועים, תמיד באותו סדר.',
     'שומעים אות עם ניקוד קמץ (לחיצה על 🔊) ובוחרים אותה מתוך 5 אותיות עם קמץ, מתוך 8 האותיות הראשונות (א-ח).',
+    'שומעים אות עם ניקוד קמץ (לחיצה על 🔊) ובוחרים אותה מתוך 5 אותיות עם קמץ, מתוך 12 האותיות הראשונות (א-ל).',
     'שומעים אות עם ניקוד קמץ (לחיצה על 🔊) ובוחרים אותה מתוך 5 אותיות עם קמץ, מתוך כל האלף-בית.',
   ],
   addfractions: [
