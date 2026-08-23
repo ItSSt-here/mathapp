@@ -219,3 +219,22 @@ project" reason. Source confirmed via waveform cross-correlation (score
 An alternate candidate, קשה (LL-Q9288 (heb)-Uziel302-קשה.wav, "kasha",
 "hard/difficult", CC0), was also fetched but not used -- still in
 _raw-audio-src/.
+
+kamats/ע.wav: REPLACES the soundsofnikud.com clip above -- the last of the
+22 base letters to get a self-made/licensed clip. Source confirmed via
+waveform cross-correlation (score 1.000 vs. 0.14-0.24 for two other
+candidates fetched alongside it):
+  ע.wav <- LL-Q9288 (heb)-Buffer-שעה.wav (שָׁעָה/"sha'a", "hour",
+    CC BY-SA 4.0), the trailing "-'ָה" syllable (ע itself carries the
+    קמץ here, directly before the silent ה). Silence-free at -45dB, no
+    edge-trim needed, boosted +7.1dB, landing at peak -0.5dB.
+Two alternate candidates were fetched but not used: גבעה
+(LL-Q9288 (heb)-Uziel302-גבעה.wav, "giv'a", "hill", CC0) and the earlier
+עזה (LL-Q9288 (heb)-YaronSh-עזה.wav, "aza", CC0, reported too weak to
+trim cleanly) -- both still in _raw-audio-src/.
+
+**Post-completion note (2026-08):** once all 22 letters had a self-made
+clip, the user found א.wav and ע.wav hard to tell apart by ear in
+practice -- reversing the 2026-07-23 decision to leave them as a testable
+pair. See NIKUD_CONFUSABLE_PAIRS in js/config.js, now excluding א/ע like
+the other confusable pairs.

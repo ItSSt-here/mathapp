@@ -81,7 +81,7 @@ const NIKUD_AUDIO_OVERRIDE = { 'כ': 'ק', 'ת': 'ט' };
 // in Modern Hebrew (both a plain "v"). י/ל/מ/נ/ס/צ: trimmed from real word
 // recordings (בעיה/שאלה/נשמה/תמונה/מסה/ריצה) same as א/ב/ג/ד/ט/פ -- see
 // assets/nikud/CREDITS.txt for all sources.
-const NIKUD_CLIP_EXT = { 'א': 'wav', 'ב': 'wav', 'ג': 'wav', 'ד': 'wav', 'ה': 'wav', 'ו': 'wav', 'ז': 'wav', 'ח': 'wav', 'ט': 'wav', 'י': 'wav', 'ל': 'wav', 'מ': 'wav', 'נ': 'wav', 'ס': 'wav', 'פ': 'wav', 'צ': 'wav', 'ק': 'wav', 'ר': 'wav', 'ש': 'wav' };
+const NIKUD_CLIP_EXT = { 'א': 'wav', 'ב': 'wav', 'ג': 'wav', 'ד': 'wav', 'ה': 'wav', 'ו': 'wav', 'ז': 'wav', 'ח': 'wav', 'ט': 'wav', 'י': 'wav', 'ל': 'wav', 'מ': 'wav', 'נ': 'wav', 'ס': 'wav', 'ע': 'wav', 'פ': 'wav', 'צ': 'wav', 'ק': 'wav', 'ר': 'wav', 'ש': 'wav' };
 let currentNikudAudio = null;
 
 function playNikudSound(letter) {

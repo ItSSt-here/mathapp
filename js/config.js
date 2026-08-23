@@ -171,11 +171,13 @@ const NIKUD_LEVEL2_LETTERS = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח'];
 // let one appear as a distractor when the other is the correct/played
 // letter (see nikudConfusablesOf() in exercise-nikud.js). ק/כ sound identical
 // (and כ's audio is literally ק's clip, see NIKUD_AUDIO_OVERRIDE); כ written
-// without a dagesh reads like ח; ט/ת both sound "t". א/ע deliberately left
-// unpaired -- both are silent in casual Modern Hebrew speech, but these
-// recordings do pronounce them distinctly, which is worth letting the
-// exercise actually test rather than papering over.
-const NIKUD_CONFUSABLE_PAIRS = [['ק', 'כ'], ['ח', 'כ'], ['ט', 'ת']];
+// without a dagesh reads like ח; ט/ת both sound "t" (and ת's audio is
+// literally ט's clip, same override mechanism as כ/ק). א/ע: originally left
+// unpaired on the theory that these recordings pronounce them distinctly
+// enough to be worth testing (2026-07-23) -- reversed once actual self-made
+// א.wav/ע.wav clips (2026-08) turned out hard to tell apart by ear in
+// practice, so excluded like the others now.
+const NIKUD_CONFUSABLE_PAIRS = [['ק', 'כ'], ['ח', 'כ'], ['ט', 'ת'], ['א', 'ע']];
 
 // Letters whose glyph has a descender (a stroke dropping below the line,
 // e.g. ק's leg) that collides with the niqud mark stacked underneath at the
