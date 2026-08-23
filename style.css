@@ -519,6 +519,76 @@ button.check-btn:focus {
   box-shadow: 0 3px 0 #3349b0;
 }
 
+/* Vocabulary exercise: the English word shown as the prompt, and its Hebrew
+   translation choices below. Same visual language as .letter-choice-btn
+   (gradient/border/shadow, correct/wrong treatments) but sized for words
+   instead of a single glyph -- padding-based width instead of a fixed
+   64x64 box, which .letter-choice-btn couldn't offer without truncating or
+   overflowing anything longer than one character. */
+.vocabulary-word-display {
+  font-size: 38px;
+  font-weight: bold;
+  padding: 14px 28px;
+  border: 2px solid #d3ddf7;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #ffffff, #f6f8ff);
+  color: #2b3a67;
+  box-shadow: 0 3px 0 #b9c4e6;
+  margin-bottom: 20px;
+  direction: ltr; /* always an English word, regardless of the page's RTL direction */
+}
+
+.vocabulary-choices {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
+
+.vocabulary-choice-btn {
+  font-size: 20px;
+  font-weight: bold;
+  padding: 12px 22px;
+  min-width: 90px;
+  border: 2px solid #d3ddf7;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #ffffff, #f6f8ff);
+  color: #2b3a67;
+  cursor: pointer;
+  box-shadow: 0 3px 0 #b9c4e6;
+  transition: transform 0.1s ease;
+}
+
+.vocabulary-choice-btn:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #b9c4e6;
+}
+
+.vocabulary-choice-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.vocabulary-choice-btn:focus {
+  outline: none;
+  border-color: #4a6cf7;
+  box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.35), 0 3px 0 #b9c4e6;
+}
+
+.vocabulary-choice-btn.vocabulary-correct {
+  background: linear-gradient(180deg, #7ee29a, #2e9e4f);
+  color: white;
+  border-color: #2e9e4f;
+  opacity: 1;
+}
+
+.vocabulary-choice-btn.vocabulary-wrong {
+  background: linear-gradient(180deg, #f18b85, #e0433d);
+  color: white;
+  border-color: #e0433d;
+  opacity: 1;
+}
+
 /* ABC mode only (see .abc-mode toggle in newExercise(), exercise-core.js):
    the page's normal font (Arial) renders uppercase I and lowercase l as the
    same plain vertical stroke -- genuinely unreadable apart, confirmed by
@@ -1238,6 +1308,56 @@ hr {
   color: #2e9e4f;
   min-height: 16px;
   margin: 0 0 4px;
+}
+
+.vocabulary-file-row {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.vocabulary-file-label {
+  font-size: 14px;
+  padding: 8px 20px;
+  cursor: pointer;
+}
+
+/* Visually hidden but still focusable/clickable via its <label for=""> --
+   same off-screen-not-display:none convention as #shareLinkFallbackInput,
+   so keyboard/screen-reader users interacting with the label still reach a
+   real file input. */
+.vocabulary-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+}
+
+.vocabulary-words-textarea {
+  width: 100%;
+  max-width: 260px;
+  height: 160px;
+  font-size: 15px;
+  font-family: inherit;
+  padding: 10px;
+  border: 2px solid #ccc;
+  border-radius: 10px;
+  resize: vertical;
+  box-sizing: border-box;
+  margin-bottom: 8px;
+}
+
+.vocabulary-words-textarea:focus {
+  outline: none;
+  border-color: #4a6cf7;
+}
+
+.vocabulary-parse-feedback {
+  font-size: 13px;
+  color: #4a3fd1;
+  min-height: 18px;
+  margin: 0 0 12px;
 }
 
 .surrender-row {

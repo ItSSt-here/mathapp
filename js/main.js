@@ -28,7 +28,7 @@ function changeExerciseDifficulty(delta) {
   updateExerciseDifficultyLabel();
 }
 
-const MODE_LABELS = { fractions: 'מבוא לשברים', comparefractions: 'השוואת שברים', addfractions: 'חיבור שברים', subtractfractions: 'חיסור שברים', mixednumbers: 'מספרים מעורבים', addfractionsadvanced: 'חיבור שברים מתקדם', letters: 'אותיות', abc: 'ABC', nikud: 'ניקוד' };
+const MODE_LABELS = { fractions: 'מבוא לשברים', comparefractions: 'השוואת שברים', addfractions: 'חיבור שברים', subtractfractions: 'חיסור שברים', mixednumbers: 'מספרים מעורבים', addfractionsadvanced: 'חיבור שברים מתקדם', letters: 'אותיות', abc: 'ABC', nikud: 'ניקוד', vocabulary: 'אוצר מילים' };
 
 function formatLevelInfo() {
   const modeLabel = MODE_LABELS[gameMode] || 'כפל';
@@ -77,6 +77,19 @@ function parseUrlParams() {
     // and a group param still prefers the topic (skips straight past the hub,
     // same as it already skips modeOverlay).
     return params.get(URL_PARAM_GROUP) === 'fractions' ? 'subtopic' : 'mode';
+  }
+  // Vocabulary's own word list rides along as one more param on this same
+  // link (see URL_PARAM_WORDS in config.js) rather than needing a separate
+  // storage/lookup system -- but a link can't actually be built without a
+  // loaded list (vocabularyContinueBtn below requires 2+ words), so a
+  // vocabulary link with too few real pairs is either malformed or
+  // hand-edited; treat it the same as an unrecognized topic rather than
+  // risk newExercise() crashing on an empty list later.
+  if (topic === 'vocabulary') {
+    const { pairs } = parseVocabularyWordList(params.get(URL_PARAM_WORDS) || '');
+    if (pairs.length < 2) return params.get(URL_PARAM_GROUP) === 'fractions' ? 'subtopic' : 'mode';
+    vocabularyWordList = pairs;
+    saveVocabularyWordListToStorage(pairs); // this device's fallback for a future bare-URL open
   }
   gameMode = topic;
 
@@ -136,6 +149,9 @@ function buildShareLink(stage) {
   if (stage === 'difficulty' || stage === 'speed') {
     params.set(URL_PARAM_TOPIC, gameMode);
     params.set(URL_PARAM_DIFFICULTY, String(exerciseDifficultyIndex + 1));
+    if (gameMode === 'vocabulary') {
+      params.set(URL_PARAM_WORDS, serializeVocabularyWordList(vocabularyWordList));
+    }
   }
   if (stage === 'speed') {
     params.set(URL_PARAM_SPEED, String(difficultyIndex + 1));
@@ -421,6 +437,7 @@ function wireChoiceArrowNav(containerId) {
 wireChoiceArrowNav('letterChoices');
 wireChoiceArrowNav('letterSoundChoices');
 wireChoiceArrowNav('compareChoices');
+wireChoiceArrowNav('vocabularyChoices');
 // Vertical bridges between a choice row and the single button next to it
 // (the sound-play button above #letterChoices in listen mode, checkBtn below
 // #letterSoundChoices in reverse mode). Both remember exactly which button
@@ -508,8 +525,15 @@ document.getElementById('buyBtn').addEventListener('click', () => {
 // layout, ח has no way to be typed at all, so the hotkey was unreachable
 // without switching layouts first. e.key === 'ח' is kept alongside it as a
 // fallback for the rare keyboard where e.code might not report 'KeyJ'.
+// Guarded to only fire mid-battle (no overlay open) -- added once the
+// vocabulary word-list textarea (free Hebrew text, unlike the numeric-only
+// #answer/#answer2 boxes this hotkey originally assumed as its only
+// competition) showed that typing a real ח elsewhere on the page shouldn't
+// spend money and yank focus back to #answer. Every menu/setup screen shows
+// some .overlay.show; only the live battle screen never does.
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'ח' && e.code !== 'KeyJ') return;
+  if (document.querySelector('.overlay.show')) return;
   document.getElementById('buyBtn').click();
 });
 document.getElementById('swapBtn').addEventListener('click', changeQuestion);
@@ -582,6 +606,72 @@ for (const [btnId, topic] of Object.entries(FRACTIONS_SUBTOPIC_BUTTONS)) {
 document.getElementById('backToModeFromSubtopicBtn').addEventListener('click', () => {
   document.getElementById('fractionsSubtopicOverlay').classList.remove('show');
   document.getElementById('modeOverlay').classList.add('show');
+});
+document.getElementById('modeVocabularyBtn').addEventListener('click', () => {
+  document.getElementById('modeOverlay').classList.remove('show');
+  // Pre-fills from this device's last-saved list rather than skipping ahead
+  // with it -- the same bare URL that leads here is used both by a student
+  // who just wants to resume and a teacher authoring something new, and only
+  // a visible/editable starting point serves both. See
+  // [[project_vocabulary_topic_plan]].
+  document.getElementById('vocabularyWordsInput').value = loadVocabularyWordListFromStorage();
+  document.getElementById('vocabularyParseFeedback').textContent = '';
+  document.getElementById('vocabularyWordsOverlay').classList.add('show');
+});
+document.getElementById('backToModeFromVocabularyBtn').addEventListener('click', () => {
+  document.getElementById('vocabularyWordsOverlay').classList.remove('show');
+  document.getElementById('modeOverlay').classList.add('show');
+});
+// Loads a .txt file's contents into the textarea rather than parsing it
+// directly -- keeps a single commit step (the "טען רשימה" button below) for
+// both typed/pasted and file-loaded text, so there's one parse code path and
+// the teacher can still glance over/fix the content before it's loaded.
+document.getElementById('vocabularyFileInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  e.target.value = ''; // reset now so picking the same file again still fires 'change'
+  if (!file) return;
+  const feedback = document.getElementById('vocabularyParseFeedback');
+  const reader = new FileReader();
+  reader.onload = () => {
+    document.getElementById('vocabularyWordsInput').value = reader.result;
+    feedback.textContent = 'הקובץ נטען לתיבה -- בדקו ולחצו "טען רשימה".';
+  };
+  reader.onerror = () => {
+    feedback.textContent = 'שגיאה בקריאת הקובץ.';
+  };
+  reader.readAsText(file, 'UTF-8');
+});
+// Parses the textarea, shows a count/error feedback message, and stores the
+// result into vocabularyWordList -- shared by both "טען רשימה" (preview the
+// parse without leaving this screen) and "המשך" (parse fresh and continue),
+// so there's one parse+feedback code path regardless of which button
+// triggered it. Returns the parsed pairs, or null if there weren't at least
+// 2 (the minimum for a real multiple-choice question).
+function loadVocabularyWordsFromTextarea() {
+  const feedback = document.getElementById('vocabularyParseFeedback');
+  const { pairs, errorCount } = parseVocabularyWordList(document.getElementById('vocabularyWordsInput').value);
+  if (pairs.length === 0) {
+    feedback.textContent = 'לא נמצאה אף מילה תקינה. ודאו שכל שורה בפורמט מילה;תרגום.';
+    return null;
+  }
+  if (pairs.length < 2) {
+    feedback.textContent = 'צריך לפחות 2 מילים כדי לתרגל.';
+    return null;
+  }
+  vocabularyWordList = pairs;
+  saveVocabularyWordListToStorage(pairs); // this device's fallback for a future bare-URL open
+  feedback.textContent = errorCount > 0
+    ? `נטענו ${pairs.length} מילים (${errorCount} שורות לא תקינות דולגו).`
+    : `נטענו ${pairs.length} מילים בהצלחה.`;
+  return pairs;
+}
+document.getElementById('vocabularyLoadBtn').addEventListener('click', () => {
+  loadVocabularyWordsFromTextarea();
+});
+document.getElementById('vocabularyContinueBtn').addEventListener('click', () => {
+  if (!loadVocabularyWordsFromTextarea()) return;
+  document.getElementById('vocabularyWordsOverlay').classList.remove('show');
+  selectTopicAndContinue('vocabulary');
 });
 // Returns to whichever screen this topic was actually picked from, so a
 // student refining a fraction sub-topic choice doesn't get bounced all the

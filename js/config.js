@@ -94,7 +94,14 @@ const URL_PARAM_TOPIC = 'topic';
 const URL_PARAM_DIFFICULTY = 'difficulty';
 const URL_PARAM_SPEED = 'speed';
 const URL_PARAM_GROUP = 'group';
-const VALID_TOPICS = ['multiplication', 'fractions', 'comparefractions', 'addfractions', 'subtractfractions', 'mixednumbers', 'addfractionsadvanced', 'letters', 'abc', 'nikud']; // matches gameMode's own values, no translation table needed
+// Carries the vocabulary word list itself (serializeVocabularyWordList()'s
+// same "english;hebrew" per-line format, see exercise-vocabulary.js) --
+// URLSearchParams handles the percent-encoding of ';'/newlines/Hebrew
+// automatically on both ends, so no separate compression step is needed for
+// a chapter-sized list (~150-200 words was confirmed comfortably within
+// normal link-length limits, see [[project_vocabulary_topic_plan]]).
+const URL_PARAM_WORDS = 'words';
+const VALID_TOPICS = ['multiplication', 'fractions', 'comparefractions', 'addfractions', 'subtractfractions', 'mixednumbers', 'addfractionsadvanced', 'letters', 'abc', 'nikud', 'vocabulary']; // matches gameMode's own values, no translation table needed
 // The mode-select screen groups these 6 behind one "שברים" hub button
 // (fractionsSubtopicOverlay in index.html) instead of listing them flat --
 // see backToModeBtn's handler and parseUrlParams()/buildShareLink() in
@@ -459,6 +466,7 @@ const EXERCISE_TOPIC_LEVEL_COUNTS = {
   letters: 2,          // levels 2-5 were identical to each other
   abc: 4,               // level 5 was identical to level 4
   nikud: 3,
+  vocabulary: 1,
 };
 
 function getExerciseLevelCount() {
@@ -496,6 +504,9 @@ const EXERCISE_LEVEL_DESCRIPTIONS = {
     'כמו ברמה 1, אבל כל 5 האותיות המוצגות הן אותיות קטנות (a-z).',
     'כמו ברמה 1, אבל כל אחת מ-5 האותיות המוצגות נבחרת באקראי כגדולה או קטנה.',
     'הפוך: מוצגת אות אחת (גדולה או קטנה, נבחר באקראי), ולוחצים על כפתורי השמעה עד שמוצאים את זה שמשמיע את שמה, ואז לוחצים "בדוק" לאישור.',
+  ],
+  vocabulary: [
+    'מוצגת מילה באנגלית, ויש לבחור את התרגום הנכון שלה מתוך עד 5 מילים בעברית (פחות אם ברשימה שנטענה יש פחות מ-5 מילים).',
   ],
   nikud: [
     'שומעים אחת מ-4 האותיות א, ב, ג, ד עם ניקוד קמץ (לחיצה על 🔊) ובוחרים אותה מתוך 4 כפתורים קבועים, תמיד באותו סדר.',

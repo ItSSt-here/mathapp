@@ -13,7 +13,7 @@
      fetch of everything together instead of relying on cache timing to
      line up. No build step in this project, so this is manual -- there's
      nothing to automate it. -->
-<link rel="stylesheet" href="style.css?v=202608120845">
+<link rel="stylesheet" href="style.css?v=202608122000">
 </head>
 <body>
 
@@ -70,6 +70,14 @@
        comparefractions mode. -->
   <div id="compareAnswerHome" style="display:none;">
     <div class="letter-choices" id="compareChoices"></div>
+  </div>
+  <!-- Vocabulary exercise: English word shown as static text, Hebrew
+       translation options below it -- picking one answers immediately, same
+       "click a choice, no separate בדוק step" mechanic as the letters
+       listen-mode. Hidden except in vocabulary mode. -->
+  <div id="vocabularyAnswerHome" style="display:none;">
+    <div class="vocabulary-word-display" id="vocabularyWordDisplay"></div>
+    <div class="vocabulary-choices" id="vocabularyChoices"></div>
   </div>
   <!-- Second blank, only used for fraction exercises where both the
        numerator and denominator are hidden; parked here (hidden) otherwise. -->
@@ -155,6 +163,7 @@
       <button class="restart-btn" id="modeLettersBtn">אותיות</button>
       <button class="restart-btn" id="modeAbcBtn">ABC</button>
       <button class="restart-btn" id="modeNikudBtn">ניקוד</button>
+      <button class="restart-btn" id="modeVocabularyBtn">אוצר מילים</button>
     </div>
 
     <div class="link-row">
@@ -183,6 +192,24 @@
       <button class="copy-link-btn" id="copyLinkSubtopicBtn">העתק קישור</button>
     </div>
     <div class="copy-feedback" id="copyFeedbackSubtopic"></div>
+  </div>
+</div>
+
+<div class="overlay" id="vocabularyWordsOverlay">
+  <div class="overlay-card">
+    <div class="overlay-title" style="color:#4a3fd1;">קרב טירות ⚔️</div>
+    <p class="overlay-text">הזינו רשימת מילים לתרגול -- שורה לכל מילה, באנגלית ואז בעברית מופרדות ב-";" (למשל: apple;תפוח)</p>
+    <div class="vocabulary-file-row">
+      <label class="home-btn vocabulary-file-label" for="vocabularyFileInput">טען מקובץ txt</label>
+      <input type="file" id="vocabularyFileInput" class="vocabulary-file-input" accept=".txt,text/plain">
+    </div>
+    <textarea class="vocabulary-words-textarea" id="vocabularyWordsInput" dir="ltr" placeholder="apple;תפוח&#10;dog;כלב"></textarea>
+    <p class="vocabulary-parse-feedback" id="vocabularyParseFeedback"></p>
+    <div class="postgame-buttons">
+      <button class="home-btn" id="backToModeFromVocabularyBtn">חזרה</button>
+      <button class="restart-btn" id="vocabularyLoadBtn">טען רשימה</button>
+      <button class="restart-btn" id="vocabularyContinueBtn">המשך</button>
+    </div>
   </div>
 </div>
 
@@ -270,21 +297,22 @@
      (see preloadSoldierSprites() in render.js). -->
 <div id="spritePreload" style="position:fixed; left:-9999px; top:-9999px; width:1px; height:1px; overflow:hidden;" aria-hidden="true"></div>
 
-<script src="js/config.js?v=202608120845"></script>
-<script src="js/helpers.js?v=202608120845"></script>
-<script src="js/exercise-core.js?v=202608120845"></script>
-<script src="js/exercise-fractions.js?v=202608120845"></script>
-<script src="js/exercise-addfractions.js?v=202608120845"></script>
-<script src="js/exercise-subtractfractions.js?v=202608120845"></script>
-<script src="js/exercise-mixednumbers.js?v=202608120845"></script>
-<script src="js/exercise-addfractionsadvanced.js?v=202608120845"></script>
-<script src="js/exercise-letters.js?v=202608120845"></script>
-<script src="js/exercise-abc.js?v=202608120845"></script>
-<script src="js/exercise-nikud.js?v=202608120845"></script>
-<script src="js/exercise-compare.js?v=202608120845"></script>
-<script src="js/combat.js?v=202608120845"></script>
-<script src="js/render.js?v=202608120845"></script>
-<script src="js/main.js?v=202608120845"></script>
+<script src="js/config.js?v=202608122000"></script>
+<script src="js/helpers.js?v=202608122000"></script>
+<script src="js/exercise-core.js?v=202608122000"></script>
+<script src="js/exercise-fractions.js?v=202608122000"></script>
+<script src="js/exercise-addfractions.js?v=202608122000"></script>
+<script src="js/exercise-subtractfractions.js?v=202608122000"></script>
+<script src="js/exercise-mixednumbers.js?v=202608122000"></script>
+<script src="js/exercise-addfractionsadvanced.js?v=202608122000"></script>
+<script src="js/exercise-letters.js?v=202608122000"></script>
+<script src="js/exercise-abc.js?v=202608122000"></script>
+<script src="js/exercise-nikud.js?v=202608122000"></script>
+<script src="js/exercise-compare.js?v=202608122000"></script>
+<script src="js/exercise-vocabulary.js?v=202608122000"></script>
+<script src="js/combat.js?v=202608122000"></script>
+<script src="js/render.js?v=202608122000"></script>
+<script src="js/main.js?v=202608122000"></script>
 
 </body>
 </html>

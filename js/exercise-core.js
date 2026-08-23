@@ -119,14 +119,25 @@ function newExercise() {
   const isAbc = gameMode === 'abc';
   const isNikud = gameMode === 'nikud';
   const isCompare = gameMode === 'comparefractions';
+  const isVocabulary = gameMode === 'vocabulary';
   const isLetterFamily = isLetters || isAbc || isNikud;
   const isReverse = isLetterReverseMode(); // always false for nikud -- no reverse direction yet
-  document.getElementById('mathQuestionRow').style.display = isLetterFamily ? 'none' : '';
-  answerHome.style.display = (isLetterFamily || isCompare) ? 'none' : '';
-  document.getElementById('checkBtn').style.display = ((isLetterFamily && !isReverse) || isCompare) ? 'none' : '';
-  document.getElementById('swapBtn').style.display = (isLetterFamily || isCompare) ? 'none' : '';
+  document.getElementById('mathQuestionRow').style.display = (isLetterFamily || isVocabulary) ? 'none' : '';
+  answerHome.style.display = (isLetterFamily || isCompare || isVocabulary) ? 'none' : '';
+  document.getElementById('checkBtn').style.display = ((isLetterFamily && !isReverse) || isCompare || isVocabulary) ? 'none' : '';
+  document.getElementById('swapBtn').style.display = (isLetterFamily || isCompare || isVocabulary) ? 'none' : '';
   document.getElementById('lettersAnswerHome').style.display = isLetterFamily ? '' : 'none';
   document.getElementById('compareAnswerHome').style.display = isCompare ? '' : 'none';
+  document.getElementById('vocabularyAnswerHome').style.display = isVocabulary ? '' : 'none';
+
+  if (isVocabulary) {
+    const ex = generateVocabularyExercise();
+    currentVocabularyAnswer = ex.correct;
+    renderVocabularyChoices(ex);
+    document.getElementById('feedback').textContent = '';
+    document.getElementById('feedback').className = 'feedback';
+    return;
+  }
   // Swaps in a font where uppercase I and lowercase l are actually visually
   // distinct (see the .abc-mode rule in style.css) -- only relevant for the
   // Latin alphabet, so scoped to abc mode rather than applied to the
