@@ -46,7 +46,13 @@ function generateNikudExercise() {
 // is fetched but intentionally never played) -- the child still hears a
 // correct, real "ka" sound, and still sees/picks כ, they just aren't hearing
 // a recording of that exact glyph.
-const NIKUD_AUDIO_OVERRIDE = { 'כ': 'ק' };
+//
+// ת reuses ט's clip outright -- ת and ט are genuinely homophonous in Modern
+// Hebrew (both a plain "t", unlike Biblical Hebrew where ת without dagesh
+// was a distinct "th" sound), the same permanent-merger reasoning as ו
+// reusing "soft ב" above. See NIKUD_CONFUSABLE_PAIRS in config.js, which
+// already excludes ט/ת as mutual distractors for the same reason.
+const NIKUD_AUDIO_OVERRIDE = { 'כ': 'ק', 'ת': 'ט' };
 
 // פ: the site's own clip was unrecognizable as פ (reported as sounding like
 // ה) -- replaced with a hard "pa" trimmed from a real-word recording of פס
@@ -72,10 +78,10 @@ const NIKUD_AUDIO_OVERRIDE = { 'כ': 'ק' };
 // word). ו: reuses the already-recorded "soft ב" clip outright (kamats/soft
 // ב.wav copied to kamats/ו.wav) rather than an NIKUD_AUDIO_OVERRIDE-style
 // runtime substitution, since ו and undageshed ב are genuinely homophonous
-// in Modern Hebrew (both a plain "v"). י/ל/מ: trimmed from real word
-// recordings (בעיה/שאלה/נשמה) same as א/ב/ג/ד/ט/פ -- see
+// in Modern Hebrew (both a plain "v"). י/ל/מ/נ/ס/צ: trimmed from real word
+// recordings (בעיה/שאלה/נשמה/תמונה/מסה/ריצה) same as א/ב/ג/ד/ט/פ -- see
 // assets/nikud/CREDITS.txt for all sources.
-const NIKUD_CLIP_EXT = { 'א': 'wav', 'ב': 'wav', 'ג': 'wav', 'ד': 'wav', 'ה': 'wav', 'ו': 'wav', 'ז': 'wav', 'ח': 'wav', 'ט': 'wav', 'י': 'wav', 'ל': 'wav', 'מ': 'wav', 'פ': 'wav' };
+const NIKUD_CLIP_EXT = { 'א': 'wav', 'ב': 'wav', 'ג': 'wav', 'ד': 'wav', 'ה': 'wav', 'ו': 'wav', 'ז': 'wav', 'ח': 'wav', 'ט': 'wav', 'י': 'wav', 'ל': 'wav', 'מ': 'wav', 'נ': 'wav', 'ס': 'wav', 'פ': 'wav', 'צ': 'wav', 'ק': 'wav', 'ר': 'wav', 'ש': 'wav' };
 let currentNikudAudio = null;
 
 function playNikudSound(letter) {

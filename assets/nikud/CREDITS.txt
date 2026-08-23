@@ -154,3 +154,68 @@ all landing at peak -0.5dB:
     CC BY-SA 4.0), the trailing "-lָה" syllable. +9.1dB.
   מ.wav <- LL-Q9288 (heb)-Buffer-נשמה.wav (נְשָׁמָה/"neshama", "soul",
     CC BY-SA 4.0), the trailing "-mָה" syllable. +8.9dB.
+
+kamats/נ.wav, kamats/ס.wav, kamats/צ.wav: REPLACE the soundsofnikud.com
+clips above, same "broader project" reason. Same word-final-syllable
+technique as above; source words found via the Commons search API
+(intitle:"<word>" LL-Q9288), fetched into _raw-audio-src/, trimmed by the
+user with trim-tool.html. Source-word identity for each trimmed clip was
+confirmed via waveform cross-correlation (score 1.000 against the true
+source, ~0.1-0.3 against the other candidate fetched alongside it) rather
+than assumed, per the standing lesson to always verify this way. All
+verified silence-free at -45dB (no edge-trim needed), boosted with ffmpeg,
+all landing at peak -0.5dB:
+  נ.wav <- LL-Q9288 (heb)-Uziel302-תמונה.wav (תְּמוּנָה/"tmuna", "picture",
+    CC0), the trailing "-nָה" syllable. +8.5dB.
+  ס.wav <- LL-Q9288 (heb)-YaronSh-מסה.wav (מַסָּה/"masa", "mass/dough",
+    CC0), the trailing "-sָה" syllable. +3.9dB.
+  צ.wav <- LL-Q9288 (heb)-YaronSh-ריצה.wav (רִיצָה/"ritsa", "running",
+    CC0), the trailing "-tsָה" syllable. -0.3dB (already near target).
+An alternate candidate was fetched alongside each of these three but not
+used: תמונה (מדינה, CC0), ס (כניסה, CC BY-SA 4.0), צ (עצה, CC0) -- still in
+_raw-audio-src/ in case a future re-trim is ever wanted.
+
+kamats/ק.wav: REPLACES the soundsofnikud.com clip above, same "broader
+project" reason. Same word-final-syllable technique, source confirmed via
+waveform cross-correlation (score 1.000 vs. the alternate candidate's
+0.411):
+  ק.wav <- LL-Q9288 (heb)-YaronSh-נשיקה.wav (נְשִׁיקָה/"neshika", "kiss",
+    CC0), the trailing "-kָה" syllable. 32ms of leading silence detected at
+    -45dB but left untouched (within the standard 40ms onset-safety
+    buffer for these tight self-trims) -- boosted +9.4dB, landing at peak
+    -0.5dB. Note this clip is also what כ hears indirectly via
+    NIKUD_AUDIO_OVERRIDE in js/exercise-nikud.js.
+An alternate candidate, דקה (LL-Q9288 (heb)-Buffer-דקה.wav, "daka",
+"minute", CC BY-SA 4.0), was fetched but not used -- still in
+_raw-audio-src/.
+
+kamats/ר.wav: REPLACES the soundsofnikud.com clip above, same "broader
+project" reason. Source confirmed via waveform cross-correlation (score
+1.000 vs. 0.18-0.30 for three other candidates fetched alongside it):
+  ר.wav <- LL-Q9288 (heb)-Buffer-פרה.wav (פָּרָה/"para", "cow",
+    CC BY-SA 4.0), the trailing "-rָה" syllable. Silence-free at -45dB, no
+    edge-trim needed, boosted +9.2dB, landing at peak -0.5dB.
+The first two candidates tried (תורה/YaronSh, בירה/Buffer -- see the
+earlier update fetching these) were reported "weak" and not usable; פרה
+worked instead. A fourth candidate, קרה (LL-Q9288 (heb)-YaronSh-קרה.wav,
+"kara", "happened/cold", CC0), was also fetched but not used -- still in
+_raw-audio-src/.
+
+ת has no clip of its own -- reuses kamats/ט.wav outright via
+NIKUD_AUDIO_OVERRIDE in js/exercise-nikud.js (the user's call: ת and ט are
+genuinely homophonous in Modern Hebrew, both a plain "t", so no separate
+recording is needed -- same reasoning already applied to ו/soft-ב above,
+and already reflected in NIKUD_CONFUSABLE_PAIRS in config.js excluding
+ט/ת as mutual distractors). The old soundsofnikud.com ת.mp3 was deleted
+(this is a permanent decision, not a placeholder awaiting a future
+recording like כ's ק-borrow above).
+
+kamats/ש.wav: REPLACES the soundsofnikud.com clip above, same "broader
+project" reason. Source confirmed via waveform cross-correlation (score
+1.000 vs. 0.344 for the alternate candidate):
+  ש.wav <- LL-Q9288 (heb)-YaronSh-בושה.wav (בּוּשָׁה/"busha", "shame",
+    CC0), the trailing "-shָה" syllable. Silence-free at -45dB, no
+    edge-trim needed, boosted +9.9dB, landing at peak -0.5dB.
+An alternate candidate, קשה (LL-Q9288 (heb)-Uziel302-קשה.wav, "kasha",
+"hard/difficult", CC0), was also fetched but not used -- still in
+_raw-audio-src/.
