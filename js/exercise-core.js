@@ -40,6 +40,45 @@ function mixedNumberDisplayHTML(whole, remainderNumerator, denominator) {
   return `<span class="mixed-num-group"><span class="frac-num">${whole}</span>${fractionBlockHTML(remainderNumerator, denominator)}</span>`;
 }
 
+// Renders a "<shown> = <blank>" fraction equation and wires #answer/#answer2
+// into the blank's slot(s) -- shared by the "fractions" (one given fraction),
+// "addfractions" (two given fractions + "+"), and "subtractfractions" (two
+// given fractions + "−") branches of newExercise() below, since all three
+// are otherwise identical: `shownHTML` is just whatever goes on the left of
+// the "=" (built by the caller from fractionBlockHTML()), and everything
+// from there -- the "צמצם ככל הניתן" label, the blank fraction slot, which
+// of #answer/#answer2 goes where -- doesn't depend on which topic produced
+// `ex`. missing:'denominator' only ever comes from the "fractions" topic
+// (addfractions/subtractfractions's single-blank case is always
+// 'numerator', since their denominator is always given) but handling it
+// generically here costs nothing and keeps this usable by all three.
+function renderFractionAnswerEquation(shownHTML, ex, questionText, answerInput, answer2, answer2Home, simplifyLabel) {
+  if (ex.missing === 'both') simplifyLabel.style.display = '';
+  questionText.innerHTML =
+    '<span class="frac-eq">' +
+      shownHTML +
+      '<span class="frac-op">=</span>' +
+      fractionAnswerBlockHTML(ex.missing, ex.targetNumerator, ex.targetDenominator) +
+    '</span>';
+  answerInput.classList.add('fraction-answer-input');
+  const slot = document.getElementById('fracAnswerSlot');
+
+  if (ex.missing === 'both') {
+    answerInput.setAttribute('enterkeyhint', 'next');
+    slot.insertBefore(answerInput, slot.querySelector('.frac-bar'));
+    answer2.classList.add('fraction-answer-input');
+    slot.appendChild(answer2);
+  } else {
+    if (ex.missing === 'denominator') {
+      slot.appendChild(answerInput);
+    } else {
+      slot.prepend(answerInput);
+    }
+    answer2.classList.remove('fraction-answer-input');
+    answer2Home.appendChild(answer2);
+  }
+}
+
 // True whenever the current exercise's whole-number box (#answer) sits
 // beside a fraction (not stacked above it) and a blank there is a legitimate
 // answer (asserts 0) rather than "not yet answered" -- shared across every
@@ -335,80 +374,18 @@ function newExercise() {
   } else if (gameMode === 'addfractions') {
     const ex = generateFractionAdditionExercise();
     currentAnswer = ex.answer;
-    if (ex.missing === 'both') simplifyLabel.style.display = '';
-    questionText.innerHTML =
-      '<span class="frac-eq">' +
-        fractionBlockHTML(ex.pNum, ex.pDen) +
-        '<span class="frac-op">+</span>' +
-        fractionBlockHTML(ex.qNum, ex.qDen) +
-        '<span class="frac-op">=</span>' +
-        fractionAnswerBlockHTML(ex.missing, ex.targetNumerator, ex.targetDenominator) +
-      '</span>';
-    answerInput.classList.add('fraction-answer-input');
-    const slot = document.getElementById('fracAnswerSlot');
-
-    if (ex.missing === 'both') {
-      answerInput.setAttribute('enterkeyhint', 'next');
-      slot.insertBefore(answerInput, slot.querySelector('.frac-bar'));
-      answer2.classList.add('fraction-answer-input');
-      slot.appendChild(answer2);
-    } else {
-      slot.prepend(answerInput);
-      answer2.classList.remove('fraction-answer-input');
-      answer2Home.appendChild(answer2);
-    }
+    const shownHTML = fractionBlockHTML(ex.pNum, ex.pDen) + '<span class="frac-op">+</span>' + fractionBlockHTML(ex.qNum, ex.qDen);
+    renderFractionAnswerEquation(shownHTML, ex, questionText, answerInput, answer2, answer2Home, simplifyLabel);
   } else if (gameMode === 'subtractfractions') {
     const ex = generateFractionSubtractionExercise();
     currentAnswer = ex.answer;
-    if (ex.missing === 'both') simplifyLabel.style.display = '';
-    questionText.innerHTML =
-      '<span class="frac-eq">' +
-        fractionBlockHTML(ex.pNum, ex.pDen) +
-        '<span class="frac-op">−</span>' +
-        fractionBlockHTML(ex.qNum, ex.qDen) +
-        '<span class="frac-op">=</span>' +
-        fractionAnswerBlockHTML(ex.missing, ex.targetNumerator, ex.targetDenominator) +
-      '</span>';
-    answerInput.classList.add('fraction-answer-input');
-    const slot = document.getElementById('fracAnswerSlot');
-
-    if (ex.missing === 'both') {
-      answerInput.setAttribute('enterkeyhint', 'next');
-      slot.insertBefore(answerInput, slot.querySelector('.frac-bar'));
-      answer2.classList.add('fraction-answer-input');
-      slot.appendChild(answer2);
-    } else {
-      slot.prepend(answerInput);
-      answer2.classList.remove('fraction-answer-input');
-      answer2Home.appendChild(answer2);
-    }
+    const shownHTML = fractionBlockHTML(ex.pNum, ex.pDen) + '<span class="frac-op">−</span>' + fractionBlockHTML(ex.qNum, ex.qDen);
+    renderFractionAnswerEquation(shownHTML, ex, questionText, answerInput, answer2, answer2Home, simplifyLabel);
   } else if (gameMode === 'fractions') {
     const ex = generateFractionExercise();
     currentAnswer = ex.answer;
-    if (ex.missing === 'both') simplifyLabel.style.display = '';
-    questionText.innerHTML =
-      '<span class="frac-eq">' +
-        fractionBlockHTML(ex.shownNumerator, ex.shownDenominator) +
-        '<span class="frac-op">=</span>' +
-        fractionAnswerBlockHTML(ex.missing, ex.targetNumerator, ex.targetDenominator) +
-      '</span>';
-    answerInput.classList.add('fraction-answer-input');
-    const slot = document.getElementById('fracAnswerSlot');
-
-    if (ex.missing === 'both') {
-      answerInput.setAttribute('enterkeyhint', 'next');
-      slot.insertBefore(answerInput, slot.querySelector('.frac-bar'));
-      answer2.classList.add('fraction-answer-input');
-      slot.appendChild(answer2);
-    } else {
-      if (ex.missing === 'numerator') {
-        slot.prepend(answerInput);
-      } else {
-        slot.appendChild(answerInput);
-      }
-      answer2.classList.remove('fraction-answer-input');
-      answer2Home.appendChild(answer2);
-    }
+    const shownHTML = fractionBlockHTML(ex.shownNumerator, ex.shownDenominator);
+    renderFractionAnswerEquation(shownHTML, ex, questionText, answerInput, answer2, answer2Home, simplifyLabel);
   } else {
     [num1, num2] = pickNumbers();
     currentAnswer = num1 * num2;

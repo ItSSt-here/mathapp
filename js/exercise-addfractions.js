@@ -4,68 +4,32 @@
 // exercise-core.js renders pNum/pDen and qNum/qDen as the two shown addends
 // regardless of whether they share a denominator (levels 1-2) or not
 // (levels 3-4), and fills the blank(s) from missing/targetNumerator/targetDenominator.
-
-// Randomly swaps which addend lands in the left (pNum/pDen) vs right
-// (qNum/qDen) shown slot. Used by levels 3-4, where the two addends aren't
-// interchangeable (one has to be expanded to the common denominator) --
-// without this, the fraction needing expansion would always render in the
-// same slot, letting the student learn "always expand the left one" instead
-// of recognizing which denominator is the multiple. See
-// [[feedback_exercise_no_giveaway_design]].
-function randomizeAddendOrder(leftNum, leftDen, rightNum, rightDen) {
-  return Math.random() < 0.5
-    ? { pNum: rightNum, pDen: rightDen, qNum: leftNum, qDen: leftDen }
-    : { pNum: leftNum, pDen: leftDen, qNum: rightNum, qDen: rightDen };
-}
+// The actual generation lives in exercise-fraction-arithmetic.js, shared with
+// exercise-subtractfractions.js -- see that file's header comment for why.
 
 // Level 1: same-denominator addition, always a proper and already-reduced
 // result -- n is drawn wide (3-20, see FRAC_ADD_DEN_MIN/MAX in config.js)
 // since this topic comes after "שברים", where the student has already met
-// many denominators. sum (=p+q) is drawn first from [2, n-1] so it's always
-// < n (proper result), then split into p/q (each >=1). Rejects draws where
-// gcd(sum, n) !== 1 so the result is always already reduced -- no
-// simplification step at this level.
+// many denominators.
 function generateFractionAdditionLevel1Exercise() {
-  let n, sum;
-  do {
-    n = randInt(FRAC_ADD_DEN_MIN, FRAC_ADD_DEN_MAX);
-    sum = randInt(2, n - 1);
-  } while (gcd(sum, n) !== 1);
-
-  const p = randInt(1, sum - 1);
-  const q = sum - p;
-
-  return { pNum: p, pDen: n, qNum: q, qDen: n, missing: 'numerator', targetNumerator: sum, targetDenominator: n, answer: sum };
+  return generateSameDenomLevel1Exercise(FRAC_ADD_DEN_MIN, FRAC_ADD_DEN_MAX, 'add');
 }
 
 // Level 2: same mechanic, but FRAC_ADD_L2_REDUCTION_CHANCE (70%) of the time
-// the draw is forced so gcd(sum, n) > 1 -- the sum/n result needs reducing.
-// Every level-2 exercise (both the 70% that need reducing and the 30% that
-// don't) is rendered with missing: 'both' -- numerator AND denominator
-// blanked, same convention as the "fractions" topic's full-reduction
-// exercises, including the "צמצם ככל הניתן" label -- see newExercise().
-// Deliberately uniform: if only the reducible 70% got two blanks and the
-// other 30% got level 1's single blank, the number of blanks alone (and
-// therefore the label's presence) would give away whether reduction is
-// needed before the student even does the math. In the 30% case
-// targetNumerator/targetDenominator just come out equal to sum/n unchanged
-// (g === 1), so the student's "reduced" answer is the sum itself -- there's
-// nothing to actually simplify, but the blank shape looks identical either way.
+// the draw is forced so the sum/n result needs reducing. Every level-2
+// exercise (both the reducible 70% and the already-reduced 30%) is rendered
+// with missing: 'both' -- numerator AND denominator blanked, same convention
+// as the "fractions" topic's full-reduction exercises, including the
+// "צמצם ככל הניתן" label -- see newExercise(). Deliberately uniform: if only
+// the reducible 70% got two blanks and the other 30% got level 1's single
+// blank, the number of blanks alone (and therefore the label's presence)
+// would give away whether reduction is needed before the student even does
+// the math. In the 30% case targetNumerator/targetDenominator just come out
+// equal to sum/n unchanged (g === 1), so the student's "reduced" answer is
+// the sum itself -- there's nothing to actually simplify, but the blank
+// shape looks identical either way.
 function generateFractionAdditionLevel2Exercise() {
-  const requireReduction = Math.random() < FRAC_ADD_L2_REDUCTION_CHANCE;
-  let n, sum, g;
-  do {
-    n = randInt(FRAC_ADD_DEN_MIN, FRAC_ADD_DEN_MAX);
-    sum = randInt(2, n - 1);
-    g = gcd(sum, n);
-  } while (requireReduction ? g <= 1 : g !== 1);
-
-  const p = randInt(1, sum - 1);
-  const q = sum - p;
-  const targetNumerator = sum / g;
-  const targetDenominator = n / g;
-
-  return { pNum: p, pDen: n, qNum: q, qDen: n, missing: 'both', targetNumerator, targetDenominator, answer: { numerator: targetNumerator, denominator: targetDenominator } };
+  return generateSameDenomLevel2Exercise(FRAC_ADD_DEN_MIN, FRAC_ADD_DEN_MAX, 'add', FRAC_ADD_L2_REDUCTION_CHANCE);
 }
 
 // Level 3: p/a + q/(b*a) -- the second denominator is a multiple of the
@@ -84,18 +48,7 @@ function generateFractionAdditionLevel2Exercise() {
 // form. Also rejects gcd(p*b+q, b*a) !== 1, so like level 1 the result is
 // always already reduced too -- no simplification step at this level either.
 function generateFractionAdditionLevel3Exercise() {
-  let a, b, p, q, denom, sum;
-  do {
-    a = randInt(FRAC_ADD_L3_A_MIN, FRAC_ADD_L3_A_MAX);
-    b = Math.random() < FRAC_ADD_L3_B1_CHANCE ? 1 : randInt(FRAC_ADD_L3_B_MIN, FRAC_ADD_L3_B_MAX);
-    p = randInt(1, a - 1);
-    denom = b * a;
-    const qMax = denom - b * p - 1; // keeps p*b+q < b*a (proper result)
-    q = qMax >= 1 ? randInt(1, qMax) : 0;
-    sum = p * b + q;
-  } while (q < 1 || gcd(p, a) !== 1 || gcd(q, denom) !== 1 || gcd(sum, denom) !== 1);
-
-  return { ...randomizeAddendOrder(p, a, q, denom), missing: 'numerator', targetNumerator: sum, targetDenominator: denom, answer: sum };
+  return generateMultipleDenomLevel3Exercise(FRAC_ADD_L3_A_MIN, FRAC_ADD_L3_A_MAX, FRAC_ADD_L3_B_MIN, FRAC_ADD_L3_B_MAX, FRAC_ADD_L3_B1_CHANCE, 'add');
 }
 
 // Level 4: same p/a + q/(b*a) setup as level 3 (identical a/b ranges,
@@ -109,23 +62,7 @@ function generateFractionAdditionLevel3Exercise() {
 // finding an LCD smaller than b*a -- true LCD-finding with unrelated
 // denominators is deferred to a future topic.
 function generateFractionAdditionLevel4Exercise() {
-  const requireReduction = Math.random() < FRAC_ADD_L4_REDUCTION_CHANCE;
-  let a, b, p, q, denom, sum, g;
-  do {
-    a = randInt(FRAC_ADD_L3_A_MIN, FRAC_ADD_L3_A_MAX);
-    b = Math.random() < FRAC_ADD_L3_B1_CHANCE ? 1 : randInt(FRAC_ADD_L3_B_MIN, FRAC_ADD_L3_B_MAX);
-    p = randInt(1, a - 1);
-    denom = b * a;
-    const qMax = denom - b * p - 1; // keeps p*b+q < b*a (proper result)
-    q = qMax >= 1 ? randInt(1, qMax) : 0;
-    sum = p * b + q;
-    g = q >= 1 ? gcd(sum, denom) : 1;
-  } while (q < 1 || gcd(p, a) !== 1 || gcd(q, denom) !== 1 || (requireReduction ? g <= 1 : g !== 1));
-
-  const targetNumerator = sum / g;
-  const targetDenominator = denom / g;
-
-  return { ...randomizeAddendOrder(p, a, q, denom), missing: 'both', targetNumerator, targetDenominator, answer: { numerator: targetNumerator, denominator: targetDenominator } };
+  return generateMultipleDenomLevel4Exercise(FRAC_ADD_L3_A_MIN, FRAC_ADD_L3_A_MAX, FRAC_ADD_L3_B_MIN, FRAC_ADD_L3_B_MAX, FRAC_ADD_L3_B1_CHANCE, 'add', FRAC_ADD_L4_REDUCTION_CHANCE);
 }
 
 function generateFractionAdditionExercise() {
