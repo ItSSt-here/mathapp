@@ -28,7 +28,7 @@ function changeExerciseDifficulty(delta) {
   updateExerciseDifficultyLabel();
 }
 
-const MODE_LABELS = { fractions: 'מבוא לשברים', comparefractions: 'השוואת שברים', addfractions: 'חיבור שברים', subtractfractions: 'חיסור שברים', mixednumbers: 'מספרים מעורבים', addfractionsadvanced: 'חיבור שברים מתקדם', letters: 'אותיות', abc: 'ABC', nikud: 'ניקוד', vocabulary: 'אוצר מילים' };
+const MODE_LABELS = { fractions: 'מבוא לשברים', comparefractions: 'השוואת שברים', addfractions: 'חיבור שברים', subtractfractions: 'חיסור שברים', mixednumbers: 'מספרים מעורבים', addfractionsadvanced: 'חיבור שברים מתקדם', letters: 'אותיות', abc: 'ABC', nikud: 'ניקוד', vocabulary: 'אוצר מילים', division: 'מבוא לחילוק' };
 
 function formatLevelInfo() {
   const modeLabel = MODE_LABELS[gameMode] || 'כפל';
@@ -594,6 +594,7 @@ document.getElementById('reconfigureBtn').addEventListener('click', () => {
 // FRACTIONS_SUBTOPIC_BUTTONS below) instead of this flat list.
 const MODE_BUTTON_TOPICS = {
   modeMultiplyBtn: 'multiplication',
+  modeDivisionBtn: 'division',
   modeLettersBtn: 'letters',
   modeAbcBtn: 'abc',
   modeNikudBtn: 'nikud',

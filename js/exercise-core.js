@@ -394,6 +394,21 @@ function newExercise() {
     currentAnswer = ex.answer;
     const shownHTML = fractionBlockHTML(ex.shownNumerator, ex.shownDenominator);
     renderFractionAnswerEquation(shownHTML, ex, questionText, answerInput, answer2, answer2Home, simplifyLabel);
+  } else if (gameMode === 'division') {
+    // Same "num1 × num2 = [blank]" template multiplication uses, just with
+    // the blank moved onto whichever factor generateDivisionIntroExercise()
+    // picked instead of the product -- see that function's own comment.
+    const ex = generateDivisionIntroExercise();
+    currentAnswer = ex.answer;
+    const shown = ex.missing === 'first' ? ex.num2 : ex.num1;
+    questionText.innerHTML = ex.missing === 'first'
+      ? `<span class="mult-eq"><span id="multAnswerSlot"></span> × ${shown}<span class="mult-op">=</span>${ex.product}</span>`
+      : `<span class="mult-eq">${shown} × <span id="multAnswerSlot"></span><span class="mult-op">=</span>${ex.product}</span>`;
+    answerInput.classList.remove('fraction-answer-input');
+    answerInput.classList.add('division-answer-input');
+    document.getElementById('multAnswerSlot').appendChild(answerInput);
+    answer2.classList.remove('fraction-answer-input');
+    answer2Home.appendChild(answer2);
   } else {
     [num1, num2] = pickNumbers();
     currentAnswer = num1 * num2;
@@ -412,6 +427,7 @@ function newExercise() {
   answer3.classList.remove('answer-revealed');
   answerInput.classList.remove('answer-left-blank');
   if (gameMode !== 'mixednumbers' && gameMode !== 'addfractionsadvanced') answerInput.classList.remove('mixed-whole-input');
+  if (gameMode !== 'division') answerInput.classList.remove('division-answer-input');
   answerInput.focus();
   document.getElementById('feedback').textContent = '';
   document.getElementById('feedback').className = 'feedback';

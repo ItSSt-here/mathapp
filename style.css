@@ -325,6 +325,15 @@ input.answer-revealed:disabled {
   width: 45px !important;
 }
 
+/* Division-intro's blanked factor: always a single value from pickNumbers()'s
+   own pool (0-10, see config.js/exercise-division.js), never a full product
+   like multiplication's own answer box -- same "narrower than the 90px
+   default" reasoning as .mixed-whole-input above, just one size up since 10
+   (unlike MIXED_NUM_WHOLE_MAX) is two digits. */
+.division-answer-input {
+  width: 50px !important;
+}
+
 /* Mixed numbers only: the whole-number box is a legitimate blank (it
    asserts 0), toggled purely visually on blur/focus (see main.js) -- never
    disabled, never a validity gate (that lives entirely in

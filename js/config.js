@@ -101,7 +101,7 @@ const URL_PARAM_GROUP = 'group';
 // a chapter-sized list (~150-200 words was confirmed comfortably within
 // normal link-length limits, see [[project_vocabulary_topic_plan]]).
 const URL_PARAM_WORDS = 'words';
-const VALID_TOPICS = ['multiplication', 'fractions', 'comparefractions', 'addfractions', 'subtractfractions', 'mixednumbers', 'addfractionsadvanced', 'letters', 'abc', 'nikud', 'vocabulary']; // matches gameMode's own values, no translation table needed
+const VALID_TOPICS = ['multiplication', 'fractions', 'comparefractions', 'addfractions', 'subtractfractions', 'mixednumbers', 'addfractionsadvanced', 'letters', 'abc', 'nikud', 'vocabulary', 'division']; // matches gameMode's own values, no translation table needed
 // The mode-select screen groups these 6 behind one "שברים" hub button
 // (fractionsSubtopicOverlay in index.html) instead of listing them flat --
 // see backToModeBtn's handler and parseUrlParams()/buildShareLink() in
@@ -426,6 +426,13 @@ const LEVEL2_NUMS = [2, 3, 5];
 const LEVEL3_NUMS_FULL = [4, 6, 7, 8, 9];
 const NON_LEVEL1_NUMS = [2, 3, 4, 5, 6, 7, 8, 9];
 
+// Division-intro's own version of LEVEL1_NUMS with 0 excluded outright --
+// "a×[]=0" has no single correct answer (any b works), so unlike
+// multiplication's own level 1 (where 0×6=0 is a perfectly normal answer),
+// 0 can never be a legal draw for a missing factor. See pickDivisionFactors()
+// in exercise-division.js.
+const DIVISION_LEVEL1_NUMS = [1, 10];
+
 // Per exercise-difficulty-level overrides of the tier thresholds (r < tier1
 // is the "easy" 0/1/10 tier, r < tier2 is the "2/3/5" tier, the rest is the
 // hardest tier drawn from hardPool). Index matches EXERCISE_DIFFICULTIES;
@@ -478,6 +485,7 @@ const EXERCISE_TOPIC_LEVEL_COUNTS = {
   abc: 4,               // level 5 was identical to level 4
   nikud: 4,
   vocabulary: 4,       // level 2 added 2026-08-24: reverse direction. level 3 added same day: English word spoken via TTS instead of shown as text. level 4 added same day: Hebrew word shown, typed English answer
+  division: 1,         // added 2026-08-24: level 1 only so far, see generateDivisionIntroExercise() in exercise-division.js
 };
 
 function getExerciseLevelCount() {
@@ -557,6 +565,9 @@ const EXERCISE_LEVEL_DESCRIPTIONS = {
     'ב-50% מהמקרים -- כמו ברמה 1. ב-50% הנותרים, מוצגים שני שברים שלשניהם חסר בדיוק חלק אחד (1) כדי להגיע לשלם (למשל 3/4 ו-5/6) עם מכנים שונים -- יש להשוות באמצעות טריק ההשלמה לשלם: להשוות בין המשלימים (כמו כלל "אותו מונה" מרמה 1) ואז להפוך את המסקנה.',
     'מוצגים שני שברים שבהם המכנה של השבר השני הוא כפולה של מכנה השבר הראשון (למשל 2/3 מול 7/9, כי 9=3×3) -- יש להרחיב את השבר הראשון למכנה המשותף (2/3=6/9) ואז להשוות בין המונים. ב-90% מהמקרים התשובה היא > או <, וב-10% הנותרים שני השברים שווים בדיוק -- ומכאן ואילך = היא תשובה אפשרית.',
     'כמו ברמה 3, אבל השבר הראשון מוצג כשבר לא מצומצם (למשל 4/6 במקום 2/3) -- יש לזהות/לצמצם אותו קודם (או לשים לב לגורם המשותף) ואז להשוות כמו ברמה 3. ב-90% מהמקרים התשובה היא > או <, וב-10% הנותרים שני השברים שווים בדיוק.',
+  ],
+  division: [
+    'כמו רמה 1 בלוח הכפל (אותה התפלגות מספרים בדיוק), אבל בלי תרגילים שבהם אחד המוכפלים הוא 0 -- והפעם החסר הוא אחד המוכפלים (נבחר באקראי איזה מהם), לא התוצאה. לדוגמה: 2×[]=6.',
   ],
 };
 
