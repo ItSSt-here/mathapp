@@ -150,12 +150,13 @@ const ABC_AUDIO_CONFUSABLE_PAIRS = [['M', 'N']];
 // same niqud mark), same mechanic/UI as HEBREW_LETTERS level 1 (see
 // generateNikudExercise()/renderNikudChoices() in exercise-nikud.js). At the
 // moment every difficulty level uses this same קמץ-only mechanic; more niqud
-// types may be added later. Level 4 uses the full HEBREW_LETTERS pool (5
-// options); level 3 uses the medium NIKUD_LEVEL3_LETTERS pool (also 5
-// options); level 2 uses the smaller NIKUD_LEVEL2_LETTERS pool (also 5
-// options); level 1 is eligible as the target (including כ -- see
-// NIKUD_AUDIO_OVERRIDE in exercise-nikud.js for how its sound is sourced,
-// since it has no unambiguous recording of its own).
+// types may be added later. Level 5 uses the full HEBREW_LETTERS pool (5
+// options); level 4 uses the NIKUD_LEVEL4_LETTERS pool (also 5 options);
+// level 3 uses the medium NIKUD_LEVEL3_LETTERS pool (also 5 options); level 2
+// uses the smaller NIKUD_LEVEL2_LETTERS pool (also 5 options); level 1 is
+// eligible as the target (including כ -- see NIKUD_AUDIO_OVERRIDE in
+// exercise-nikud.js for how its sound is sourced, since it has no
+// unambiguous recording of its own).
 
 // Level 1's fixed, easier letter set (2026-07-30, user reported the full
 // 22-letter level was too hard) -- exactly the 4 self-made-clip letters
@@ -182,6 +183,16 @@ const NIKUD_LEVEL2_LETTERS = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח'];
 // (ח/כ) -- no special-casing needed though, since nikudConfusablesOf()'s
 // exclusion in generateNikudExercise() already applies regardless of pool.
 const NIKUD_LEVEL3_LETTERS = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט', 'י', 'כ', 'ל'];
+
+// Level 4's letter pool (2026-08-24, added as a further middle step between
+// level 3's 12 letters and the full-alphabet level, which shifted from level
+// 4 to level 5 to make room). The first 16 base letters in alphabet order, א
+// through ע. Same random-5-of-pool mechanic as levels 2-3, and same "no
+// special-casing needed" note as level 3 -- ק/כ and ט/ת confusable pairs fall
+// outside this pool, but א/ע (added to NIKUD_CONFUSABLE_PAIRS 2026-08) does
+// fall inside it, and nikudConfusablesOf()'s exclusion already applies
+// regardless of pool.
+const NIKUD_LEVEL4_LETTERS = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט', 'י', 'כ', 'ל', 'מ', 'נ', 'ס', 'ע'];
 
 // Letter pairs that sound identical in Modern Hebrew once pointed -- never
 // let one appear as a distractor when the other is the correct/played
@@ -467,12 +478,14 @@ function getExerciseLevelConfig() {
 // updateExerciseDifficultyLabel() in main.js instead of a flat 5). Bump a
 // topic's count up the day a genuinely new level is implemented for it --
 // pair it with a new EXERCISE_LEVEL_DESCRIPTIONS entry below and nothing
-// else needs to change. nikud is at 4 now: level 1 is a fixed 4-letter pool
+// else needs to change. nikud is at 5 now: level 1 is a fixed 4-letter pool
 // (NIKUD_LEVEL1_LETTERS), level 2 is a random-5-of-8 pool (NIKUD_LEVEL2_LETTERS,
 // added 2026-07-30 as a middle step), level 3 is a random-5-of-12 pool
 // (NIKUD_LEVEL3_LETTERS, added 2026-08-23 as a further middle step), level 4
-// is the original full-alphabet mechanic (bumped from level 2 on 2026-07-30,
-// then from level 3 to level 4 on 2026-08-23).
+// is a random-5-of-16 pool (NIKUD_LEVEL4_LETTERS, added 2026-08-24 as a
+// further middle step), level 5 is the original full-alphabet mechanic
+// (bumped from level 2 on 2026-07-30, then level 3 on 2026-08-23, then level
+// 4 to level 5 on 2026-08-24).
 const EXERCISE_TOPIC_LEVEL_COUNTS = {
   multiplication: 5,
   fractions: 5,
@@ -483,7 +496,7 @@ const EXERCISE_TOPIC_LEVEL_COUNTS = {
   addfractionsadvanced: 4,
   letters: 2,          // levels 2-5 were identical to each other
   abc: 4,               // level 5 was identical to level 4
-  nikud: 4,
+  nikud: 5,
   vocabulary: 4,       // level 2 added 2026-08-24: reverse direction. level 3 added same day: English word spoken via TTS instead of shown as text. level 4 added same day: Hebrew word shown, typed English answer
   division: 1,         // added 2026-08-24: level 1 only so far, see generateDivisionIntroExercise() in exercise-division.js
 };
@@ -534,6 +547,7 @@ const EXERCISE_LEVEL_DESCRIPTIONS = {
     'שומעים אחת מ-4 האותיות א, ב, ג, ד עם ניקוד קמץ (לחיצה על 🔊) ובוחרים אותה מתוך 4 כפתורים קבועים, תמיד באותו סדר.',
     'שומעים אות עם ניקוד קמץ (לחיצה על 🔊) ובוחרים אותה מתוך 5 אותיות עם קמץ, מתוך 8 האותיות הראשונות (א-ח).',
     'שומעים אות עם ניקוד קמץ (לחיצה על 🔊) ובוחרים אותה מתוך 5 אותיות עם קמץ, מתוך 12 האותיות הראשונות (א-ל).',
+    'שומעים אות עם ניקוד קמץ (לחיצה על 🔊) ובוחרים אותה מתוך 5 אותיות עם קמץ, מתוך 16 האותיות הראשונות (א-ע).',
     'שומעים אות עם ניקוד קמץ (לחיצה על 🔊) ובוחרים אותה מתוך 5 אותיות עם קמץ, מתוך כל האלף-בית.',
   ],
   addfractions: [
