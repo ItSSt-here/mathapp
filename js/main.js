@@ -47,7 +47,7 @@ const STATS_LOG_KEY = 'mathapp_stats_log';
 // in localStorage rather than anything fancier -- it only has to survive
 // long enough for a parent to glance at stats.html, and localStorage is
 // plenty for that.
-function logRoundStats(playerWon) {
+function logRoundStats(playerWon, surrendered) {
   const entry = {
     date: new Date().toISOString(),
     topic: MODE_LABELS[gameMode] || 'כפל',
@@ -57,6 +57,13 @@ function logRoundStats(playerWon) {
     wrong: wrongCount,
     swap: swapCount,
     won: playerWon,
+    // Lets stats.html tell "lost the battle" apart from "gave up" -- both
+    // still read as a loss in-game (endGame()'s own overlay deliberately
+    // doesn't distinguish them, only the parent-facing log does). Absent/
+    // false on every entry logged before this field existed, which is the
+    // right fallback: an old entry's true cause can't be recovered, and
+    // "lost" is the more common of the two anyway.
+    surrendered: !!surrendered,
     durationMs: battleElapsedMs,
   };
   const log = JSON.parse(localStorage.getItem(STATS_LOG_KEY) || '[]');
@@ -188,7 +195,13 @@ function copyShareLink(link, feedbackEl) {
   }
 }
 
-function endGame(playerWon) {
+// surrendered is only meaningful when !playerWon (surrenderBtn's handler is
+// the only caller that ever passes it) -- purely a pass-through to
+// logRoundStats() for the parent-facing log; deliberately doesn't change
+// anything about the overlay itself (title/color stay the same "💥 הפסדת"
+// either way) since the player doesn't need or want that distinction, only
+// a parent checking stats.html later does.
+function endGame(playerWon, surrendered) {
   gameOver = true;
   clearInterval(intervalId);
   clearInterval(animIntervalId);
@@ -204,7 +217,7 @@ function endGame(playerWon) {
   document.getElementById('overlayCorrectCount').textContent = correctCount;
   document.getElementById('overlayWrongCount').textContent = wrongCount;
   document.getElementById('overlaySwapCount').textContent = swapCount;
-  logRoundStats(playerWon);
+  logRoundStats(playerWon, surrendered);
   overlay.classList.add('show');
 }
 
@@ -573,7 +586,7 @@ document.getElementById('vocabularySoundBtn').addEventListener('click', () => {
 });
 document.getElementById('surrenderBtn').addEventListener('click', () => {
   if (gameOver) return;
-  endGame(false);
+  endGame(false, true);
 });
 document.getElementById('restartBtn').addEventListener('click', () => {
   document.getElementById('overlay').classList.remove('show');
