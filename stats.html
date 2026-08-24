@@ -21,10 +21,10 @@
   tr:last-child td { border-bottom: none; }
   tr.win { background: #eefaf0; }
   tr.lose { background: #fdf1f1; }
-  /* Surrender still reads as a loss row-wise (same light-red tint) -- only
-     the result cell's own text/color tells it apart from an actual defeat,
-     since that's the one thing a parent glancing down the column needs. */
-  .result-surrender { color: #888; font-weight: 600; }
+  /* Surrender gets its own light-gray row tint, distinct from both the win
+     (green) and actual-loss (red) rows -- the "נכנע" text itself stays the
+     table's normal black, only the row background marks it as different. */
+  tr.surrender { background: #f2f2f2; }
   .empty { color: #777; padding: 20px 0; }
   .actions { margin-top: 20px; display: flex; gap: 10px; align-items: center; }
   button { cursor: pointer; border: none; border-radius: 6px; padding: 8px 16px; font-size: 0.95rem; }
@@ -74,14 +74,15 @@ function render() {
     return;
   }
 
-  // "Lost" and "surrendered" are both losses row-wise (e.won is false for
-  // both -- see logRoundStats() in main.js), but a parent specifically
-  // wants to tell them apart, so only the result cell itself splits further.
-  // e.surrendered is absent on any entry logged before this field existed;
-  // undefined is falsy, so those correctly fall back to "הפסד" (the more
-  // common case, and the true cause can't be recovered after the fact).
+  // "Lost" and "surrendered" are both losses (e.won is false for both -- see
+  // logRoundStats() in main.js), but a parent specifically wants to tell
+  // them apart at a glance, so surrender gets its own row tint (tr.surrender
+  // above) rather than sharing tr.lose's red. e.surrendered is absent on any
+  // entry logged before this field existed; undefined is falsy, so those
+  // correctly fall back to reading as a plain loss (the more common case,
+  // and the true cause can't be recovered after the fact).
   const rows = log.slice().reverse().map(e => `
-    <tr class="${e.won ? 'win' : 'lose'}">
+    <tr class="${e.won ? 'win' : (e.surrendered ? 'surrender' : 'lose')}">
       <td>${formatDate(e.date)}</td>
       <td>${e.topic}</td>
       <td>${e.level}</td>
@@ -90,7 +91,7 @@ function render() {
       <td>${e.wrong}</td>
       <td>${e.swap}</td>
       <td>${formatDuration(e.durationMs)}</td>
-      <td class="${!e.won && e.surrendered ? 'result-surrender' : ''}">${e.won ? 'ניצחון' : (e.surrendered ? 'נכנע' : 'הפסד')}</td>
+      <td>${e.won ? 'ניצחון' : (e.surrendered ? 'נכנע' : 'הפסד')}</td>
     </tr>
   `).join('');
 
