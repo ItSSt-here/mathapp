@@ -477,7 +477,7 @@ const EXERCISE_TOPIC_LEVEL_COUNTS = {
   letters: 2,          // levels 2-5 were identical to each other
   abc: 4,               // level 5 was identical to level 4
   nikud: 4,
-  vocabulary: 1,
+  vocabulary: 2,       // level 2 added 2026-08-24: reverse direction (Hebrew prompt, English choices)
 };
 
 function getExerciseLevelCount() {
@@ -518,6 +518,7 @@ const EXERCISE_LEVEL_DESCRIPTIONS = {
   ],
   vocabulary: [
     'מוצגת מילה באנגלית, ויש לבחור את התרגום הנכון שלה מתוך עד 5 מילים בעברית (פחות אם ברשימה שנטענה יש פחות מ-5 מילים).',
+    'הפוך: מוצגת מילה בעברית, ויש לבחור את התרגום הנכון שלה באנגלית מתוך עד 5 אפשרויות.',
   ],
   nikud: [
     'שומעים אחת מ-4 האותיות א, ב, ג, ד עם ניקוד קמץ (לחיצה על 🔊) ובוחרים אותה מתוך 4 כפתורים קבועים, תמיד באותו סדר.',

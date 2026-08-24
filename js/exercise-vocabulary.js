@@ -10,8 +10,18 @@
 // a teacher-shared link that already carries one.
 let vocabularyWordList = [];
 
-// Correct Hebrew answer for whatever exercise is currently on screen.
+// Correct answer (Hebrew normally, English in reverse mode) for whatever
+// exercise is currently on screen.
 let currentVocabularyAnswer = null;
+
+// Level 2: shows the Hebrew word and the choices are English -- same list,
+// same mechanic, just which side of each {en, he} pair is the prompt vs. the
+// answer. Same "level >= 1 flips prompt/answer direction" idea as
+// isLetterReverseMode() (exercise-letters.js), just a single level here
+// since vocabulary only has the two.
+function isVocabularyReverseMode() {
+  return gameMode === 'vocabulary' && exerciseDifficultyIndex === 1;
+}
 
 // One word pair per line, English and Hebrew separated by ';' (e.g.
 // "apple;תפוח"). Blank lines and lines missing the separator or either side
@@ -72,16 +82,24 @@ function loadVocabularyWordListFromStorage() {
 // to fill the remaining slots with, and vocabularyContinueBtn (main.js)
 // already refuses to start a round with fewer than 2 words total.
 function generateVocabularyExercise() {
+  const reverse = isVocabularyReverseMode();
+  const promptField = reverse ? 'he' : 'en';
+  const answerField = reverse ? 'en' : 'he';
   const target = randChoice(vocabularyWordList);
-  const distractorPool = vocabularyWordList.filter(w => w.he !== target.he);
+  const distractorPool = vocabularyWordList.filter(w => w[answerField] !== target[answerField]);
   const distractorCount = Math.min(4, distractorPool.length);
-  const distractors = pickDistinctRandom(distractorPool, distractorCount).map(w => w.he);
-  const options = pickDistinctRandom([target.he, ...distractors], distractorCount + 1); // shuffles the order too
-  return { word: target.en, correct: target.he, options };
+  const distractors = pickDistinctRandom(distractorPool, distractorCount).map(w => w[answerField]);
+  const options = pickDistinctRandom([target[answerField], ...distractors], distractorCount + 1); // shuffles the order too
+  return { word: target[promptField], correct: target[answerField], options, reverse };
 }
 
 function renderVocabularyChoices(ex) {
-  document.getElementById('vocabularyWordDisplay').textContent = ex.word;
+  const wordDisplay = document.getElementById('vocabularyWordDisplay');
+  wordDisplay.textContent = ex.word;
+  // The prompt word is normally English (LTR) inside this RTL page --
+  // .vocabulary-word-display hardcodes ltr for that. Reverse mode's prompt
+  // is Hebrew instead, so it needs the page's own rtl direction back.
+  wordDisplay.classList.toggle('vocabulary-word-display-reverse', ex.reverse);
   const container = document.getElementById('vocabularyChoices');
   container.innerHTML = '';
   container.classList.remove('vocabulary-choices-locked');

@@ -535,7 +535,13 @@ button.check-btn:focus {
   color: #2b3a67;
   box-shadow: 0 3px 0 #b9c4e6;
   margin-bottom: 20px;
-  direction: ltr; /* always an English word, regardless of the page's RTL direction */
+  direction: ltr; /* English word by default, regardless of the page's RTL direction */
+}
+
+/* Level 2 (reverse mode): the prompt is Hebrew instead, so it needs the
+   page's own rtl direction back rather than the English-word default above. */
+.vocabulary-word-display-reverse {
+  direction: rtl;
 }
 
 .vocabulary-choices {
