@@ -71,12 +71,17 @@
   <div id="compareAnswerHome" style="display:none;">
     <div class="letter-choices" id="compareChoices"></div>
   </div>
-  <!-- Vocabulary exercise: English word shown as static text, Hebrew
+  <!-- Vocabulary exercise: English word shown as static text (level 1) or
+       Hebrew word shown as static text (level 2, reverse), Hebrew/English
        translation options below it -- picking one answers immediately, same
        "click a choice, no separate בדוק step" mechanic as the letters
-       listen-mode. Hidden except in vocabulary mode. -->
+       listen-mode. Level 3 swaps vocabularyWordDisplay for vocabularySoundBtn
+       instead: the English word is spoken via TTS rather than shown as text
+       (see speakVocabularyWord(), exercise-vocabulary.js). Hidden except in
+       vocabulary mode. -->
   <div id="vocabularyAnswerHome" style="display:none;">
     <div class="vocabulary-word-display" id="vocabularyWordDisplay"></div>
+    <button type="button" class="letter-sound-btn vocabulary-sound-btn" id="vocabularySoundBtn" aria-label="השמע את המילה" style="display:none;">🔊</button>
     <div class="vocabulary-choices" id="vocabularyChoices"></div>
   </div>
   <!-- Second blank, only used for fraction exercises where both the

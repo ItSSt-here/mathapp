@@ -473,6 +473,24 @@ document.getElementById('letterChoices').addEventListener('keydown', (e) => {
   document.getElementById('letterSoundBtn').focus();
 });
 
+// Same bridge, vocabulary listen mode (level 3): vocabularySoundBtn sits
+// above #vocabularyChoices, same "sound button above, ArrowDown enters the
+// row, ArrowUp leaves it" shape as letterSoundBtn's bridge above. Harmless
+// to leave wired unconditionally outside listen mode -- the button is
+// hidden then, so it's never reachable to trigger it.
+let vocabularyChoicesLastFocused = null;
+document.getElementById('vocabularySoundBtn').addEventListener('keydown', (e) => {
+  if (e.key !== 'ArrowDown') return;
+  e.preventDefault();
+  focusRowRemembering(document.getElementById('vocabularyChoices'), () => vocabularyChoicesLastFocused);
+});
+document.getElementById('vocabularyChoices').addEventListener('keydown', (e) => {
+  if (e.key !== 'ArrowUp' || document.getElementById('vocabularySoundBtn').style.display === 'none') return;
+  e.preventDefault();
+  vocabularyChoicesLastFocused = e.target;
+  document.getElementById('vocabularySoundBtn').focus();
+});
+
 // Reverse mode (letters L2, abc L4): checkBtn is a genuinely separate
 // "confirm" step only here -- letterChoices/compareChoices submit
 // immediately on a button click and hide checkBtn entirely (see
@@ -539,6 +557,9 @@ document.addEventListener('keydown', (e) => {
 document.getElementById('swapBtn').addEventListener('click', changeQuestion);
 document.getElementById('letterSoundBtn').addEventListener('click', () => {
   if (currentLetterAnswer) playCurrentTopicSound(currentLetterAnswer);
+});
+document.getElementById('vocabularySoundBtn').addEventListener('click', () => {
+  speakVocabularyWord(currentVocabularySpokenWord);
 });
 document.getElementById('surrenderBtn').addEventListener('click', () => {
   if (gameOver) return;

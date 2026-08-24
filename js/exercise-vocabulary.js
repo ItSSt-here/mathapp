@@ -1,6 +1,9 @@
 // ---------- Vocabulary exercise ----------
-// Level 1 (only level implemented so far): an English word is shown and the
-// student picks its Hebrew translation out of up to 5 options -- see
+// Level 1: an English word is shown and the student picks its Hebrew
+// translation out of up to 5 options. Level 2 (isVocabularyReverseMode()):
+// same mechanic, prompt/answer language flipped. Level 3
+// (isVocabularyListenMode()): level 1's direction again, but the English
+// word is spoken via TTS instead of shown as text. See
 // generateVocabularyExercise()/renderVocabularyChoices()/checkVocabularyAnswer()
 // below and the isVocabulary branch in newExercise() (exercise-core.js).
 
@@ -21,6 +24,35 @@ let currentVocabularyAnswer = null;
 // since vocabulary only has the two.
 function isVocabularyReverseMode() {
   return gameMode === 'vocabulary' && exerciseDifficultyIndex === 1;
+}
+
+// Level 3: same forward "pick the Hebrew translation" direction as level 1,
+// except the English prompt is spoken via the browser's built-in TTS
+// instead of shown as text. Recorded clips (used for letters/abc/nikud, see
+// [[feedback_hebrew_letter_audio]]) aren't an option here: that pipeline
+// covers a fixed 22-26 letter set worth recording once, but vocabulary
+// lists are open-ended and teacher-supplied (no backend), so there's no
+// fixed word set to pre-record. TTS was rejected for Hebrew three times
+// (unreliable voice availability, homograph misreadings, a licensing wall)
+// but none of that applies to English -- voice availability is solid and
+// there's no homograph problem -- which is why this exists only for the
+// English side and Hebrew never gets a spoken-prompt mode.
+function isVocabularyListenMode() {
+  return gameMode === 'vocabulary' && exerciseDifficultyIndex === 2;
+}
+
+// The word level 3's sound button should (re)play -- set by
+// renderVocabularyChoices() each round, read by vocabularySoundBtn's click
+// handler (main.js), same "persist outside the render function" need as
+// currentLetterAnswer (exercise-letters.js).
+let currentVocabularySpokenWord = null;
+
+function speakVocabularyWord(word) {
+  if (!word || !window.speechSynthesis) return;
+  window.speechSynthesis.cancel(); // cut off a rapid repeat tap, same reasoning as playLetterSound() (exercise-letters.js)
+  const utterance = new SpeechSynthesisUtterance(word);
+  utterance.lang = 'en-US';
+  window.speechSynthesis.speak(utterance);
 }
 
 // One word pair per line, English and Hebrew separated by ';' (e.g.
@@ -83,6 +115,7 @@ function loadVocabularyWordListFromStorage() {
 // already refuses to start a round with fewer than 2 words total.
 function generateVocabularyExercise() {
   const reverse = isVocabularyReverseMode();
+  const listen = isVocabularyListenMode();
   const promptField = reverse ? 'he' : 'en';
   const answerField = reverse ? 'en' : 'he';
   const target = randChoice(vocabularyWordList);
@@ -90,16 +123,27 @@ function generateVocabularyExercise() {
   const distractorCount = Math.min(4, distractorPool.length);
   const distractors = pickDistinctRandom(distractorPool, distractorCount).map(w => w[answerField]);
   const options = pickDistinctRandom([target[answerField], ...distractors], distractorCount + 1); // shuffles the order too
-  return { word: target[promptField], correct: target[answerField], options, reverse };
+  return { word: target[promptField], correct: target[answerField], options, reverse, listen };
 }
 
 function renderVocabularyChoices(ex) {
   const wordDisplay = document.getElementById('vocabularyWordDisplay');
-  wordDisplay.textContent = ex.word;
-  // The prompt word is normally English (LTR) inside this RTL page --
-  // .vocabulary-word-display hardcodes ltr for that. Reverse mode's prompt
-  // is Hebrew instead, so it needs the page's own rtl direction back.
-  wordDisplay.classList.toggle('vocabulary-word-display-reverse', ex.reverse);
+  const soundBtn = document.getElementById('vocabularySoundBtn');
+  // Listen mode (level 3) swaps the text display for the sound button
+  // instead -- never both at once, same "one prompt widget visible" idea as
+  // letters' listen vs. reverse mode split.
+  wordDisplay.style.display = ex.listen ? 'none' : '';
+  soundBtn.style.display = ex.listen ? '' : 'none';
+  soundBtn.disabled = false;
+  if (ex.listen) {
+    currentVocabularySpokenWord = ex.word;
+  } else {
+    wordDisplay.textContent = ex.word;
+    // The prompt word is normally English (LTR) inside this RTL page --
+    // .vocabulary-word-display hardcodes ltr for that. Reverse mode's prompt
+    // is Hebrew instead, so it needs the page's own rtl direction back.
+    wordDisplay.classList.toggle('vocabulary-word-display-reverse', ex.reverse);
+  }
   const container = document.getElementById('vocabularyChoices');
   container.innerHTML = '';
   container.classList.remove('vocabulary-choices-locked');
@@ -111,14 +155,24 @@ function renderVocabularyChoices(ex) {
     btn.addEventListener('click', () => checkVocabularyAnswer(option, ex.correct, btn));
     container.appendChild(btn);
   });
-  if (container.firstElementChild) container.firstElementChild.focus();
+  // Listen mode starts focus on the sound button, same "hear it, then pick"
+  // entry point as letters' listen mode (renderLetterChoices(),
+  // exercise-letters.js) -- otherwise (word already visible as text) the
+  // first choice is the natural starting point, as before.
+  if (ex.listen) {
+    soundBtn.focus();
+  } else if (container.firstElementChild) {
+    container.firstElementChild.focus();
+  }
 }
 
 // Wrong pick: that option is eliminated (stays disabled) and the same
 // question continues with the remaining options -- same retry pattern as
 // checkLetterAnswer() (exercise-letters.js). Kept as its own copy rather than
-// sharing that function directly, since vocabulary has no sound button or
-// reverse-mode branching to thread through.
+// sharing that function directly: unlike checkLetterAnswer(), there's no
+// reverse-mode branch to dispatch on here (reverse/listen only ever change
+// what generateVocabularyExercise() and renderVocabularyChoices() produce,
+// never how an answer gets checked).
 function checkVocabularyAnswer(selected, correct, btnEl) {
   if (gameOver) return;
 
@@ -134,6 +188,13 @@ function checkVocabularyAnswer(selected, correct, btnEl) {
   if (isCorrect) {
     btnEl.classList.add('vocabulary-correct');
     markCorrect(btnEl);
+    // Otherwise the child could tap the sound button during this pause and
+    // hear the old (already-answered) word, mistaking it for the next
+    // question's -- same reasoning as letterSoundBtn's disable in
+    // checkLetterAnswer() (exercise-letters.js). Harmless outside listen
+    // mode: the button is hidden there anyway, and gets re-enabled by
+    // renderVocabularyChoices() regardless of mode.
+    document.getElementById('vocabularySoundBtn').disabled = true;
     setTimeout(newExercise, 800);
   } else {
     btnEl.classList.add('vocabulary-wrong');

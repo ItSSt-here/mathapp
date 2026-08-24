@@ -544,6 +544,14 @@ button.check-btn:focus {
   direction: rtl;
 }
 
+/* Level 3 (listen mode): reuses .letter-sound-btn's circular blue look, just
+   needs the same margin-bottom as .vocabulary-word-display above so the
+   choices row below sits at a consistent distance regardless of which of
+   the two is showing. */
+.vocabulary-sound-btn {
+  margin-bottom: 20px;
+}
+
 .vocabulary-choices {
   display: flex;
   flex-wrap: wrap;
