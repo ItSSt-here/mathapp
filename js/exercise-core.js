@@ -161,10 +161,18 @@ function newExercise() {
   const isVocabulary = gameMode === 'vocabulary';
   const isLetterFamily = isLetters || isAbc || isNikud;
   const isReverse = isLetterReverseMode(); // always false for nikud -- no reverse direction yet
+  // Vocabulary level 4 (typed answer) is the one vocabulary level that needs
+  // checkBtn -- every other vocabulary level answers immediately on a choice
+  // click, same reasoning as isLetterFamily's !isReverse above (only the
+  // levels with a genuine separate confirm step need it shown).
+  const isVocabularyTyped = isVocabulary && isVocabularyTypedMode();
   document.getElementById('mathQuestionRow').style.display = (isLetterFamily || isVocabulary) ? 'none' : '';
   answerHome.style.display = (isLetterFamily || isCompare || isVocabulary) ? 'none' : '';
-  document.getElementById('checkBtn').style.display = ((isLetterFamily && !isReverse) || isCompare || isVocabulary) ? 'none' : '';
-  document.getElementById('swapBtn').style.display = (isLetterFamily || isCompare || isVocabulary) ? 'none' : '';
+  document.getElementById('checkBtn').style.display = ((isLetterFamily && !isReverse) || isCompare || (isVocabulary && !isVocabularyTyped)) ? 'none' : '';
+  // Same reasoning as checkBtn just above: only vocabulary level 4 has a
+  // typed answer worth paying coins to reveal/skip, the same escape hatch
+  // every other typed-answer (non-multiple-choice) topic already has.
+  document.getElementById('swapBtn').style.display = (isLetterFamily || isCompare || (isVocabulary && !isVocabularyTyped)) ? 'none' : '';
   document.getElementById('lettersAnswerHome').style.display = isLetterFamily ? '' : 'none';
   document.getElementById('compareAnswerHome').style.display = isCompare ? '' : 'none';
   document.getElementById('vocabularyAnswerHome').style.display = isVocabulary ? '' : 'none';
@@ -454,6 +462,11 @@ function markWrong(anchorEl, message = 'לא נכון, נסה שוב') {
 function checkAnswer() {
   if (gameOver) return;
 
+  if (isVocabularyTypedMode()) {
+    checkVocabularyTypedAnswer();
+    return;
+  }
+
   if (isLetterReverseMode()) {
     checkLetterReverseAnswer();
     return;
@@ -532,6 +545,15 @@ function checkAnswer() {
 // question. Always costs coins, even if that pushes the balance negative.
 function changeQuestion() {
   if (gameOver) return;
+
+  // Vocabulary level 4 has its own typed-answer input rather than the
+  // generic #answer/#answer2/#answer3 the rest of this function operates
+  // on -- dispatched out the same way checkVocabularyTypedAnswer() is
+  // dispatched from checkAnswer().
+  if (isVocabularyTypedMode()) {
+    changeVocabularyTypedQuestion();
+    return;
+  }
 
   const swapBtn = document.getElementById('swapBtn');
   const checkBtn = document.getElementById('checkBtn');

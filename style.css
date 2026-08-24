@@ -552,6 +552,17 @@ button.check-btn:focus {
   margin-bottom: 20px;
 }
 
+/* Level 4 (typed mode): the base `input` rule's 90px width (sized for a
+   couple of digits) is too narrow for a typed English word -- widened the
+   same way .fraction-answer-input/.mixed-whole-input override it for their
+   own answer shapes. direction:ltr for the same reason as
+   .vocabulary-word-display -- an English answer inside this RTL page. */
+.vocabulary-typed-input {
+  width: 220px !important;
+  font-size: 24px;
+  direction: ltr;
+}
+
 .vocabulary-choices {
   display: flex;
   flex-wrap: wrap;

@@ -477,7 +477,7 @@ const EXERCISE_TOPIC_LEVEL_COUNTS = {
   letters: 2,          // levels 2-5 were identical to each other
   abc: 4,               // level 5 was identical to level 4
   nikud: 4,
-  vocabulary: 3,       // level 2 added 2026-08-24: reverse direction. level 3 added same day: English word spoken via TTS instead of shown as text
+  vocabulary: 4,       // level 2 added 2026-08-24: reverse direction. level 3 added same day: English word spoken via TTS instead of shown as text. level 4 added same day: Hebrew word shown, typed English answer
 };
 
 function getExerciseLevelCount() {
@@ -520,6 +520,7 @@ const EXERCISE_LEVEL_DESCRIPTIONS = {
     'מוצגת מילה באנגלית, ויש לבחור את התרגום הנכון שלה מתוך עד 5 מילים בעברית (פחות אם ברשימה שנטענה יש פחות מ-5 מילים).',
     'הפוך: מוצגת מילה בעברית, ויש לבחור את התרגום הנכון שלה באנגלית מתוך עד 5 אפשרויות.',
     'המילה באנגלית מוקראת בקול (לחיצה על 🔊) במקום להיות מוצגת בכתב, ויש לבחור את התרגום הנכון שלה מתוך עד 5 מילים בעברית.',
+    'מוצגת מילה בעברית, ויש לכתוב את התרגום שלה באנגלית באיות נכון (לא בחירה מתוך אפשרויות).',
   ],
   nikud: [
     'שומעים אחת מ-4 האותיות א, ב, ג, ד עם ניקוד קמץ (לחיצה על 🔊) ובוחרים אותה מתוך 4 כפתורים קבועים, תמיד באותו סדר.',

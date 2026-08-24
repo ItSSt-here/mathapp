@@ -229,6 +229,7 @@ function startGame() {
   document.getElementById('answer2').disabled = false;
   document.getElementById('answer3').disabled = false;
   document.getElementById('swapBtn').disabled = false;
+  document.getElementById('vocabularyTypedInput').disabled = false;
 
   updateCoinsDisplay();
   updateStatsCountersDisplay();
@@ -333,6 +334,15 @@ document.getElementById('answer').addEventListener('keydown', (e) => {
     answer2.focus();
     return;
   }
+  checkAnswer();
+});
+// Vocabulary level 4 (typed answer): same "Enter submits, empty box is a
+// no-op" behavior as #answer's Enter handling above, just without any of
+// the two-blank/digit-filtering logic that doesn't apply to a free-text
+// English word.
+document.getElementById('vocabularyTypedInput').addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter') return;
+  if (e.target.value.trim() === '') return;
   checkAnswer();
 });
 document.getElementById('answer').addEventListener('input', (e) => {
