@@ -256,9 +256,14 @@ function checkVocabularyAnswer(selected, correct, btnEl) {
 // via its isVocabularyTypedMode() branch -- same shared checkBtn/Enter-to-
 // submit flow every numeric topic uses, unlike checkVocabularyAnswer() above
 // (immediate per-click check, no separate confirm step). Case-insensitive
-// and trims surrounding whitespace -- a capitalization slip isn't the
-// "spelling error" this level is testing for -- but otherwise an exact
+// and collapses whitespace (leading/trailing, and runs of spaces between
+// words in a multi-word answer like "to wear" down to one) -- neither is
+// the "spelling error" this level is testing for -- but otherwise an exact
 // match: no partial credit, no fuzzy/near-miss leniency.
+function normalizeVocabularyTypedAnswer(s) {
+  return s.trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
 function checkVocabularyTypedAnswer() {
   if (gameOver) return;
 
@@ -273,7 +278,7 @@ function checkVocabularyTypedAnswer() {
     return;
   }
 
-  const isCorrect = input.value.trim().toLowerCase() === currentVocabularyAnswer.toLowerCase();
+  const isCorrect = normalizeVocabularyTypedAnswer(input.value) === normalizeVocabularyTypedAnswer(currentVocabularyAnswer);
 
   checkBtn.disabled = true;
   input.disabled = true;
