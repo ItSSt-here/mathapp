@@ -10,6 +10,11 @@ const TICK_MS = 250;
 const CORRECT_REWARD = 10;
 const WRONG_PENALTY = 5;
 const SWAP_QUESTION_COST = 15;
+// Coins are capped so a win's leftover balance can double as a bounded
+// "נקודות" score (see markCorrect() and endGame()) -- without a cap, a
+// student who avoids spending could inflate the number indefinitely, which
+// would make it useless for comparing rounds in the parent-facing log.
+const MAX_COINS = 100;
 const SWAP_REVEAL_MS = 2000;
 const DEATH_FADE_MS = 5000;   // how long a fallen soldier lies there before disappearing
 const FADE_DURATION_MS = 1000; // fades out over the last second before removal

@@ -13,7 +13,7 @@
      fetch of everything together instead of relying on cache timing to
      line up. No build step in this project, so this is manual -- there's
      nothing to automate it. -->
-<link rel="stylesheet" href="style.css?v=202608241900">
+<link rel="stylesheet" href="style.css?v=202608251300">
 </head>
 <body>
 
@@ -289,6 +289,10 @@
     <div class="overlay-title" id="overlayTitle"></div>
     <p class="overlay-level-info" id="overlayLevelInfo"></p>
     <p class="overlay-battle-time" id="overlayBattleTime"></p>
+    <!-- Win-only: leftover coin balance shown as a bonus "score" on top of
+         just winning -- see logRoundStats()/endGame() in main.js. Hidden on
+         a loss (no score there), toggled via inline display in endGame(). -->
+    <p class="overlay-score" id="overlayScore" style="display:none;"></p>
     <div class="final-stats-row" id="finalStatsRow">
       <div class="final-stat final-stat-correct"><span id="overlayCorrectCount">0</span><span class="final-stat-label">נכון</span></div>
       <div class="final-stat final-stat-wrong"><span id="overlayWrongCount">0</span><span class="final-stat-label">לא נכון</span></div>
@@ -309,24 +313,24 @@
      (see preloadSoldierSprites() in render.js). -->
 <div id="spritePreload" style="position:fixed; left:-9999px; top:-9999px; width:1px; height:1px; overflow:hidden;" aria-hidden="true"></div>
 
-<script src="js/config.js?v=202608241900"></script>
-<script src="js/helpers.js?v=202608241900"></script>
-<script src="js/exercise-core.js?v=202608241900"></script>
-<script src="js/exercise-division.js?v=202608241900"></script>
-<script src="js/exercise-fractions.js?v=202608241900"></script>
-<script src="js/exercise-fraction-arithmetic.js?v=202608241900"></script>
-<script src="js/exercise-addfractions.js?v=202608241900"></script>
-<script src="js/exercise-subtractfractions.js?v=202608241900"></script>
-<script src="js/exercise-mixednumbers.js?v=202608241900"></script>
-<script src="js/exercise-addfractionsadvanced.js?v=202608241900"></script>
-<script src="js/exercise-letters.js?v=202608241900"></script>
-<script src="js/exercise-abc.js?v=202608241900"></script>
-<script src="js/exercise-nikud.js?v=202608241900"></script>
-<script src="js/exercise-compare.js?v=202608241900"></script>
-<script src="js/exercise-vocabulary.js?v=202608241900"></script>
-<script src="js/combat.js?v=202608241900"></script>
-<script src="js/render.js?v=202608241900"></script>
-<script src="js/main.js?v=202608241900"></script>
+<script src="js/config.js?v=202608251300"></script>
+<script src="js/helpers.js?v=202608251300"></script>
+<script src="js/exercise-core.js?v=202608251300"></script>
+<script src="js/exercise-division.js?v=202608251300"></script>
+<script src="js/exercise-fractions.js?v=202608251300"></script>
+<script src="js/exercise-fraction-arithmetic.js?v=202608251300"></script>
+<script src="js/exercise-addfractions.js?v=202608251300"></script>
+<script src="js/exercise-subtractfractions.js?v=202608251300"></script>
+<script src="js/exercise-mixednumbers.js?v=202608251300"></script>
+<script src="js/exercise-addfractionsadvanced.js?v=202608251300"></script>
+<script src="js/exercise-letters.js?v=202608251300"></script>
+<script src="js/exercise-abc.js?v=202608251300"></script>
+<script src="js/exercise-nikud.js?v=202608251300"></script>
+<script src="js/exercise-compare.js?v=202608251300"></script>
+<script src="js/exercise-vocabulary.js?v=202608251300"></script>
+<script src="js/combat.js?v=202608251300"></script>
+<script src="js/render.js?v=202608251300"></script>
+<script src="js/main.js?v=202608251300"></script>
 
 </body>
 </html>

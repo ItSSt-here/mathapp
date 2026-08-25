@@ -57,6 +57,11 @@ function logRoundStats(playerWon, surrendered) {
     wrong: wrongCount,
     swap: swapCount,
     won: playerWon,
+    // Only meaningful on a win (the leftover coin balance, capped at
+    // MAX_COINS -- see markCorrect() in exercise-core.js); null on a loss
+    // rather than 0, so stats.html can tell "lost, no score" apart from an
+    // actual 0-point win.
+    score: playerWon ? playerMoney : null,
     // Lets stats.html tell "lost the battle" apart from "gave up" -- both
     // still read as a loss in-game (endGame()'s own overlay deliberately
     // doesn't distinguish them, only the parent-facing log does). Absent/
@@ -211,6 +216,9 @@ function endGame(playerWon, surrendered) {
   title.className = playerWon ? 'overlay-title win' : 'overlay-title lose';
   document.getElementById('overlayLevelInfo').textContent = formatLevelInfo();
   document.getElementById('overlayBattleTime').textContent = `משך הקרב: ${formatDuration(battleElapsedMs)}`;
+  const scoreEl = document.getElementById('overlayScore');
+  scoreEl.style.display = playerWon ? '' : 'none';
+  if (playerWon) scoreEl.textContent = `נקודות: ${playerMoney}`;
   // correctCount/wrongCount/swapCount are frozen now that gameOver is true,
   // so a one-time copy into the overlay's own elements is enough -- no need
   // for these to live-update the way .top-stats-row does during play.

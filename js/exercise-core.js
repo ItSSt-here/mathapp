@@ -457,7 +457,7 @@ function markCorrect(anchorEl) {
   const feedback = document.getElementById('feedback');
   feedback.textContent = 'נכון';
   feedback.className = 'feedback correct';
-  playerMoney += CORRECT_REWARD;
+  playerMoney = Math.min(MAX_COINS, playerMoney + CORRECT_REWARD);
   correctCount++;
   updateCoinsDisplay();
   updateStatsCountersDisplay();

@@ -1422,6 +1422,13 @@ hr {
   margin: -6px 0 18px;
 }
 
+.overlay-score {
+  font-size: 22px;
+  font-weight: bold;
+  color: #b8860b;
+  margin: -6px 0 18px;
+}
+
 /* Session totals on the win/lose screen -- unlike .top-stats-row during
    gameplay, these are meant to stand out (bigger, centered), since there's
    no coins counter competing for attention here anymore. */

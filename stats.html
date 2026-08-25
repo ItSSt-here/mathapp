@@ -92,6 +92,7 @@ function render() {
       <td>${e.swap}</td>
       <td>${formatDuration(e.durationMs)}</td>
       <td>${e.won ? 'ניצחון' : (e.surrendered ? 'נכנע' : 'הפסד')}</td>
+      <td>${e.score != null ? e.score : ''}</td>
     </tr>
   `).join('');
 
@@ -108,6 +109,7 @@ function render() {
           <th>החלפות</th>
           <th>משך</th>
           <th>תוצאה</th>
+          <th>נקודות</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
