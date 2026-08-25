@@ -75,8 +75,13 @@ const MARCH_SECONDS = 42;
 let SOLDIER_SPEED = 0.5; // % of track per tick
 
 // How often the computer spawns a soldier, per difficulty (index matches
-// DIFFICULTIES below): לאט מאוד, לאט, בינוני, מהר, מהר מאוד.
-const DIFFICULTY_SPAWN_INTERVALS_MS = [40000, 30000, 20000, 15000, 10000];
+// DIFFICULTIES below): לימוד - ללא אויב, לאט מאוד, לאט, בינוני, מהר, מהר מאוד.
+// The slowest tier is `null` rather than a huge number -- it's not "very
+// infrequent spawning", it's a distinct practice mode with no enemy at all
+// (see isStudyMode() in helpers.js, checked by tick()'s spawn step below and
+// by buySoldier()/updateCoinsDisplay() to also block buying soldiers, since a
+// side with no enemy to fight has no need for its own army either).
+const DIFFICULTY_SPAWN_INTERVALS_MS = [null, 40000, 30000, 20000, 15000, 10000];
 
 // Every second of marching, a soldier has this chance to pause for that second
 const HALT_CHANCE = 0.15;
@@ -85,8 +90,8 @@ const HALT_CHECK_INTERVAL_MS = 1000;
 // Difficulty is picked on the home screen and carried over into every
 // subsequent game (including instant "play again") until the player
 // returns to the home screen and changes it. No gameplay effect yet.
-const DIFFICULTIES = ['לאט מאוד', 'לאט', 'בינוני', 'מהר', 'מהר מאוד'];
-const DEFAULT_DIFFICULTY_INDEX = 2;
+const DIFFICULTIES = ['לימוד - ללא אויב', 'לאט מאוד', 'לאט', 'בינוני', 'מהר', 'מהר מאוד'];
+const DEFAULT_DIFFICULTY_INDEX = 3;
 let difficultyIndex = DEFAULT_DIFFICULTY_INDEX;
 
 // Exercise difficulty picker: just numbers 1-5, no gameplay effect yet.

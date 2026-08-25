@@ -37,7 +37,7 @@ function spawnSoldier(side) {
 }
 
 function buySoldier() {
-  if (gameOver || playerMoney < SOLDIER_COST) return;
+  if (gameOver || playerMoney < SOLDIER_COST || isStudyMode()) return;
   playerMoney -= SOLDIER_COST;
   updateCoinsDisplay();
   spawnSoldier('player');
@@ -48,12 +48,15 @@ function tick() {
 
   battleElapsedMs += TICK_MS;
 
-  // Enemy spawns on a flat timer
-  enemySpawnTimer += TICK_MS;
+  // Enemy spawns on a flat timer -- unless this speed's tier is the
+  // no-enemy study mode (see isStudyMode() in helpers.js).
   const spawnInterval = DIFFICULTY_SPAWN_INTERVALS_MS[difficultyIndex];
-  if (enemySpawnTimer >= spawnInterval) {
-    enemySpawnTimer -= spawnInterval;
-    spawnSoldier('computer');
+  if (spawnInterval != null) {
+    enemySpawnTimer += TICK_MS;
+    if (enemySpawnTimer >= spawnInterval) {
+      enemySpawnTimer -= spawnInterval;
+      spawnSoldier('computer');
+    }
   }
 
   // Pair up each soldier with the nearest opponent in range, using current

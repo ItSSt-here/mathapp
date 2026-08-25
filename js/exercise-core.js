@@ -760,7 +760,7 @@ function updateCoinsDisplay() {
   // doesn't get its minus sign flipped by the page's RTL bidi handling.
   coinsEl.innerHTML = `מטבעות: <span style="direction:ltr;unicode-bidi:isolate">${playerMoney}</span>`;
   coinsEl.className = playerMoney < 0 ? 'coins negative' : 'coins';
-  document.getElementById('buyBtn').disabled = playerMoney < SOLDIER_COST || gameOver;
+  document.getElementById('buyBtn').disabled = playerMoney < SOLDIER_COST || gameOver || isStudyMode();
 }
 
 // Updates the small in-play counters (.top-stats-row). The same

@@ -51,6 +51,13 @@ function strikeDamage() {
   return randInt(STRIKE_MIN_DMG, STRIKE_MAX_DMG);
 }
 
+// The slowest speed tier ("לימוד - ללא אויב") has no enemy spawning at all,
+// marked by a `null` entry in DIFFICULTY_SPAWN_INTERVALS_MS rather than a
+// difficulty index number, so it stays correct if the tier ever moves.
+function isStudyMode() {
+  return DIFFICULTY_SPAWN_INTERVALS_MS[difficultyIndex] == null;
+}
+
 function formatDuration(ms) {
   const totalSec = Math.floor(ms / 1000);
   const m = Math.floor(totalSec / 60);
