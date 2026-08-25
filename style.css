@@ -63,6 +63,19 @@ body {
      it when content would otherwise exceed the viewport. */
   max-height: 100vh;
   overflow-y: auto;
+  /* Without this, max-height:100vh only caps the *content* box -- .card's
+     own padding+border (58px total) then still pushes the actual rendered
+     element past the viewport, and since .card is vertically centered by
+     body's flex, the excess gets clipped equally off both the top AND
+     bottom edges by html/body's own overflow:hidden instead of ever
+     reaching .card's overflow-y:auto at all (there's nothing for it to
+     scroll -- .card's *content* still fit within the too-tall *box*).
+     border-box makes max-height:100vh cap the whole rendered element
+     instead, so anything taller (e.g. the addfractions level 3 scaffold's
+     two stacked equation rows, reported 2026-08-25 as making #surrenderBtn
+     unreachable) now genuinely overflows .card's own content area and
+     scrolls the way the comment above already assumed it would. */
+  box-sizing: border-box;
 }
 
 /* Pulls #castleRow (the battlefield/HP-bars block) to the very top of
@@ -231,6 +244,18 @@ input.answer-revealed:disabled {
   display: inline-flex;
   flex-direction: column;
   align-items: center;
+}
+
+/* Fraction-addition scaffold level (addfractions level 3, see
+   generateFractionAdditionLevel3Exercise() in exercise-addfractions.js): the
+   given problem shown plain above, its expanded form shown below -- stacked
+   as two separate .frac-eq rows (each already centers/wraps its own terms)
+   rather than crammed into one wide row. */
+.frac-eq-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
 }
 
 /* Groups a mixed number's whole-number box with its own fraction (see

@@ -332,27 +332,27 @@ document.getElementById('checkBtn').addEventListener('click', checkAnswer);
 document.getElementById('answer').addEventListener('keydown', (e) => {
   const answer2 = document.getElementById('answer2');
   const isTwoBlank = typeof currentAnswer === 'object';
-  // Mixed numbers levels 1 and 3, plus addfractionsadvanced level 1, all put
-  // the whole-number box (#answer) side by side with the fraction part (not
-  // stacked) -- see isWholeBoxAnswerLevel() in exercise-core.js. Every other
-  // two-blank exercise (including addfractions/subtractfractions/fractions'
-  // own reduction levels) stacks its two boxes, so it stays in this
-  // Up/Down group.
-  const isStackedTwoBlank = isTwoBlank && !isWholeBoxAnswerLevel();
+  // Mixed numbers levels 1 and 3, addfractionsadvanced level 1, and the
+  // addfractions level 3 scaffold all put #answer side by side with its
+  // partner box (not stacked) -- see isHorizontalTwoBoxLevel() in
+  // exercise-core.js. Every other two-blank exercise (including
+  // addfractions/subtractfractions/fractions' own reduction levels) stacks
+  // its two boxes, so it stays in this Up/Down group.
+  const isStackedTwoBlank = isTwoBlank && !isHorizontalTwoBoxLevel();
   if (e.key === 'ArrowDown' && isStackedTwoBlank) {
     e.preventDefault();
     answer2.focus();
     return;
   }
-  // Same levels as above: the whole box renders to the left of the fraction
-  // box in this equation (.exercise/.frac-eq force direction:ltr regardless
-  // of the page's own RTL, see style.css), so ArrowRight is "toward the
-  // fraction" here -- only once the cursor's at the box's right edge (or the
-  // box is empty), so normal in-box cursor movement isn't hijacked. Lands on
+  // Same levels as above: #answer renders to the left of its partner box in
+  // this equation (.exercise/.frac-eq force direction:ltr regardless of the
+  // page's own RTL, see style.css), so ArrowRight is "toward the partner"
+  // here -- only once the cursor's at the box's right edge (or the box is
+  // empty), so normal in-box cursor movement isn't hijacked. Lands on
   // #answer2 either way -- level 1's only fraction box (mixed numbers or
-  // addfractionsadvanced), or mixed-numbers level 3's numerator (top of its
-  // own stack).
-  if (e.key === 'ArrowRight' && isWholeBoxAnswerLevel()) {
+  // addfractionsadvanced), mixed-numbers level 3's numerator (top of its own
+  // stack), or the scaffold's result-numerator box.
+  if (e.key === 'ArrowRight' && isHorizontalTwoBoxLevel()) {
     const atEnd = e.target.value === '' ||
       (e.target.selectionStart === e.target.value.length && e.target.selectionEnd === e.target.value.length);
     if (atEnd) {
@@ -404,13 +404,13 @@ document.getElementById('answer').addEventListener('focus', (e) => {
 document.getElementById('answer2').addEventListener('keydown', (e) => {
   const answerInput = document.getElementById('answer');
   const isTwoBlank = typeof currentAnswer === 'object';
-  const isStackedTwoBlank = isTwoBlank && !isWholeBoxAnswerLevel();
+  const isStackedTwoBlank = isTwoBlank && !isHorizontalTwoBoxLevel();
   if (e.key === 'ArrowUp' && isStackedTwoBlank) {
     e.preventDefault();
     answerInput.focus();
     return;
   }
-  if (e.key === 'ArrowLeft' && isWholeBoxAnswerLevel()) {
+  if (e.key === 'ArrowLeft' && isHorizontalTwoBoxLevel()) {
     const atStart = e.target.value === '' ||
       (e.target.selectionStart === 0 && e.target.selectionEnd === 0);
     if (atStart) {

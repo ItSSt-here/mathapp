@@ -26,7 +26,10 @@ function generateFractionSubtractionLevel2Exercise() {
 }
 
 // Level 3: X = m/a and Y = k/(b*a) -- one denominator a multiple of the
-// other, same idea as addfractions level 3, but since subtraction isn't
+// other, same idea as addfractions level 4 (addfractions has its own extra
+// level 3 scaffold wedged in ahead of this mechanic, isolating the
+// expand-to-common-denominator step on its own -- subtractfractions has no
+// equivalent yet), but since subtraction isn't
 // commutative there's no separate "which slot" swap needed the way addition
 // had to add one: whichever fraction plays minuend lands in pNum/pDen (the
 // shown left side of the "-") and whichever plays subtrahend lands in
@@ -48,8 +51,8 @@ function generateFractionSubtractionLevel3Exercise() {
 // coin flip), but FRAC_SUB_L4_REDUCTION_CHANCE (70%) of exercises force
 // gcd(diff, b*a) > 1, so the result needs reducing -- same
 // reduction-needed relationship level 2 has to level 1, layered onto level
-// 3's expand-to-common-denominator mechanic (mirrors addfractions level 4's
-// relationship to level 3). Rendered with missing: 'both' like level 2.
+// 3's expand-to-common-denominator mechanic (mirrors addfractions level 5's
+// relationship to level 4). Rendered with missing: 'both' like level 2.
 function generateFractionSubtractionLevel4Exercise() {
   return generateMultipleDenomLevel4Exercise(FRAC_SUB_L3_A_MIN, FRAC_SUB_L3_A_MAX, FRAC_SUB_L3_B_MIN, FRAC_SUB_L3_B_MAX, FRAC_SUB_L3_B1_CHANCE, 'subtract', FRAC_SUB_L4_REDUCTION_CHANCE);
 }

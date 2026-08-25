@@ -334,19 +334,27 @@ const ADD_FRAC_ADV_L2_REDUCTION_CHANCE = 0.70;
 // already-reduced mechanic.
 const FRAC_ADD_L2_REDUCTION_CHANCE = 0.7;
 
-// Level 3 (see generateFractionAdditionLevel3Exercise() in
+// Level 4 (see generateFractionAdditionLevel4Exercise() in
 // exercise-addfractions.js): p/a + q/(b*a) -- the second denominator is
 // always a multiple of the first. a/b ranges mirror the compare-fractions
 // topic's level 3 (same "one denominator a multiple of the other" idea),
-// which keeps the resulting denominator b*a from growing unwieldy.
+// which keeps the resulting denominator b*a from growing unwieldy. Kept
+// their original "L3" names (from before level 3 became the scaffold below)
+// rather than renaming to "L4" -- same don't-rename-tuning-constants-on-a-
+// renumber convention as ADD_FRAC_ADV_L2_REDUCTION_CHANCE, already reused
+// across two levels. Level 3 (the new scaffold) also draws from this same
+// a/b range, via the same generateMultipleDenomLevel3Exercise() call, just
+// forcing b1Chance to 0 instead of reading FRAC_ADD_L3_B1_CHANCE -- the
+// scaffold's whole point is practicing the expansion step, which the b=1
+// fold-in has none of.
 const FRAC_ADD_L3_A_MIN = 2;
 const FRAC_ADD_L3_A_MAX = 9;
 const FRAC_ADD_L3_B_MIN = 2;
 const FRAC_ADD_L3_B_MAX = 4;
 const FRAC_ADD_L3_B1_CHANCE = 0.10; // b=1 folds this into level 1's same-denominator mechanic
 
-// Level 4 (see generateFractionAdditionLevel4Exercise() in
-// exercise-addfractions.js): same p/a + q/(b*a) setup as level 3, but this
+// Level 5 (see generateFractionAdditionLevel5Exercise() in
+// exercise-addfractions.js): same p/a + q/(b*a) setup as level 4, but this
 // fraction of exercises forces gcd(p*b+q, b*a) > 1 so the sum needs reducing
 // -- same relationship level 2 has to level 1.
 const FRAC_ADD_L4_REDUCTION_CHANCE = 0.7;
@@ -403,9 +411,10 @@ const FRAC_SUB_L2_REDUCTION_CHANCE = 0.7;
 
 // Level 3 (see generateFractionSubtractionLevel3Exercise() in
 // exercise-subtractfractions.js): X = m/a and Y = k/(b*a) -- one denominator
-// a multiple of the other. Ranges mirror addfractions level 3's own
-// constants (FRAC_ADD_L3_*), kept separate so this topic can be tuned
-// independently.
+// a multiple of the other. Ranges mirror addfractions' own FRAC_ADD_L3_*
+// constants (used by its level 4 now, after a scaffold was inserted ahead of
+// it -- see config.js's own FRAC_ADD_L3_* comment), kept separate so this
+// topic can be tuned independently.
 const FRAC_SUB_L3_A_MIN = 2;
 const FRAC_SUB_L3_A_MAX = 9;
 const FRAC_SUB_L3_B_MIN = 2;
@@ -522,7 +531,7 @@ const EXERCISE_TOPIC_LEVEL_COUNTS = {
   multiplication: 5,
   fractions: 5,
   comparefractions: 4, // level 5 was identical to level 4
-  addfractions: 4,
+  addfractions: 5, // level 3 added 2026-08-25: an expand-to-common-denominator scaffold between the old levels 2 and 3 (now 4)
   subtractfractions: 4,
   mixednumbers: 4,
   addfractionsadvanced: 4,
@@ -585,8 +594,9 @@ const EXERCISE_LEVEL_DESCRIPTIONS = {
   addfractions: [
     'מוצגים שני שברים עם אותו מכנה (בין 3 ל-20) שסכומם קטן מהמכנה -- יש להשלים את מונה תוצאת החיבור. לדוגמה: 2/7 + 3/7 = ?/7. התוצאה תמיד שבר תקין ומצומצם מראש.',
     'כמו ברמה 1, אבל בכל תרגיל -- בלי יוצא מן הכלל -- יש להשלים גם את המונה וגם את המכנה של תוצאת החיבור בצורתה המצומצמת. ב-70% מהמקרים באמת נדרש צמצום; ב-30% הנותרים סכום המונים והמכנה כבר זרים זה לזה, כך שאין מה לצמצם -- אבל אי אפשר לדעת מראש איזה מהם זה, כי הצורה זהה תמיד.',
+    'שלב ביניים לקראת הרמה הבאה: מוצגים שני שברים שבהם המכנה של אחד הוא כפולה של מכנה השני, בלי תיבת תוצאה לתרגיל החיבור עצמו. מתחתיו מוצג אותו תרגיל שוב, כאשר השבר בעל המכנה הקטן כבר נכתב מעל המכנה המשותף -- יש להשלים קודם את המונה שלו אחרי ההרחבה, ואז את מונה תוצאת החיבור. לדוגמה: 1/3 + 1/9 = , ומתחת: ⬜/9 + 1/9 = ⬜/9. מבודד את מיומנות ההרחבה למכנה משותף, לפני שדורשים גם לבצע את החיבור בעצמו.',
     'מוצגים שני שברים שבהם המכנה של השבר השני הוא כפולה של מכנה השבר הראשון (למשל 2/3 ו-5/9, כי 9=3×3) -- יש להרחיב את השבר הראשון למכנה המשותף (2/3=6/9) ואז לחבר את המונים. ב-10% מהמקרים המכנים זהים מלכתחילה (בדיוק כמו ברמה 1). התוצאה תמיד שבר תקין ומצומצם מראש.',
-    'כמו ברמה 3, אבל בכל תרגיל -- בלי יוצא מן הכלל -- יש להשלים גם את המונה וגם את המכנה של תוצאת החיבור בצורתה המצומצמת. ב-70% מהמקרים באמת נדרש צמצום; ב-30% הנותרים אין מה לצמצם -- אבל אי אפשר לדעת מראש איזה מהם זה, כי הצורה זהה תמיד.',
+    'כמו ברמה 4, אבל בכל תרגיל -- בלי יוצא מן הכלל -- יש להשלים גם את המונה וגם את המכנה של תוצאת החיבור בצורתה המצומצמת. ב-70% מהמקרים באמת נדרש צמצום; ב-30% הנותרים אין מה לצמצם -- אבל אי אפשר לדעת מראש איזה מהם זה, כי הצורה זהה תמיד.',
   ],
   subtractfractions: [
     'מוצגים שני שברים עם אותו מכנה (בין 3 ל-20), כשהמונה הראשון גדול מהשני -- יש להשלים את מונה תוצאת החיסור. לדוגמה: 5/7 - 2/7 = ?/7. התוצאה תמיד שבר תקין ומצומצם מראש.',

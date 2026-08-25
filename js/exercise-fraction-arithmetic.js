@@ -1,9 +1,15 @@
 // ---------- Shared engine for addfractions/subtractfractions ----------
-// exercise-addfractions.js and exercise-subtractfractions.js implement the
-// exact same 4-level structure (same-denominator levels 1-2, then
-// one-denominator-a-multiple-of-the-other levels 3-4) and return the exact
-// same {pNum, pDen, qNum, qDen, missing, targetNumerator, targetDenominator,
-// answer} shape -- the only real difference is the arithmetic itself:
+// exercise-addfractions.js and exercise-subtractfractions.js both implement
+// the same underlying 4-mechanic structure (same-denominator levels 1-2,
+// then one-denominator-a-multiple-of-the-other levels 3-4) and return the
+// exact same {pNum, pDen, qNum, qDen, missing, targetNumerator,
+// targetDenominator, answer} shape from the functions here -- addfractions
+// additionally has its own level 3 scaffold (exercise-addfractions.js only,
+// not shared with subtractfractions) wedged between the same-denominator and
+// multiple-denominator mechanics, pushing its own levels 3-4 to 4-5; that
+// scaffold still draws from generateMultipleDenomLevel3Exercise() below, just
+// with b1Chance forced to 0. The only real difference in the shared
+// mechanics is the arithmetic itself:
 // addition is commutative (any positive split of a target sum is valid, and
 // which addend renders on which side is purely cosmetic), subtraction isn't
 // (the draw has to know which fraction is the minuend before it can even

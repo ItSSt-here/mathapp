@@ -95,6 +95,21 @@ function isWholeBoxAnswerLevel() {
     isAddFractionsAdvancedLevel3() || isAddFractionsAdvancedLevel4();
 }
 
+// True whenever the current exercise's two blanks sit left-to-right on the
+// same row rather than stacked (numerator over denominator in one
+// .frac-block) -- every isWholeBoxAnswerLevel() case, plus the addfractions
+// level 3 scaffold, whose two blanks are two different fraction slots on the
+// same row (isFractionAdditionScaffoldLevel(), exercise-addfractions.js), not
+// one fraction's own numerator+denominator. Kept separate from
+// isWholeBoxAnswerLevel() itself, which also governs the legitimate-
+// blank-asserts-0 styling -- that doesn't apply here, since both of this
+// level's boxes are ordinary required digits. main.js's #answer/#answer2
+// keydown handlers gate their ArrowLeft/ArrowRight (vs. ArrowUp/ArrowDown)
+// choice on this.
+function isHorizontalTwoBoxLevel() {
+  return isWholeBoxAnswerLevel() || isFractionAdditionScaffoldLevel();
+}
+
 // True whenever the current exercise is the *two*-box variant of the above
 // (#answer whole + #answer2 remainder numerator, fixed denominator) --
 // mixed-numbers level 1 and addfractionsadvanced levels 1 and 3 (level 3's
@@ -493,8 +508,41 @@ function newExercise() {
   } else if (gameMode === 'addfractions') {
     const ex = pickExercise(generateFractionAdditionExercise);
     currentAnswer = ex.answer;
-    const shownHTML = fractionBlockHTML(ex.pNum, ex.pDen) + '<span class="frac-op">+</span>' + fractionBlockHTML(ex.qNum, ex.qDen);
-    renderFractionAnswerEquation(shownHTML, ex, questionText, answerInput, answer2, answer2Home, simplifyLabel);
+    if (isFractionAdditionScaffoldLevel()) {
+      // Level 3 scaffold: the given problem shown plain (no result) on its
+      // own row, then the same problem again underneath with whichever side
+      // needed expanding rewritten over the shared denominator -- two
+      // separate blanks (#answer for the expanded numerator, #answer2 for
+      // the sum's own numerator) in two different fraction slots, so this
+      // doesn't fit renderFractionAnswerEquation()'s single "shown = blank"
+      // template. Row order mirrors the given row's own left/right
+      // placement (whichever of pNum/pDen or qNum/qDen is the expand side),
+      // so the same fraction stays on the same side across both lines.
+      const givenRowHTML = fractionBlockHTML(ex.pNum, ex.pDen) + '<span class="frac-op">+</span>' + fractionBlockHTML(ex.qNum, ex.qDen) + '<span class="frac-op">=</span>';
+      const expandSlotHTML = `<span class="frac-block frac-answer-block" id="fracAnswerSlot"><span class="frac-bar"></span><span class="frac-den">${ex.targetDenominator}</span></span>`;
+      const matchedFractionHTML = fractionBlockHTML(ex.pIsExpandSide ? ex.qNum : ex.pNum, ex.targetDenominator);
+      const expandedRowHTML =
+        (ex.pIsExpandSide
+          ? expandSlotHTML + '<span class="frac-op">+</span>' + matchedFractionHTML
+          : matchedFractionHTML + '<span class="frac-op">+</span>' + expandSlotHTML) +
+        '<span class="frac-op">=</span>' +
+        `<span class="frac-block frac-answer-block" id="fracScaffoldResultSlot"><span class="frac-bar"></span><span class="frac-den">${ex.targetDenominator}</span></span>`;
+      questionText.innerHTML =
+        '<span class="frac-eq-stack">' +
+          `<span class="frac-eq">${givenRowHTML}</span>` +
+          `<span class="frac-eq">${expandedRowHTML}</span>` +
+        '</span>';
+      answerInput.setAttribute('enterkeyhint', 'next'); // Enter moves to #answer2
+      answerInput.classList.add('fraction-answer-input');
+      const expandSlot = document.getElementById('fracAnswerSlot');
+      expandSlot.insertBefore(answerInput, expandSlot.querySelector('.frac-bar'));
+      answer2.classList.add('fraction-answer-input');
+      const resultSlot = document.getElementById('fracScaffoldResultSlot');
+      resultSlot.insertBefore(answer2, resultSlot.querySelector('.frac-bar'));
+    } else {
+      const shownHTML = fractionBlockHTML(ex.pNum, ex.pDen) + '<span class="frac-op">+</span>' + fractionBlockHTML(ex.qNum, ex.qDen);
+      renderFractionAnswerEquation(shownHTML, ex, questionText, answerInput, answer2, answer2Home, simplifyLabel);
+    }
   } else if (gameMode === 'subtractfractions') {
     const ex = pickExercise(generateFractionSubtractionExercise);
     currentAnswer = ex.answer;
@@ -615,6 +663,11 @@ function checkAnswer() {
     return;
   }
 
+  if (isFractionAdditionScaffoldLevel()) {
+    checkFractionAdditionScaffoldAnswer();
+    return;
+  }
+
   const answerInput = document.getElementById('answer');
   const answer2 = document.getElementById('answer2');
   const checkBtn = document.getElementById('checkBtn');
@@ -716,10 +769,14 @@ function changeQuestion() {
   // (isTwoBoxWholeAnswerLevel()). Mixed-numbers level 3 and addfractionsadvanced
   // level 2 don't fit either shape -- it's {whole, numerator, denominator}
   // across *three* boxes -- so they get their own branch too
-  // (isThreeBoxAnswerLevel()). Mixed-numbers level 2's answer is a plain
-  // number, which the generic branch already handles (see
-  // checkMixedNumberAnswer() in exercise-mixednumbers.js for the matching
-  // level-based validation split).
+  // (isThreeBoxAnswerLevel()). addfractions level 3 (the expand-to-common-
+  // denominator scaffold) doesn't fit either: its answer is
+  // {expandedNumerator, targetNumerator}, two ordinary required blanks in
+  // two different fraction slots rather than one fraction's own
+  // numerator+denominator (isFractionAdditionScaffoldLevel(), exercise-addfractions.js).
+  // Mixed-numbers level 2's answer is a plain number, which the generic
+  // branch already handles (see checkMixedNumberAnswer() in
+  // exercise-mixednumbers.js for the matching level-based validation split).
   const isTwoBlank = typeof currentAnswer === 'object';
   answerInput.classList.remove('answer-left-blank');
   if (isTwoBoxWholeAnswerLevel()) {
@@ -732,6 +789,10 @@ function changeQuestion() {
     answer3.value = currentAnswer.denominator;
     answer2.classList.add('answer-revealed');
     answer3.classList.add('answer-revealed');
+  } else if (isFractionAdditionScaffoldLevel()) {
+    answerInput.value = currentAnswer.expandedNumerator;
+    answer2.value = currentAnswer.targetNumerator;
+    answer2.classList.add('answer-revealed');
   } else {
     answerInput.value = isTwoBlank ? currentAnswer.numerator : currentAnswer;
     if (isTwoBlank) {
