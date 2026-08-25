@@ -323,6 +323,7 @@ function changeVocabularyTypedQuestion() {
 
   playerMoney -= SWAP_QUESTION_COST;
   swapCount++;
+  recordWeakPoolSwap();
   updateCoinsDisplay();
   updateStatsCountersDisplay();
   showFloatingText(`-${SWAP_QUESTION_COST}`, 'negative', swapBtn);

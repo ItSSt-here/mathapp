@@ -13,7 +13,7 @@
      fetch of everything together instead of relying on cache timing to
      line up. No build step in this project, so this is manual -- there's
      nothing to automate it. -->
-<link rel="stylesheet" href="style.css?v=202608251300">
+<link rel="stylesheet" href="style.css?v=202608252000">
 </head>
 <body>
 
@@ -241,6 +241,15 @@
 
     <p class="exdiff-description" id="exDiffDescription"></p>
 
+    <!-- Weak pool: default on (see WEAK_POOL_* in config.js and
+         pickExercise()/tickWeakPool() in exercise-core.js), also carried in
+         the share link (URL_PARAM_REVIEW, buildShareLink() in main.js) since
+         it's set on this same screen. -->
+    <label class="weak-pool-option">
+      <input type="checkbox" id="weakPoolCheckbox" checked>
+      תרגול חוזר על טעויות
+    </label>
+
     <div class="postgame-buttons">
       <button class="home-btn" id="backToModeBtn">חזרה</button>
       <button class="restart-btn" id="exDiffContinueBtn">המשך</button>
@@ -313,24 +322,24 @@
      (see preloadSoldierSprites() in render.js). -->
 <div id="spritePreload" style="position:fixed; left:-9999px; top:-9999px; width:1px; height:1px; overflow:hidden;" aria-hidden="true"></div>
 
-<script src="js/config.js?v=202608251300"></script>
-<script src="js/helpers.js?v=202608251300"></script>
-<script src="js/exercise-core.js?v=202608251300"></script>
-<script src="js/exercise-division.js?v=202608251300"></script>
-<script src="js/exercise-fractions.js?v=202608251300"></script>
-<script src="js/exercise-fraction-arithmetic.js?v=202608251300"></script>
-<script src="js/exercise-addfractions.js?v=202608251300"></script>
-<script src="js/exercise-subtractfractions.js?v=202608251300"></script>
-<script src="js/exercise-mixednumbers.js?v=202608251300"></script>
-<script src="js/exercise-addfractionsadvanced.js?v=202608251300"></script>
-<script src="js/exercise-letters.js?v=202608251300"></script>
-<script src="js/exercise-abc.js?v=202608251300"></script>
-<script src="js/exercise-nikud.js?v=202608251300"></script>
-<script src="js/exercise-compare.js?v=202608251300"></script>
-<script src="js/exercise-vocabulary.js?v=202608251300"></script>
-<script src="js/combat.js?v=202608251300"></script>
-<script src="js/render.js?v=202608251300"></script>
-<script src="js/main.js?v=202608251300"></script>
+<script src="js/config.js?v=202608252000"></script>
+<script src="js/helpers.js?v=202608252000"></script>
+<script src="js/exercise-core.js?v=202608252000"></script>
+<script src="js/exercise-division.js?v=202608252000"></script>
+<script src="js/exercise-fractions.js?v=202608252000"></script>
+<script src="js/exercise-fraction-arithmetic.js?v=202608252000"></script>
+<script src="js/exercise-addfractions.js?v=202608252000"></script>
+<script src="js/exercise-subtractfractions.js?v=202608252000"></script>
+<script src="js/exercise-mixednumbers.js?v=202608252000"></script>
+<script src="js/exercise-addfractionsadvanced.js?v=202608252000"></script>
+<script src="js/exercise-letters.js?v=202608252000"></script>
+<script src="js/exercise-abc.js?v=202608252000"></script>
+<script src="js/exercise-nikud.js?v=202608252000"></script>
+<script src="js/exercise-compare.js?v=202608252000"></script>
+<script src="js/exercise-vocabulary.js?v=202608252000"></script>
+<script src="js/combat.js?v=202608252000"></script>
+<script src="js/render.js?v=202608252000"></script>
+<script src="js/main.js?v=202608252000"></script>
 
 </body>
 </html>

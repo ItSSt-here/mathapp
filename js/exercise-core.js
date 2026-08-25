@@ -115,7 +115,118 @@ function isThreeBoxAnswerLevel() {
   return isMixedNumberLevel3() || isAddFractionsAdvancedLevel2() || isAddFractionsAdvancedLevel4();
 }
 
+// ---------- Weak pool: replay recently-missed exercises ----------
+// Every topic's newExercise() branch below builds its question/answer purely
+// from the object its own generate*Exercise() returns (the `ex` locals) --
+// so replaying a past mistake is just a matter of handing that exact object
+// back instead of generating a new one, with no per-topic logic needed here.
+// See config.js for the WEAK_POOL_* constants and state.
+
+// Called once per newExercise(), before any topic branch runs: just clears
+// the "had a mistake yet" guard for the question about to be shown. Pool
+// entries are aged in pickExercise() below, not here -- see its comment for
+// why the order matters.
+function tickWeakPool() {
+  currentQuestionHadMistake = false;
+}
+
+// Call site for every topic's `const ex = generate...()` -- returns a pooled
+// exercise WEAK_POOL_DRAW_CHANCE of the time (once one's countdown has
+// reached 0), otherwise calls generateFn() for a fresh one. Either way,
+// tracks which case just happened so markCorrect()/markWrong()/changeQuestion()
+// know what to do with it once this question is resolved.
+//
+// Eligibility is checked against each entry's countdown *before* aging it
+// for this round, and every entry is aged by 1 only afterward -- so an
+// entry that reaches 0 this round isn't also eligible to be drawn this same
+// round. That's what makes "countdown N" actually mean N full other
+// questions pass before this one can resurface: aging-then-checking would
+// let the very question that ticks an entry down to 0 also be the one that
+// draws it, one question earlier than intended.
+function pickExercise(generateFn) {
+  activePoolEntry = null;
+  currentExerciseSnapshot = null;
+  let ex = null;
+  if (weakPoolReviewEnabled) {
+    const eligible = weakPool.filter(entry => entry.countdown <= 0);
+    if (eligible.length > 0 && Math.random() < WEAK_POOL_DRAW_CHANCE) {
+      activePoolEntry = eligible[Math.floor(Math.random() * eligible.length)];
+      ex = activePoolEntry.ex;
+    }
+  }
+  if (ex === null) {
+    ex = generateFn();
+    currentExerciseSnapshot = ex;
+  }
+  if (weakPoolReviewEnabled) {
+    for (const entry of weakPool) {
+      if (entry !== activePoolEntry && entry.countdown > 0) entry.countdown--;
+    }
+  }
+  return ex;
+}
+
+// Shared by recordWeakPoolRecovery()/recordWeakPoolSwap() below -- adds the
+// current (non-pooled) question at the given countdown, evicting the oldest
+// entry first if already at WEAK_POOL_MAX_SIZE.
+function pushToWeakPool(countdown) {
+  if (!currentExerciseSnapshot) return; // this topic branch didn't route through pickExercise() (shouldn't happen, but don't crash if it does)
+  weakPool.push({ ex: currentExerciseSnapshot, countdown });
+  if (weakPool.length > WEAK_POOL_MAX_SIZE) weakPool.shift();
+}
+
+// Called from markWrong() -- just flags that this question instance has had
+// at least one wrong attempt. The actual pool decision is deferred to
+// however this question instance eventually resolves (see
+// recordWeakPoolRecovery()/recordWeakPoolSwap() below): getting it wrong
+// doesn't by itself mean anything goes into the pool yet, since the very
+// next attempt might get it right.
+function recordWeakPoolMistake() {
+  currentQuestionHadMistake = true;
+}
+
+// Called from markCorrect(). A pooled question only graduates out of the
+// pool if this replay got it right on the first try -- missing it again
+// before recovering means it's still shaky, so it stays in the pool at the
+// short WEAK_POOL_SWAP_COUNTDOWN (same reasoning as a swap: still doesn't
+// reliably know it, retest soon) instead of leaving for good. A fresh
+// question that needed at least one wrong attempt before being answered
+// correctly enters the pool at WEAK_POOL_RECOVERED_COUNTDOWN -- a longer
+// wait than that, since actually recovering the right answer on a first
+// encounter (rather than giving up, or needing a second pass) is the
+// strongest of the three signals. A question answered correctly on the
+// first try was never in trouble, so it's left alone entirely.
+function recordWeakPoolRecovery() {
+  if (!weakPoolReviewEnabled) return;
+  if (activePoolEntry) {
+    if (currentQuestionHadMistake) {
+      activePoolEntry.countdown = WEAK_POOL_SWAP_COUNTDOWN;
+      return;
+    }
+    const idx = weakPool.indexOf(activePoolEntry);
+    if (idx !== -1) weakPool.splice(idx, 1);
+    return;
+  }
+  if (currentQuestionHadMistake) pushToWeakPool(WEAK_POOL_RECOVERED_COUNTDOWN);
+}
+
+// Called from changeQuestion()/changeVocabularyTypedQuestion() -- swapping a
+// question away means it was never actually answered on this instance
+// (unlike recordWeakPoolRecovery()'s case), so it goes back into the pool at
+// the short WEAK_POOL_SWAP_COUNTDOWN regardless of whether there were any
+// wrong attempts first. A pooled question swapped away again just has its
+// countdown reset the same way, instead of being duplicated.
+function recordWeakPoolSwap() {
+  if (!weakPoolReviewEnabled) return;
+  if (activePoolEntry) {
+    activePoolEntry.countdown = WEAK_POOL_SWAP_COUNTDOWN;
+    return;
+  }
+  pushToWeakPool(WEAK_POOL_SWAP_COUNTDOWN);
+}
+
 function newExercise() {
+  tickWeakPool();
   const questionText = document.getElementById('questionText');
   const answerInput = document.getElementById('answer');
   const answer2 = document.getElementById('answer2');
@@ -178,7 +289,7 @@ function newExercise() {
   document.getElementById('vocabularyAnswerHome').style.display = isVocabulary ? '' : 'none';
 
   if (isVocabulary) {
-    const ex = generateVocabularyExercise();
+    const ex = pickExercise(generateVocabularyExercise);
     currentVocabularyAnswer = ex.correct;
     renderVocabularyChoices(ex);
     document.getElementById('feedback').textContent = '';
@@ -192,7 +303,7 @@ function newExercise() {
   document.getElementById('lettersAnswerHome').classList.toggle('abc-mode', isAbc);
 
   if (isCompare) {
-    const ex = generateCompareFractionsExercise();
+    const ex = pickExercise(generateCompareFractionsExercise);
     currentCompareAnswer = ex.correct;
     questionText.innerHTML =
       '<span class="frac-eq compare-eq">' +
@@ -209,7 +320,7 @@ function newExercise() {
   if (isLetterFamily) {
     document.getElementById('letterListenMode').style.display = isReverse ? 'none' : '';
     document.getElementById('letterRevealMode').style.display = isReverse ? '' : 'none';
-    const ex = isAbc ? generateAbcExercise() : (isNikud ? generateNikudExercise() : generateLetterExercise());
+    const ex = pickExercise(isAbc ? generateAbcExercise : (isNikud ? generateNikudExercise : generateLetterExercise));
     currentLetterAnswer = ex.correct;
     if (isReverse) {
       renderLetterReverseChoices(ex);
@@ -224,7 +335,7 @@ function newExercise() {
   }
 
   if (gameMode === 'mixednumbers') {
-    const ex = generateMixedNumberExercise();
+    const ex = pickExercise(generateMixedNumberExercise);
     currentAnswer = ex.answer;
     if (ex.direction === 'toImproper') {
       // Level 2: given mixed number, one blank (the improper numerator) --
@@ -312,7 +423,7 @@ function newExercise() {
       fracSlot.insertBefore(answer2, fracSlot.querySelector('.frac-bar'));
     }
   } else if (gameMode === 'addfractionsadvanced') {
-    const ex = generateFractionAdditionAdvancedExercise();
+    const ex = pickExercise(generateFractionAdditionAdvancedExercise);
     currentAnswer = ex.answer;
     // Levels 3-4 show both addends as given mixed numbers instead of plain
     // fractions (W=0 shown as a plain fraction with no whole part -- same
@@ -380,17 +491,17 @@ function newExercise() {
       fracSlot.insertBefore(answer2, fracSlot.querySelector('.frac-bar'));
     }
   } else if (gameMode === 'addfractions') {
-    const ex = generateFractionAdditionExercise();
+    const ex = pickExercise(generateFractionAdditionExercise);
     currentAnswer = ex.answer;
     const shownHTML = fractionBlockHTML(ex.pNum, ex.pDen) + '<span class="frac-op">+</span>' + fractionBlockHTML(ex.qNum, ex.qDen);
     renderFractionAnswerEquation(shownHTML, ex, questionText, answerInput, answer2, answer2Home, simplifyLabel);
   } else if (gameMode === 'subtractfractions') {
-    const ex = generateFractionSubtractionExercise();
+    const ex = pickExercise(generateFractionSubtractionExercise);
     currentAnswer = ex.answer;
     const shownHTML = fractionBlockHTML(ex.pNum, ex.pDen) + '<span class="frac-op">−</span>' + fractionBlockHTML(ex.qNum, ex.qDen);
     renderFractionAnswerEquation(shownHTML, ex, questionText, answerInput, answer2, answer2Home, simplifyLabel);
   } else if (gameMode === 'fractions') {
-    const ex = generateFractionExercise();
+    const ex = pickExercise(generateFractionExercise);
     currentAnswer = ex.answer;
     const shownHTML = fractionBlockHTML(ex.shownNumerator, ex.shownDenominator);
     renderFractionAnswerEquation(shownHTML, ex, questionText, answerInput, answer2, answer2Home, simplifyLabel);
@@ -398,7 +509,7 @@ function newExercise() {
     // Same "num1 × num2 = [blank]" template multiplication uses, just with
     // the blank moved onto whichever factor generateDivisionIntroExercise()
     // picked instead of the product -- see that function's own comment.
-    const ex = generateDivisionIntroExercise();
+    const ex = pickExercise(generateDivisionIntroExercise);
     currentAnswer = ex.answer;
     const shown = ex.missing === 'first' ? ex.num2 : ex.num1;
     questionText.innerHTML = ex.missing === 'first'
@@ -410,7 +521,11 @@ function newExercise() {
     answer2.classList.remove('fraction-answer-input');
     answer2Home.appendChild(answer2);
   } else {
-    [num1, num2] = pickNumbers();
+    // No generate*Exercise() of its own -- pickNumbers() is wrapped inline
+    // so multiplication still routes through pickExercise() like every other
+    // topic, keeping it eligible for the weak pool too.
+    const ex = pickExercise(() => { const [n1, n2] = pickNumbers(); return { num1: n1, num2: n2 }; });
+    [num1, num2] = [ex.num1, ex.num2];
     currentAnswer = num1 * num2;
     questionText.innerHTML = `<span class="mult-eq">${num1} × ${num2}<span class="mult-op">=</span><span id="multAnswerSlot"></span></span>`;
     answerInput.classList.remove('fraction-answer-input');
@@ -459,6 +574,7 @@ function markCorrect(anchorEl) {
   feedback.className = 'feedback correct';
   playerMoney = Math.min(MAX_COINS, playerMoney + CORRECT_REWARD);
   correctCount++;
+  recordWeakPoolRecovery();
   updateCoinsDisplay();
   updateStatsCountersDisplay();
   showFloatingText(`+${CORRECT_REWARD}`, 'positive', anchorEl);
@@ -470,6 +586,7 @@ function markWrong(anchorEl, message = 'לא נכון, נסה שוב') {
   feedback.className = 'feedback incorrect';
   playerMoney -= WRONG_PENALTY;
   wrongCount++;
+  recordWeakPoolMistake();
   updateCoinsDisplay();
   updateStatsCountersDisplay();
   showFloatingText(`-${WRONG_PENALTY}`, 'negative', anchorEl);
@@ -580,6 +697,7 @@ function changeQuestion() {
 
   playerMoney -= SWAP_QUESTION_COST;
   swapCount++;
+  recordWeakPoolSwap();
   updateCoinsDisplay();
   updateStatsCountersDisplay();
   showFloatingText(`-${SWAP_QUESTION_COST}`, 'negative', swapBtn);

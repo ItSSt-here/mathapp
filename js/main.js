@@ -114,6 +114,10 @@ function parseUrlParams() {
   // exact duplicates of a lower one anyway, so clamping reproduces
   // identical gameplay to what the link originally pointed at.
   exerciseDifficultyIndex = hasDifficulty ? Math.min(difficultyNum, getExerciseLevelCount()) - 1 : 0;
+  // Defaults to on (matching weakPoolCheckbox's own default) for a link that
+  // predates this feature, same as any other absent param on an old link.
+  const reviewParam = params.get(URL_PARAM_REVIEW);
+  weakPoolReviewEnabled = reviewParam === null ? true : reviewParam === '1';
   if (!hasDifficulty) return 'difficulty';
 
   const speedNum = Number(params.get(URL_PARAM_SPEED));
@@ -127,6 +131,7 @@ const ARRIVED_STAGE_OVERLAY = { mode: 'modeOverlay', subtopic: 'fractionsSubtopi
 
 function showInitialOverlay() {
   arrivedStage = parseUrlParams();
+  document.getElementById('weakPoolCheckbox').checked = weakPoolReviewEnabled;
   document.getElementById(ARRIVED_STAGE_OVERLAY[arrivedStage]).classList.add('show');
 }
 
@@ -161,6 +166,7 @@ function buildShareLink(stage) {
   if (stage === 'difficulty' || stage === 'speed') {
     params.set(URL_PARAM_TOPIC, gameMode);
     params.set(URL_PARAM_DIFFICULTY, String(exerciseDifficultyIndex + 1));
+    params.set(URL_PARAM_REVIEW, weakPoolReviewEnabled ? '1' : '0');
     if (gameMode === 'vocabulary') {
       params.set(URL_PARAM_WORDS, serializeVocabularyWordList(vocabularyWordList));
     }
@@ -231,6 +237,12 @@ function endGame(playerWon, surrendered) {
 
 function startGame() {
   playerMoney = 0;
+  // Weak pool never carries over between rounds -- see its state comment in
+  // config.js for why (shared-device mistake bleed-through).
+  weakPool = [];
+  activePoolEntry = null;
+  currentExerciseSnapshot = null;
+  currentQuestionHadMistake = false;
   playerCastleHP = CASTLE_MAX_HP;
   computerCastleHP = CASTLE_MAX_HP;
   soldiers = [];
@@ -762,6 +774,9 @@ document.getElementById('diffUpBtn').addEventListener('click', () => changeDiffi
 document.getElementById('diffDownBtn').addEventListener('click', () => changeDifficulty(-1));
 document.getElementById('exDiffUpBtn').addEventListener('click', () => changeExerciseDifficulty(1));
 document.getElementById('exDiffDownBtn').addEventListener('click', () => changeExerciseDifficulty(-1));
+document.getElementById('weakPoolCheckbox').addEventListener('change', (e) => {
+  weakPoolReviewEnabled = e.target.checked;
+});
 window.addEventListener('resize', recalcSiegeThresholds);
 window.addEventListener('resize', placeBuyBtn);
 window.addEventListener('resize', placeBattlefield);

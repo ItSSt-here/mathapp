@@ -19,6 +19,22 @@ const SWAP_REVEAL_MS = 2000;
 const DEATH_FADE_MS = 5000;   // how long a fallen soldier lies there before disappearing
 const FADE_DURATION_MS = 1000; // fades out over the last second before removal
 
+// Weak-pool: replay-recently-missed-questions mechanic (toggle: the
+// weakPoolCheckbox on exDifficultyOverlay, see index.html). A pool entry
+// waits its countdown's worth of other questions before it's eligible to
+// resurface (see tickWeakPool() in exercise-core.js), then has a
+// WEAK_POOL_DRAW_CHANCE chance of being picked instead of a fresh question
+// each time newExercise() runs. Capped at WEAK_POOL_MAX_SIZE, oldest entry
+// evicted first, so one rough stretch can't flood every future question slot.
+// Two different starting countdowns (see recordWeakPoolRecovery()/
+// recordWeakPoolSwap() in exercise-core.js): actually recovering the right
+// answer after a mistake means it's less urgent than giving up on it
+// entirely via a swap, so it waits longer before coming back.
+const WEAK_POOL_RECOVERED_COUNTDOWN = 5;
+const WEAK_POOL_SWAP_COUNTDOWN = 2;
+const WEAK_POOL_DRAW_CHANCE = 0.5;
+const WEAK_POOL_MAX_SIZE = 4;
+
 // Soldier sprite animation: each pose has 10 frames (assets/sprites/knight/<color>/<pose>/1..10.png).
 // Advanced on its own faster interval (see animTick() in combat.js) rather
 // than the TICK_MS combat/movement loop -- some poses have a couple of
@@ -106,6 +122,12 @@ const URL_PARAM_GROUP = 'group';
 // a chapter-sized list (~150-200 words was confirmed comfortably within
 // normal link-length limits, see [[project_vocabulary_topic_plan]]).
 const URL_PARAM_WORDS = 'words';
+// Carries the weak-pool checkbox's state (see WEAK_POOL_* above) --
+// '1'/'0', defaulting to on (matching the checkbox's own default) when
+// absent, same as an old link predating this feature. Set alongside
+// URL_PARAM_DIFFICULTY (buildShareLink() in main.js) since it lives on the
+// same exDifficultyOverlay screen.
+const URL_PARAM_REVIEW = 'review';
 const VALID_TOPICS = ['multiplication', 'fractions', 'comparefractions', 'addfractions', 'subtractfractions', 'mixednumbers', 'addfractionsadvanced', 'letters', 'abc', 'nikud', 'vocabulary', 'division']; // matches gameMode's own values, no translation table needed
 // The mode-select screen groups these 6 behind one "שברים" hub button
 // (fractionsSubtopicOverlay in index.html) instead of listing them flat --
@@ -596,6 +618,15 @@ let currentAnswer; // correct value for the current exercise, any mode
 let currentLetterAnswer = null; // correct letter (a single character) for the current letters-mode exercise
 let currentCompareAnswer = null; // correct '<'/'>' for the current comparefractions-mode exercise
 let playerMoney = 0;
+// Weak-pool state (see the WEAK_POOL_* constants above and the functions in
+// exercise-core.js). Deliberately reset every startGame(), never persisted
+// to localStorage -- a shared device could otherwise hand one kid's
+// mistakes to whoever plays the next round.
+let weakPoolReviewEnabled = true; // mirrors weakPoolCheckbox; synced in showInitialOverlay()/its own change listener (main.js)
+let weakPool = []; // array of {ex, countdown}
+let activePoolEntry = null; // the weakPool entry the current question was drawn from, or null if freshly generated
+let currentExerciseSnapshot = null; // the current question's own generate*Exercise() result, ready to push into weakPool on a miss
+let currentQuestionHadMistake = false; // whether the current question instance has had a wrong attempt yet -- decides recordWeakPoolRecovery()'s countdown if it's then answered correctly
 let playerCastleHP = CASTLE_MAX_HP;
 let computerCastleHP = CASTLE_MAX_HP;
 let soldiers = [];

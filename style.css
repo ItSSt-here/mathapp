@@ -1283,6 +1283,23 @@ hr {
   margin: 6px auto 18px;
 }
 
+.weak-pool-option {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #444;
+  margin: 0 0 18px;
+  cursor: pointer;
+}
+
+.weak-pool-option input {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
 .postgame-buttons {
   display: flex;
   gap: 12px;
