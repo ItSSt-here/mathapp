@@ -539,7 +539,7 @@ const EXERCISE_TOPIC_LEVEL_COUNTS = {
   abc: 4,               // level 5 was identical to level 4
   nikud: 5,
   vocabulary: 4,       // level 2 added 2026-08-24: reverse direction. level 3 added same day: English word spoken via TTS instead of shown as text. level 4 added same day: Hebrew word shown, typed English answer
-  division: 3,         // level 1 added 2026-08-24; levels 2-3 added 2026-08-27, mirroring multiplication's own levels 2-3 (same EXERCISE_LEVEL_CONFIGS indices, see pickDivisionFactors() in exercise-division.js)
+  division: 5,         // level 1 added 2026-08-24; levels 2-3 added 2026-08-27; levels 4-5 added same day, mirroring multiplication's own levels 2-5 (same EXERCISE_LEVEL_CONFIGS indices, see pickDivisionFactors() in exercise-division.js)
 };
 
 function getExerciseLevelCount() {
@@ -626,6 +626,8 @@ const EXERCISE_LEVEL_DESCRIPTIONS = {
     'כמו רמה 1 בלוח הכפל (אותה התפלגות מספרים בדיוק), אבל בלי תרגילים שבהם אחד המוכפלים הוא 0 -- והפעם החסר הוא אחד המוכפלים (נבחר באקראי איזה מהם), לא התוצאה. לדוגמה: 2×[]=6.',
     'כמו רמה 2 בלוח הכפל (אותה התפלגות מספרים בדיוק), אבל בלי תרגילים שבהם אחד המוכפלים הוא 0 -- והפעם החסר הוא אחד המוכפלים (נבחר באקראי איזה מהם), לא התוצאה. לדוגמה: 4×[]=24.',
     'כמו רמה 3 בלוח הכפל (אותה התפלגות מספרים בדיוק), אבל בלי תרגילים שבהם אחד המוכפלים הוא 0 -- והפעם החסר הוא אחד המוכפלים (נבחר באקראי איזה מהם), לא התוצאה. לדוגמה: []×9=54.',
+    'כמו רמה 4 בלוח הכפל (אותה התפלגות מספרים בדיוק, בלי 8), אבל בלי תרגילים שבהם אחד המוכפלים הוא 0 -- והפעם החסר הוא אחד המוכפלים (נבחר באקראי איזה מהם), לא התוצאה. לדוגמה: 7×[]=63.',
+    'כמו רמה 5 בלוח הכפל -- הרמה הקשה ביותר, אותה התפלגות מספרים בדיוק (כולל צירופים כמו 7×8, 8×9, 9×9) -- אבל בלי תרגילים שבהם אחד המוכפלים הוא 0 -- והפעם החסר הוא אחד המוכפלים (נבחר באקראי איזה מהם), לא התוצאה. לדוגמה: 7×[]=56.',
   ],
 };
 

@@ -1,14 +1,15 @@
 // ---------- Division-intro exercise ("מבוא לחילוק") ----------
 // Same tier logic as multiplication's own pickNumbers() (helpers.js) --
-// same thresholds/pools from the shared EXERCISE_LEVEL_CONFIGS, indices 0-2
-// (division levels 1-3 reuse exactly multiplication's own level-1/2/3
+// same thresholds/pools from the shared EXERCISE_LEVEL_CONFIGS, indices 0-4
+// (division levels 1-5 reuse exactly multiplication's own level-1..5
 // entries) -- except LEVEL1_NUMS/randInt(0,10) are swapped for their
 // 0-excluding counterparts, so 0 is never drawn at all rather than drawn and
 // rerolled: "a×[]=0" has no single correct answer (any b works), unlike
 // multiplication's own level 1 where 0×6=0 is a normal answer. tier2's pools
 // (LEVEL2_NUMS, NON_LEVEL1_NUMS) never contained 0 to begin with, so they're
-// reused as-is, and the hard-tier pools (hardPool: [4,6] for level 2, [4,6,9]
-// for level 3) don't contain 0 either, so no swap is needed there.
+// reused as-is, and none of the hard-tier pools used at levels 2-5 ([4,6],
+// [4,6,9], [4,6,7,9], [4,6,7,8,9]) contain 0 either, so no swap is needed
+// for any of them.
 function pickDivisionFactors() {
   const { tier1Threshold, tier2Threshold, hardPool } = getExerciseLevelConfig();
   const r = Math.random();
