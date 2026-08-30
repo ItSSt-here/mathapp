@@ -540,7 +540,7 @@ const EXERCISE_TOPIC_LEVEL_COUNTS = {
   nikud: 5,
   vocabulary: 4,       // level 2 added 2026-08-24: reverse direction. level 3 added same day: English word spoken via TTS instead of shown as text. level 4 added same day: Hebrew word shown, typed English answer
   division: 5,         // level 1 added 2026-08-24; levels 2-3 added 2026-08-27; levels 4-5 added same day, mirroring multiplication's own levels 2-5 (same EXERCISE_LEVEL_CONFIGS indices, see pickDivisionFactors() in exercise-division.js)
-  grammar: 1,           // level 1 added 2026-08-30: English V1 shown, student types V2 (e.g. verb base form -> past tense), exact spelling. See exercise-grammar.js.
+  grammar: 2,           // level 1 added 2026-08-30: English V1 shown, student types V2 (e.g. verb base form -> past tense), exact spelling. level 2 added same day: reverse direction (V2 shown, V1 typed). See exercise-grammar.js.
 };
 
 function getExerciseLevelCount() {
@@ -632,6 +632,7 @@ const EXERCISE_LEVEL_DESCRIPTIONS = {
   ],
   grammar: [
     'מוצגת מילה באנגלית (V1), ויש לכתוב את הצורה המקבילה שלה (V2, למשל צורת עבר של פועל) באיות מדויק -- אין בחירה מתוך אפשרויות.',
+    'הפוך: מוצגת הצורה המקבילה (V2), ויש לכתוב את המילה המקורית (V1) באיות מדויק.',
   ],
 };
 

@@ -1,13 +1,22 @@
 // ---------- Grammar exercise ----------
-// Level 1 (the only level so far): an English word (V1, e.g. a verb's base
-// form) is shown and the student types V2 (e.g. its past-tense form) with
-// exact spelling -- no multiple choice. Structurally this is vocabulary
-// level 4 (isVocabularyTypedMode()) lifted out into its own topic: same
+// Level 1: an English word (V1, e.g. a verb's base form) is shown and the
+// student types V2 (e.g. its past-tense form) with exact spelling -- no
+// multiple choice. Level 2 (isGrammarReverseMode()): same mechanic, prompt/
+// answer flipped -- V2 shown, V1 typed. Structurally this whole topic is
+// vocabulary level 4 (isVocabularyTypedMode()) lifted out on its own: same
 // word-list-rides-in-the-link mechanism, same typed-answer/checkBtn flow,
-// same "החלף שאלה" swap-to-reveal escape hatch, just its own pair meaning
-// (V1/V2, not english/hebrew) and only ever one direction/level for now. See
+// same "החלף שאלה" swap-to-reveal escape hatch, same "level >= 1 flips
+// prompt/answer direction" idea as isVocabularyReverseMode()
+// (exercise-vocabulary.js) -- just its own pair meaning (V1/V2, not
+// english/hebrew) and always typed, never multiple-choice. See
 // generateGrammarExercise()/renderGrammarExercise()/checkGrammarAnswer()
 // below and the isGrammar branch in newExercise() (exercise-core.js).
+
+// Level 2: shows V2 and expects V1 typed back -- same list, same mechanic,
+// just which side of each {v1, v2} pair is the prompt vs. the answer.
+function isGrammarReverseMode() {
+  return gameMode === 'grammar' && exerciseDifficultyIndex === 1;
+}
 
 // Holds the currently loaded list: array of {v1, v2}. Populated by
 // parseGrammarWordList() when the teacher/student loads a list on
@@ -60,11 +69,15 @@ function loadGrammarWordListFromStorage() {
   return localStorage.getItem(GRAMMAR_STORAGE_KEY) || '';
 }
 
-// Picks a random pair and shows V1, answer is V2. No distractor pool to
-// build -- this topic is typed-only, never multiple-choice.
+// Picks a random pair; level 1 shows V1 and expects V2 typed back, level 2
+// (isGrammarReverseMode()) flips it. No distractor pool to build -- this
+// topic is typed-only, never multiple-choice.
 function generateGrammarExercise() {
+  const reverse = isGrammarReverseMode();
+  const promptField = reverse ? 'v2' : 'v1';
+  const answerField = reverse ? 'v1' : 'v2';
   const target = randChoice(grammarWordList);
-  return { word: target.v1, correct: target.v2 };
+  return { word: target[promptField], correct: target[answerField] };
 }
 
 function renderGrammarExercise(ex) {
