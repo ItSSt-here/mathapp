@@ -133,7 +133,7 @@ const URL_PARAM_WORDS = 'words';
 // URL_PARAM_DIFFICULTY (buildShareLink() in main.js) since it lives on the
 // same exDifficultyOverlay screen.
 const URL_PARAM_REVIEW = 'review';
-const VALID_TOPICS = ['multiplication', 'fractions', 'comparefractions', 'addfractions', 'subtractfractions', 'mixednumbers', 'addfractionsadvanced', 'letters', 'abc', 'nikud', 'vocabulary', 'division']; // matches gameMode's own values, no translation table needed
+const VALID_TOPICS = ['multiplication', 'fractions', 'comparefractions', 'addfractions', 'subtractfractions', 'mixednumbers', 'addfractionsadvanced', 'letters', 'abc', 'nikud', 'vocabulary', 'division', 'grammar']; // matches gameMode's own values, no translation table needed
 // The mode-select screen groups these 6 behind one "שברים" hub button
 // (fractionsSubtopicOverlay in index.html) instead of listing them flat --
 // see backToModeBtn's handler and parseUrlParams()/buildShareLink() in
@@ -540,6 +540,7 @@ const EXERCISE_TOPIC_LEVEL_COUNTS = {
   nikud: 5,
   vocabulary: 4,       // level 2 added 2026-08-24: reverse direction. level 3 added same day: English word spoken via TTS instead of shown as text. level 4 added same day: Hebrew word shown, typed English answer
   division: 5,         // level 1 added 2026-08-24; levels 2-3 added 2026-08-27; levels 4-5 added same day, mirroring multiplication's own levels 2-5 (same EXERCISE_LEVEL_CONFIGS indices, see pickDivisionFactors() in exercise-division.js)
+  grammar: 1,           // level 1 added 2026-08-30: English V1 shown, student types V2 (e.g. verb base form -> past tense), exact spelling. See exercise-grammar.js.
 };
 
 function getExerciseLevelCount() {
@@ -628,6 +629,9 @@ const EXERCISE_LEVEL_DESCRIPTIONS = {
     'כמו רמה 3 בלוח הכפל (אותה התפלגות מספרים בדיוק), אבל בלי תרגילים שבהם אחד המוכפלים הוא 0 -- והפעם החסר הוא אחד המוכפלים (נבחר באקראי איזה מהם), לא התוצאה. לדוגמה: []×9=54.',
     'כמו רמה 4 בלוח הכפל (אותה התפלגות מספרים בדיוק, בלי 8), אבל בלי תרגילים שבהם אחד המוכפלים הוא 0 -- והפעם החסר הוא אחד המוכפלים (נבחר באקראי איזה מהם), לא התוצאה. לדוגמה: 7×[]=63.',
     'כמו רמה 5 בלוח הכפל -- הרמה הקשה ביותר, אותה התפלגות מספרים בדיוק (כולל צירופים כמו 7×8, 8×9, 9×9) -- אבל בלי תרגילים שבהם אחד המוכפלים הוא 0 -- והפעם החסר הוא אחד המוכפלים (נבחר באקראי איזה מהם), לא התוצאה. לדוגמה: 7×[]=56.',
+  ],
+  grammar: [
+    'מוצגת מילה באנגלית (V1), ויש לכתוב את הצורה המקבילה שלה (V2, למשל צורת עבר של פועל) באיות מדויק -- אין בחירה מתוך אפשרויות.',
   ],
 };
 

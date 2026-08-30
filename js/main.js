@@ -28,7 +28,7 @@ function changeExerciseDifficulty(delta) {
   updateExerciseDifficultyLabel();
 }
 
-const MODE_LABELS = { fractions: 'מבוא לשברים', comparefractions: 'השוואת שברים', addfractions: 'חיבור שברים', subtractfractions: 'חיסור שברים', mixednumbers: 'מספרים מעורבים', addfractionsadvanced: 'חיבור שברים מתקדם', letters: 'אותיות', abc: 'ABC', nikud: 'ניקוד', vocabulary: 'אוצר מילים', division: 'מבוא לחילוק' };
+const MODE_LABELS = { fractions: 'מבוא לשברים', comparefractions: 'השוואת שברים', addfractions: 'חיבור שברים', subtractfractions: 'חיסור שברים', mixednumbers: 'מספרים מעורבים', addfractionsadvanced: 'חיבור שברים מתקדם', letters: 'אותיות', abc: 'ABC', nikud: 'ניקוד', vocabulary: 'אוצר מילים', division: 'מבוא לחילוק', grammar: 'דקדוק' };
 
 function formatLevelInfo() {
   const modeLabel = MODE_LABELS[gameMode] || 'כפל';
@@ -103,6 +103,16 @@ function parseUrlParams() {
     vocabularyWordList = pairs;
     saveVocabularyWordListToStorage(pairs); // this device's fallback for a future bare-URL open
   }
+  // Same reasoning as the vocabulary branch just above -- grammar's word
+  // list rides the same URL_PARAM_WORDS param (topic already tells the two
+  // apart), and a link can't be built without at least 2 loaded pairs either
+  // (see grammarContinueBtn below).
+  if (topic === 'grammar') {
+    const { pairs } = parseGrammarWordList(params.get(URL_PARAM_WORDS) || '');
+    if (pairs.length < 2) return params.get(URL_PARAM_GROUP) === 'fractions' ? 'subtopic' : 'mode';
+    grammarWordList = pairs;
+    saveGrammarWordListToStorage(pairs); // this device's fallback for a future bare-URL open
+  }
   gameMode = topic;
 
   const difficultyNum = Number(params.get(URL_PARAM_DIFFICULTY));
@@ -169,6 +179,9 @@ function buildShareLink(stage) {
     params.set(URL_PARAM_REVIEW, weakPoolReviewEnabled ? '1' : '0');
     if (gameMode === 'vocabulary') {
       params.set(URL_PARAM_WORDS, serializeVocabularyWordList(vocabularyWordList));
+    }
+    if (gameMode === 'grammar') {
+      params.set(URL_PARAM_WORDS, serializeGrammarWordList(grammarWordList));
     }
   }
   if (stage === 'speed') {
@@ -263,6 +276,7 @@ function startGame() {
   document.getElementById('answer3').disabled = false;
   document.getElementById('swapBtn').disabled = false;
   document.getElementById('vocabularyTypedInput').disabled = false;
+  document.getElementById('grammarTypedInput').disabled = false;
 
   updateCoinsDisplay();
   updateStatsCountersDisplay();
@@ -374,6 +388,13 @@ document.getElementById('answer').addEventListener('keydown', (e) => {
 // the two-blank/digit-filtering logic that doesn't apply to a free-text
 // English word.
 document.getElementById('vocabularyTypedInput').addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter') return;
+  if (e.target.value.trim() === '') return;
+  checkAnswer();
+});
+// Same "Enter submits, empty box is a no-op" behavior as vocabularyTypedInput
+// just above -- grammar is typed-only too.
+document.getElementById('grammarTypedInput').addEventListener('keydown', (e) => {
   if (e.key !== 'Enter') return;
   if (e.target.value.trim() === '') return;
   checkAnswer();
@@ -737,6 +758,60 @@ document.getElementById('vocabularyContinueBtn').addEventListener('click', () =>
   if (!loadVocabularyWordsFromTextarea()) return;
   document.getElementById('vocabularyWordsOverlay').classList.remove('show');
   selectTopicAndContinue('vocabulary');
+});
+// Grammar's own word-list screen -- same pre-fill/parse/continue flow as
+// vocabulary's block just above, just its own storage key and word shape
+// (V1/V2 pairs instead of english/hebrew). See [[project_vocabulary_topic_plan]].
+document.getElementById('modeGrammarBtn').addEventListener('click', () => {
+  document.getElementById('modeOverlay').classList.remove('show');
+  document.getElementById('grammarWordsInput').value = loadGrammarWordListFromStorage();
+  document.getElementById('grammarParseFeedback').textContent = '';
+  document.getElementById('grammarWordsOverlay').classList.add('show');
+});
+document.getElementById('backToModeFromGrammarBtn').addEventListener('click', () => {
+  document.getElementById('grammarWordsOverlay').classList.remove('show');
+  document.getElementById('modeOverlay').classList.add('show');
+});
+document.getElementById('grammarFileInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  e.target.value = ''; // reset now so picking the same file again still fires 'change'
+  if (!file) return;
+  const feedback = document.getElementById('grammarParseFeedback');
+  const reader = new FileReader();
+  reader.onload = () => {
+    document.getElementById('grammarWordsInput').value = reader.result;
+    feedback.textContent = 'הקובץ נטען לתיבה -- בדקו ולחצו "טען רשימה".';
+  };
+  reader.onerror = () => {
+    feedback.textContent = 'שגיאה בקריאת הקובץ.';
+  };
+  reader.readAsText(file, 'UTF-8');
+});
+function loadGrammarWordsFromTextarea() {
+  const feedback = document.getElementById('grammarParseFeedback');
+  const { pairs, errorCount } = parseGrammarWordList(document.getElementById('grammarWordsInput').value);
+  if (pairs.length === 0) {
+    feedback.textContent = 'לא נמצא אף זוג תקין. ודאו שכל שורה בפורמט V1;V2.';
+    return null;
+  }
+  if (pairs.length < 2) {
+    feedback.textContent = 'צריך לפחות 2 זוגות כדי לתרגל.';
+    return null;
+  }
+  grammarWordList = pairs;
+  saveGrammarWordListToStorage(pairs); // this device's fallback for a future bare-URL open
+  feedback.textContent = errorCount > 0
+    ? `נטענו ${pairs.length} זוגות (${errorCount} שורות לא תקינות דולגו).`
+    : `נטענו ${pairs.length} זוגות בהצלחה.`;
+  return pairs;
+}
+document.getElementById('grammarLoadBtn').addEventListener('click', () => {
+  loadGrammarWordsFromTextarea();
+});
+document.getElementById('grammarContinueBtn').addEventListener('click', () => {
+  if (!loadGrammarWordsFromTextarea()) return;
+  document.getElementById('grammarWordsOverlay').classList.remove('show');
+  selectTopicAndContinue('grammar');
 });
 // Returns to whichever screen this topic was actually picked from, so a
 // student refining a fraction sub-topic choice doesn't get bounced all the

@@ -285,6 +285,7 @@ function newExercise() {
   const isNikud = gameMode === 'nikud';
   const isCompare = gameMode === 'comparefractions';
   const isVocabulary = gameMode === 'vocabulary';
+  const isGrammar = gameMode === 'grammar';
   const isLetterFamily = isLetters || isAbc || isNikud;
   const isReverse = isLetterReverseMode(); // always false for nikud -- no reverse direction yet
   // Vocabulary level 4 (typed answer) is the one vocabulary level that needs
@@ -292,21 +293,35 @@ function newExercise() {
   // click, same reasoning as isLetterFamily's !isReverse above (only the
   // levels with a genuine separate confirm step need it shown).
   const isVocabularyTyped = isVocabulary && isVocabularyTypedMode();
-  document.getElementById('mathQuestionRow').style.display = (isLetterFamily || isVocabulary) ? 'none' : '';
-  answerHome.style.display = (isLetterFamily || isCompare || isVocabulary) ? 'none' : '';
+  document.getElementById('mathQuestionRow').style.display = (isLetterFamily || isVocabulary || isGrammar) ? 'none' : '';
+  answerHome.style.display = (isLetterFamily || isCompare || isVocabulary || isGrammar) ? 'none' : '';
+  // Grammar is typed-only (like vocabulary level 4) -- checkBtn/swapBtn are
+  // always shown for it, same as isVocabularyTyped, never hidden the way
+  // vocabulary's multiple-choice levels hide them.
   document.getElementById('checkBtn').style.display = ((isLetterFamily && !isReverse) || isCompare || (isVocabulary && !isVocabularyTyped)) ? 'none' : '';
-  // Same reasoning as checkBtn just above: only vocabulary level 4 has a
-  // typed answer worth paying coins to reveal/skip, the same escape hatch
-  // every other typed-answer (non-multiple-choice) topic already has.
+  // Same reasoning as checkBtn just above: only vocabulary level 4 and
+  // grammar have a typed answer worth paying coins to reveal/skip, the same
+  // escape hatch every other typed-answer (non-multiple-choice) topic
+  // already has.
   document.getElementById('swapBtn').style.display = (isLetterFamily || isCompare || (isVocabulary && !isVocabularyTyped)) ? 'none' : '';
   document.getElementById('lettersAnswerHome').style.display = isLetterFamily ? '' : 'none';
   document.getElementById('compareAnswerHome').style.display = isCompare ? '' : 'none';
   document.getElementById('vocabularyAnswerHome').style.display = isVocabulary ? '' : 'none';
+  document.getElementById('grammarAnswerHome').style.display = isGrammar ? '' : 'none';
 
   if (isVocabulary) {
     const ex = pickExercise(generateVocabularyExercise);
     currentVocabularyAnswer = ex.correct;
     renderVocabularyChoices(ex);
+    document.getElementById('feedback').textContent = '';
+    document.getElementById('feedback').className = 'feedback';
+    return;
+  }
+
+  if (isGrammar) {
+    const ex = pickExercise(generateGrammarExercise);
+    currentGrammarAnswer = ex.correct;
+    renderGrammarExercise(ex);
     document.getElementById('feedback').textContent = '';
     document.getElementById('feedback').className = 'feedback';
     return;
@@ -648,6 +663,11 @@ function checkAnswer() {
     return;
   }
 
+  if (gameMode === 'grammar') {
+    checkGrammarAnswer();
+    return;
+  }
+
   if (isLetterReverseMode()) {
     checkLetterReverseAnswer();
     return;
@@ -738,6 +758,11 @@ function changeQuestion() {
   // dispatched from checkAnswer().
   if (isVocabularyTypedMode()) {
     changeVocabularyTypedQuestion();
+    return;
+  }
+
+  if (gameMode === 'grammar') {
+    changeGrammarQuestion();
     return;
   }
 

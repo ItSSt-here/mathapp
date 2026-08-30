@@ -90,6 +90,16 @@
     <div class="vocabulary-choices" id="vocabularyChoices"></div>
     <input type="text" id="vocabularyTypedInput" class="vocabulary-typed-input" dir="ltr" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done" style="display:none;">
   </div>
+  <!-- Grammar exercise (level 1, the only level so far): an English word
+       (V1) shown as static text, student types V2 (e.g. a verb's past-tense
+       form) -- same typed-answer/checkBtn mechanic as vocabulary level 4
+       (see checkGrammarAnswer(), exercise-grammar.js), just its own topic
+       since it's always typed, single direction. Hidden except in grammar
+       mode. -->
+  <div id="grammarAnswerHome" style="display:none;">
+    <div class="vocabulary-word-display" id="grammarWordDisplay"></div>
+    <input type="text" id="grammarTypedInput" class="vocabulary-typed-input" dir="ltr" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done">
+  </div>
   <!-- Second blank, only used for fraction exercises where both the
        numerator and denominator are hidden; parked here (hidden) otherwise. -->
   <div id="answer2Home" style="display:none;">
@@ -176,6 +186,7 @@
       <button class="restart-btn" id="modeAbcBtn">ABC</button>
       <button class="restart-btn" id="modeNikudBtn">ניקוד</button>
       <button class="restart-btn" id="modeVocabularyBtn">אוצר מילים</button>
+      <button class="restart-btn" id="modeGrammarBtn">דקדוק</button>
     </div>
 
     <div class="link-row">
@@ -221,6 +232,24 @@
       <button class="home-btn" id="backToModeFromVocabularyBtn">חזרה</button>
       <button class="restart-btn" id="vocabularyLoadBtn">טען רשימה</button>
       <button class="restart-btn" id="vocabularyContinueBtn">המשך</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="grammarWordsOverlay">
+  <div class="overlay-card">
+    <div class="overlay-title" style="color:#4a3fd1;">קרב טירות ⚔️</div>
+    <p class="overlay-text">הזינו רשימת זוגות מילים באנגלית לתרגול -- שורה לכל זוג, מופרדות ב-";" (למשל: go;went)</p>
+    <div class="vocabulary-file-row">
+      <label class="home-btn vocabulary-file-label" for="grammarFileInput">טען מקובץ txt</label>
+      <input type="file" id="grammarFileInput" class="vocabulary-file-input" accept=".txt,text/plain">
+    </div>
+    <textarea class="vocabulary-words-textarea" id="grammarWordsInput" dir="ltr" placeholder="go;went&#10;eat;ate"></textarea>
+    <p class="vocabulary-parse-feedback" id="grammarParseFeedback"></p>
+    <div class="postgame-buttons">
+      <button class="home-btn" id="backToModeFromGrammarBtn">חזרה</button>
+      <button class="restart-btn" id="grammarLoadBtn">טען רשימה</button>
+      <button class="restart-btn" id="grammarContinueBtn">המשך</button>
     </div>
   </div>
 </div>
@@ -322,9 +351,9 @@
      (see preloadSoldierSprites() in render.js). -->
 <div id="spritePreload" style="position:fixed; left:-9999px; top:-9999px; width:1px; height:1px; overflow:hidden;" aria-hidden="true"></div>
 
-<script src="js/config.js?v=202608271300"></script>
+<script src="js/config.js?v=202608301400"></script>
 <script src="js/helpers.js?v=202608252100"></script>
-<script src="js/exercise-core.js?v=202608252300"></script>
+<script src="js/exercise-core.js?v=202608301400"></script>
 <script src="js/exercise-division.js?v=202608271300"></script>
 <script src="js/exercise-fractions.js?v=202608252000"></script>
 <script src="js/exercise-fraction-arithmetic.js?v=202608252200"></script>
@@ -337,9 +366,10 @@
 <script src="js/exercise-nikud.js?v=202608252000"></script>
 <script src="js/exercise-compare.js?v=202608252000"></script>
 <script src="js/exercise-vocabulary.js?v=202608252000"></script>
+<script src="js/exercise-grammar.js?v=202608301400"></script>
 <script src="js/combat.js?v=202608252100"></script>
 <script src="js/render.js?v=202608252000"></script>
-<script src="js/main.js?v=202608252300"></script>
+<script src="js/main.js?v=202608301400"></script>
 
 </body>
 </html>
