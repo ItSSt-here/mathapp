@@ -585,36 +585,41 @@ document.getElementById('buyBtn').addEventListener('click', () => {
   buySoldier();
   document.getElementById('answer').focus();
 });
-// Global "buy soldier" hotkey (ח, first letter of חייל) -- the only
-// document-level keydown listener in the app, since every other key binding
-// so far is scoped to a specific focused element. Deliberately not scoped to
-// any particular element (works no matter what currently has focus,
-// including mid-typing in #answer/#answer2 -- ח isn't a digit so it's
-// already silently stripped by their own input filter either way) since
-// buying is a resource-spend action independent of whatever's currently
-// being answered. Routes through the real button via .click() instead of
-// calling buySoldier() directly so it automatically inherits every existing
+// Global "buy soldier" hotkey -- the only document-level keydown listener in
+// the app, since every other key binding so far is scoped to a specific
+// focused element. Deliberately not scoped to any particular element (works
+// no matter what currently has focus, including mid-typing in
+// #answer/#answer2) since buying is a resource-spend action independent of
+// whatever's currently being answered.
+// Originally ח (first letter of חייל)/physical J, but that collided with
+// vocabulary/grammar's free-text typed-answer inputs: unlike the numeric
+// #answer boxes (whose own digit-only filter silently strips a stray ח/J
+// either way), #vocabularyTypedInput/#grammarTypedInput accept arbitrary
+// English words -- a word containing 'j' both typed the letter into the
+// answer *and* bought a soldier. Switched to F2 instead of scoping the
+// hotkey per-topic (rejected: same key should mean the same thing in every
+// topic, no exceptions the student has to relearn) -- F2 is a non-printable
+// key, so unlike any letter it structurally can never insert a character
+// into a focused text field, whatever word is being typed. Unlike a letter
+// key, a function key's e.key/e.code agree regardless of active keyboard
+// layout (layout only remaps printable characters) -- both are checked
+// anyway (same belt-and-suspenders as the old ח/J check) since e.code came
+// back empty for a synthetic F2 keypress during testing.
+// Routes through the real button via .click() instead of calling
+// buySoldier() directly so it automatically inherits every existing
 // safeguard for free: the button's own disabled state (managed by
 // updateCoinsDisplay()), buySoldier()'s own gameOver/insufficient-funds
 // guard, and the click handler's refocus-to-#answer -- which itself already
 // silently no-ops during letters/comparefractions exercises, since #answer
 // sits inside the hidden #answerHome there, so this never yanks focus away
 // from a letter-choice button mid-navigation.
-// Also fires for the physical J key regardless of active keyboard layout
-// (e.code, unlike e.key, reports the physical key position rather than the
-// character the current layout produces -- ח sits on that exact key in the
-// standard Israeli layout) -- confirmed by the user that on an English
-// layout, ח has no way to be typed at all, so the hotkey was unreachable
-// without switching layouts first. e.key === 'ח' is kept alongside it as a
-// fallback for the rare keyboard where e.code might not report 'KeyJ'.
 // Guarded to only fire mid-battle (no overlay open) -- added once the
-// vocabulary word-list textarea (free Hebrew text, unlike the numeric-only
-// #answer/#answer2 boxes this hotkey originally assumed as its only
-// competition) showed that typing a real ח elsewhere on the page shouldn't
-// spend money and yank focus back to #answer. Every menu/setup screen shows
-// some .overlay.show; only the live battle screen never does.
+// vocabulary word-list textarea showed that firing while some setup screen
+// is open shouldn't spend money and yank focus back to #answer. Every
+// menu/setup screen shows some .overlay.show; only the live battle screen
+// never does.
 document.addEventListener('keydown', (e) => {
-  if (e.key !== 'ח' && e.code !== 'KeyJ') return;
+  if (e.key !== 'F2' && e.code !== 'F2') return;
   if (document.querySelector('.overlay.show')) return;
   document.getElementById('buyBtn').click();
 });
