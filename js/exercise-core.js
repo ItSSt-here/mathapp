@@ -312,6 +312,7 @@ function newExercise() {
   if (isVocabulary) {
     const ex = pickExercise(generateVocabularyExercise);
     currentVocabularyAnswer = ex.correct;
+    currentVocabularyAnswerList = ex.correctList || [ex.correct];
     renderVocabularyChoices(ex);
     document.getElementById('feedback').textContent = '';
     document.getElementById('feedback').className = 'feedback';

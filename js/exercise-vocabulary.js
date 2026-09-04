@@ -17,8 +17,17 @@
 let vocabularyWordList = [];
 
 // Correct answer (Hebrew normally, English in reverse mode) for whatever
-// exercise is currently on screen.
+// exercise is currently on screen. For typed mode (level 4) this is just the
+// first accepted English synonym -- checkVocabularyTypedAnswer() checks
+// against currentVocabularyAnswerList instead, since any synonym counts.
 let currentVocabularyAnswer = null;
+
+// Level 4 only: every English synonym accepted for the current Hebrew
+// prompt (target.en in full, see generateVocabularyExercise()) -- a typed
+// answer matching any one of them is correct. Set alongside
+// currentVocabularyAnswer in newExercise() (exercise-core.js). For every
+// other level this just mirrors [currentVocabularyAnswer], unused.
+let currentVocabularyAnswerList = null;
 
 // Level 2: shows the Hebrew word and the choices are English -- same list,
 // same mechanic, just which side of each {en, he} pair is the prompt vs. the
@@ -68,8 +77,14 @@ function speakVocabularyWord(word) {
 }
 
 // One word pair per line, English and Hebrew separated by ';' (e.g.
-// "apple;תפוח"). Blank lines and lines missing the separator or either side
-// are silently skipped and counted as errors rather than rejecting the whole
+// "apple;תפוח"). The English side may itself list several accepted
+// synonyms separated by ',' (e.g. "internal,inner;פנימי") for a Hebrew word
+// with more than one valid English translation -- the reverse (one English
+// word, several Hebrew translations) isn't supported, only this direction
+// was needed. Every word entry ends up as { en: string[], he: string }, even
+// when there's only one English synonym. Blank lines and lines missing the
+// ';' separator, an empty Hebrew side, or no non-empty English synonym are
+// silently skipped and counted as errors rather than rejecting the whole
 // list -- lets a mostly-good pasted list still load instead of forcing the
 // teacher to track down one bad line before anything works.
 function parseVocabularyWordList(rawText) {
@@ -80,9 +95,9 @@ function parseVocabularyWordList(rawText) {
     if (!trimmed) continue;
     const sepIndex = trimmed.indexOf(';');
     if (sepIndex === -1) { errorCount++; continue; }
-    const en = trimmed.slice(0, sepIndex).trim();
+    const en = trimmed.slice(0, sepIndex).split(',').map(s => s.trim()).filter(Boolean);
     const he = trimmed.slice(sepIndex + 1).trim();
-    if (!en || !he) { errorCount++; continue; }
+    if (en.length === 0 || !he) { errorCount++; continue; }
     pairs.push({ en, he });
   }
   return { pairs, errorCount };
@@ -93,7 +108,7 @@ function parseVocabularyWordList(rawText) {
 // saveVocabularyWordListToStorage() below for the same "en;he per line" text
 // form in localStorage.
 function serializeVocabularyWordList(list) {
-  return list.map(w => `${w.en};${w.he}`).join('\n');
+  return list.map(w => `${w.en.join(',')};${w.he}`).join('\n');
 }
 
 // This device's "last used" vocabulary list -- read back only to pre-fill
@@ -118,13 +133,22 @@ function loadVocabularyWordListFromStorage() {
   return localStorage.getItem(VOCABULARY_STORAGE_KEY) || '';
 }
 
-// Picks a random word as the target and up to 4 *other* words' Hebrew
-// translations from the same list as distractors (see
-// [[project_vocabulary_topic_plan]] -- v1 draws distractors from the same
-// list rather than a separate pool). A list shorter than 5 words shows fewer
-// options instead of padding with duplicates -- there's nothing else honest
-// to fill the remaining slots with, and vocabularyContinueBtn (main.js)
-// already refuses to start a round with fewer than 2 words total.
+// Picks a random word as the target and up to 4 *other* words' translations
+// from the same list as distractors (see [[project_vocabulary_topic_plan]]
+// -- v1 draws distractors from the same list rather than a separate pool).
+// A list shorter than 5 words shows fewer options instead of padding with
+// duplicates -- there's nothing else honest to fill the remaining slots
+// with, and vocabularyContinueBtn (main.js) already refuses to start a round
+// with fewer than 2 words total.
+//
+// target.en may hold several accepted English synonyms (target.he is always
+// a single string -- see parseVocabularyWordList()). Whenever English is
+// display-facing -- shown as the prompt (level 1), spoken as the prompt
+// (level 3), or offered as a multiple-choice answer (level 2) -- one
+// synonym is drawn at random each round, so which synonym a student sees
+// isn't fixed. Typed mode (level 4) is the one place every synonym matters
+// at once, since the student could type any of them -- see `correctList`
+// below and checkVocabularyTypedAnswer().
 function generateVocabularyExercise() {
   const typed = isVocabularyTypedMode();
   // Typed mode (level 4) shows the Hebrew word, same direction as reverse
@@ -133,20 +157,38 @@ function generateVocabularyExercise() {
   // multiple-choice.
   const reverse = isVocabularyReverseMode() || typed;
   const listen = isVocabularyListenMode();
-  const promptField = reverse ? 'he' : 'en';
-  const answerField = reverse ? 'en' : 'he';
   const target = randChoice(vocabularyWordList);
+  const word = reverse ? target.he : randChoice(target.en);
+
   // Typed mode has no options to build -- any other word in the list is a
   // legitimate distractor for multiple-choice, but free text has nothing
-  // analogous to skip computing here.
+  // analogous to skip computing here. `correct` is just the first synonym
+  // (used where a single display string is needed, e.g. debugging); the
+  // real answer check uses `correctList` in full.
   if (typed) {
-    return { word: target[promptField], correct: target[answerField], options: null, reverse, listen, typed };
+    return { word, correct: target.en[0], correctList: target.en, options: null, reverse, listen, typed };
   }
-  const distractorPool = vocabularyWordList.filter(w => w[answerField] !== target[answerField]);
+
+  if (reverse) {
+    // Hebrew prompt, English multiple-choice answer -- each option (the
+    // correct one and every distractor) is one random synonym drawn from
+    // its word's target.en, so a word with several synonyms doesn't always
+    // show the same one as the "right" choice.
+    const correct = randChoice(target.en);
+    const distractorPool = vocabularyWordList.filter(w => w !== target);
+    const distractorCount = Math.min(4, distractorPool.length);
+    const distractors = pickDistinctRandom(distractorPool, distractorCount).map(w => randChoice(w.en));
+    const options = pickDistinctRandom([correct, ...distractors], distractorCount + 1); // shuffles the order too
+    return { word, correct, options, reverse, listen, typed };
+  }
+
+  // English prompt, Hebrew multiple-choice answer -- he is always a single
+  // string, so this branch is unchanged by synonym support.
+  const distractorPool = vocabularyWordList.filter(w => w.he !== target.he);
   const distractorCount = Math.min(4, distractorPool.length);
-  const distractors = pickDistinctRandom(distractorPool, distractorCount).map(w => w[answerField]);
-  const options = pickDistinctRandom([target[answerField], ...distractors], distractorCount + 1); // shuffles the order too
-  return { word: target[promptField], correct: target[answerField], options, reverse, listen, typed };
+  const distractors = pickDistinctRandom(distractorPool, distractorCount).map(w => w.he);
+  const options = pickDistinctRandom([target.he, ...distractors], distractorCount + 1); // shuffles the order too
+  return { word, correct: target.he, options, reverse, listen, typed };
 }
 
 function renderVocabularyChoices(ex) {
@@ -259,7 +301,9 @@ function checkVocabularyAnswer(selected, correct, btnEl) {
 // and collapses whitespace (leading/trailing, and runs of spaces between
 // words in a multi-word answer like "to wear" down to one) -- neither is
 // the "spelling error" this level is testing for -- but otherwise an exact
-// match: no partial credit, no fuzzy/near-miss leniency.
+// match: no partial credit, no fuzzy/near-miss leniency. Matching any one
+// entry in currentVocabularyAnswerList is enough -- a Hebrew word with
+// several accepted English synonyms accepts any of them.
 function normalizeVocabularyTypedAnswer(s) {
   return s.trim().replace(/\s+/g, ' ').toLowerCase();
 }
@@ -278,7 +322,8 @@ function checkVocabularyTypedAnswer() {
     return;
   }
 
-  const isCorrect = normalizeVocabularyTypedAnswer(input.value) === normalizeVocabularyTypedAnswer(currentVocabularyAnswer);
+  const typedAnswer = normalizeVocabularyTypedAnswer(input.value);
+  const isCorrect = currentVocabularyAnswerList.some(a => normalizeVocabularyTypedAnswer(a) === typedAnswer);
 
   checkBtn.disabled = true;
   input.disabled = true;
@@ -331,7 +376,10 @@ function changeVocabularyTypedQuestion() {
   swapBtn.disabled = true;
   checkBtn.disabled = true;
   input.disabled = true;
-  input.value = currentVocabularyAnswer;
+  // Reveals every accepted synonym, not just currentVocabularyAnswer (the
+  // first one) -- a student paying to see the answer should see everything
+  // that would actually be marked correct.
+  input.value = currentVocabularyAnswerList.join(', ');
   input.classList.add('answer-revealed');
 
   document.getElementById('feedback').textContent = '';
