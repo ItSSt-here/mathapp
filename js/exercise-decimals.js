@@ -132,11 +132,205 @@ function generateDecimalLevel3Exercise() {
   };
 }
 
+// Level 3 (a number-line UI, promoted from its original "experimental level
+// 4" slot once the UI itself was approved -- easier than the harder-
+// denominator level, which shifted down to level 4 to make room, see
+// generateDecimalLevel3Exercise()'s own comment below): a line from 0 to
+// DECIMAL_NUMBER_LINE_RANGE_MAX, divided into tenths, and the student picks
+// the point matching a shown mixed number whose denominator is 2, 5, or 10
+// -- the only three denominators guaranteed to land exactly on a tenths
+// tick (see DECIMAL_NUMBER_LINE_DENOMINATORS's own comment in config.js).
+// Unlike level 3's earlier click-immediately-answers prototype, this reuses
+// checkBtn/Enter as a genuine confirm step (per explicit user request,
+// worried about mis-clicks) -- same "select first, confirm separately"
+// shape as letters' reverse mode (selectLetterReverseOption()/
+// checkLetterReverseAnswer(), exercise-letters.js), just picking a point on
+// a line instead of a sound button. Its answer shape ("which tick index is
+// correct") has nothing in common with currentDecimalAnswer's decimal-
+// string shape, so it's kept fully separate from
+// checkDecimalAnswer()/changeDecimalQuestion() -- see the
+// isDecimalNumberLineLevel() branch in newExercise()/exercise-core.js.
+function isDecimalNumberLineLevel() {
+  return gameMode === 'decimals' && exerciseDifficultyIndex === 2;
+}
+
+// Correct tick index (0..RANGE_MAX*10) and the index currently selected but
+// not yet confirmed (null if none) -- exactly mirrors
+// letterReverseSelected's role in exercise-letters.js, just as two separate
+// primitives instead of one {option, btnEl} object, since there's no
+// separate "option identity" here beyond the index itself (the tick element
+// is always just ticksContainer.children[index]).
+let decimalNumberLineCorrectIndex = null;
+let decimalNumberLineSelectedIndex = null;
+
+function generateDecimalNumberLineExercise() {
+  const whole = randInt(0, DECIMAL_NUMBER_LINE_RANGE_MAX - 1); // fraction is always >0 and <1, so whole must stay below the line's own max
+  const denominator = randChoice(DECIMAL_NUMBER_LINE_DENOMINATORS);
+  const numerator = randInt(1, denominator - 1);
+  // denominator always divides 10 evenly (2/5/10 only -- see this
+  // constant's own comment in config.js), so this is always a whole tick
+  // index, never a fractional one.
+  const tickIndex = whole * 10 + numerator * (10 / denominator);
+  return { whole, numerator, denominator, tickIndex };
+}
+
+// Builds the tick marks fresh each round -- plain <div>s, not buttons, since
+// #numberLineHitArea (wired once below, not per-round) now owns all click/
+// keyboard interaction; a tick's own DOM node is just something to paint a
+// selected/correct/wrong state onto. Endpoints get a "0"/"<RANGE_MAX>"
+// label; every interior tick's label stays blank -- labeling them would
+// hand the answer away outright. Whole=0 omits the literal "0" from the
+// *shown* side, same convention every other decimals level uses.
+function renderDecimalNumberLineExercise(ex) {
+  const shownHTML = ex.whole === 0
+    ? fractionBlockHTML(ex.numerator, ex.denominator)
+    : mixedNumberDisplayHTML(ex.whole, ex.numerator, ex.denominator);
+  document.getElementById('questionText').innerHTML = shownHTML;
+
+  const segments = DECIMAL_NUMBER_LINE_RANGE_MAX * 10;
+  const ticksContainer = document.getElementById('numberLineTicks');
+  ticksContainer.innerHTML = '';
+  ticksContainer.classList.remove('number-line-locked');
+  for (let i = 0; i <= segments; i++) {
+    // Every whole number along the line (0, 1, 2, ... RANGE_MAX -- i.e.
+    // every 10th tick, since segments are tenths) gets its own label and the
+    // tallest/boldest mark (.number-line-tick-whole, style.css); the
+    // halfway point of each unit (.5, 1.5, 2.5 -- every 5th tick) gets a
+    // mark a bit taller than the plain tenths ticks but shorter than a
+    // whole number's -- a three-tier "major/half/minor" convention a real
+    // ruler uses, giving the student landmarks to judge an in-between
+    // point's position against instead of counting from 0 every time.
+    const isWhole = i % 10 === 0;
+    const isHalf = i % 10 === 5;
+    const tick = document.createElement('div');
+    tick.className = 'number-line-tick' + (isWhole ? ' number-line-tick-whole' : isHalf ? ' number-line-tick-half' : '');
+    tick.style.left = `${i * 100 / segments}%`;
+    const label = isWhole ? String(i / 10) : '';
+    tick.innerHTML = `<span class="number-line-tick-mark"></span><span class="number-line-tick-label">${label}</span>`;
+    ticksContainer.appendChild(tick);
+  }
+
+  decimalNumberLineCorrectIndex = ex.tickIndex;
+  decimalNumberLineSelectedIndex = null;
+  document.getElementById('checkBtn').disabled = true; // nothing selected yet -- same "confirm needs a pick first" gate as letters reverse mode
+  document.getElementById('numberLineHitArea').setAttribute('aria-valuemax', String(segments));
+  document.getElementById('numberLineHitArea').focus();
+}
+
+// Selects tick `index` as the pending (unconfirmed) answer -- tapping a
+// different tick before confirming just moves the selection, same as
+// selectLetterReverseOption()'s own re-tap behavior. Refuses to select a
+// tick already eliminated by a previous wrong confirm this round (a
+// disabled letter-choice button already refuses clicks the same way; a
+// plain <div> has no built-in disabled state, so this check stands in for
+// that).
+function selectDecimalNumberLineTick(index) {
+  const ticksContainer = document.getElementById('numberLineTicks');
+  const target = ticksContainer.children[index];
+  if (!target || target.classList.contains('number-line-eliminated')) return;
+  Array.from(ticksContainer.children).forEach(t => t.classList.remove('number-line-selected'));
+  target.classList.add('number-line-selected');
+  decimalNumberLineSelectedIndex = index;
+  document.getElementById('checkBtn').disabled = false;
+  document.getElementById('numberLineHitArea').setAttribute('aria-valuenow', String(index));
+}
+
+// Wired once at load (not per-round, same convention
+// wireMixedNumberLevel3Answer3Nav() uses for its own dedicated element) --
+// #numberLineHitArea is one full-line click/tap target spanning every tick
+// rather than 31 individually tiny buttons, which at this level's tick
+// density (up to 30 segments) would be too narrow and too close together to
+// hit reliably on a touchscreen. A click computes the *nearest* tick from
+// its x-position; ArrowLeft/ArrowRight nudge the selection by one tick for
+// keyboard use (not RTL-flipped -- this line is explicitly direction:ltr
+// regardless of the page's own RTL, same reasoning #compareChoices's own
+// arrow-nav gets in wireChoiceArrowNav(), main.js); Enter confirms, same
+// "Enter submits if something's actually selected" gate checkBtn.disabled
+// already encodes elsewhere in this file.
+function wireDecimalNumberLineInteraction() {
+  const hitArea = document.getElementById('numberLineHitArea');
+  const ticksContainer = document.getElementById('numberLineTicks');
+
+  hitArea.addEventListener('click', (e) => {
+    if (gameOver || ticksContainer.classList.contains('number-line-locked')) return;
+    const segments = ticksContainer.children.length - 1;
+    const rect = hitArea.getBoundingClientRect();
+    const ratio = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+    selectDecimalNumberLineTick(Math.round(ratio * segments));
+  });
+
+  hitArea.addEventListener('keydown', (e) => {
+    if (ticksContainer.classList.contains('number-line-locked')) return;
+    if (e.key === 'Enter') {
+      if (document.getElementById('checkBtn').disabled) return;
+      e.preventDefault();
+      checkAnswer();
+      return;
+    }
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    e.preventDefault();
+    const segments = ticksContainer.children.length - 1;
+    const current = decimalNumberLineSelectedIndex === null ? Math.round(segments / 2) : decimalNumberLineSelectedIndex;
+    const next = current + (e.key === 'ArrowRight' ? 1 : -1);
+    selectDecimalNumberLineTick(Math.max(0, Math.min(segments, next)));
+  });
+}
+wireDecimalNumberLineInteraction();
+
+// Dispatched from checkAnswer() (exercise-core.js) via its
+// isDecimalNumberLineLevel() branch, same as checkDecimalAnswer() is for
+// every other decimals level. Wrong pick: that tick is eliminated (stays
+// disabled-looking, unselectable again this round) and the same question
+// continues with the remaining ticks -- same wrong-eliminates-and-retry
+// mechanic checkLetterReverseAnswer() uses for its own sound buttons.
+function checkDecimalNumberLineAnswer() {
+  if (gameOver) return;
+  const checkBtn = document.getElementById('checkBtn');
+  if (checkBtn.disabled) return; // nothing selected yet
+  const ticksContainer = document.getElementById('numberLineTicks');
+  if (ticksContainer.classList.contains('number-line-locked')) return;
+
+  const selectedTick = ticksContainer.children[decimalNumberLineSelectedIndex];
+  const isCorrect = decimalNumberLineSelectedIndex === decimalNumberLineCorrectIndex;
+  ticksContainer.classList.add('number-line-locked');
+  checkBtn.disabled = true;
+  selectedTick.classList.remove('number-line-selected');
+
+  if (isCorrect) {
+    selectedTick.classList.add('number-line-correct');
+    markCorrect(selectedTick);
+    setTimeout(newExercise, 800);
+  } else {
+    // Both classes stay on this tick for the rest of the round -- unlike
+    // the earlier grey-fade design, the red stays solid (see style.css):
+    // user-reported the faded grey was hard to actually see against the
+    // rest of the line. number-line-eliminated is now purely the "can't
+    // reselect this one" logic flag (checked in selectDecimalNumberLineTick()
+    // above); number-line-wrong supplies 100% of its visible look.
+    selectedTick.classList.add('number-line-wrong', 'number-line-eliminated');
+    markWrong(selectedTick);
+    setTimeout(() => {
+      ticksContainer.classList.remove('number-line-locked');
+      decimalNumberLineSelectedIndex = null;
+      document.getElementById('feedback').textContent = '';
+      document.getElementById('feedback').className = 'feedback';
+      document.getElementById('numberLineHitArea').focus();
+    }, 800);
+  }
+}
+
+// Level 4 (see generateDecimalLevel3Exercise() -- kept its original "L3"
+// name despite shifting down a level, same don't-rename-tuning-constants-
+// on-a-renumber convention FRAC_ADD_L3_A_MIN already established elsewhere
+// in this codebase): DECIMAL_L3_HARD_CHANCE of draws use a harder
+// denominator (4 or 8); the rest fall back to level 2's exact mechanic.
 // Dispatches by level, same pattern every other multi-level topic's own
-// generate<Topic>Exercise() uses.
+// generate<Topic>Exercise() uses. Level 3 (the number-line UI) is *not*
+// routed through here -- see isDecimalNumberLineLevel()'s own comment above
+// for why its answer shape doesn't fit this dispatcher at all.
 function generateDecimalExercise() {
   const level = exerciseDifficultyIndex + 1;
-  if (level === 3) return generateDecimalLevel3Exercise();
+  if (level === 4) return generateDecimalLevel3Exercise();
   if (level === 2) return generateDecimalLevel2Exercise();
   return generateDecimalLevel1Exercise();
 }

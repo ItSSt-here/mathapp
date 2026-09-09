@@ -13,7 +13,7 @@
      fetch of everything together instead of relying on cache timing to
      line up. No build step in this project, so this is manual -- there's
      nothing to automate it. -->
-<link rel="stylesheet" href="style.css?v=202609091200">
+<link rel="stylesheet" href="style.css?v=202609100000">
 </head>
 <body>
 
@@ -46,6 +46,14 @@
     <div class="simplify-label" id="decimalInstructionLabel" style="display:none;">
       <span>כתוב</span>
       <span>כמספר עשרוני</span>
+    </div>
+    <!-- Decimals level 3 (number-line UI, see #numberLineAnswerHome below):
+         its own instruction, since "write as a decimal" doesn't apply here
+         -- same look/toggle mechanic as #decimalInstructionLabel just
+         above. -->
+    <div class="simplify-label" id="numberLineInstructionLabel" style="display:none;">
+      <span>בחר את הנקודה</span>
+      <span>המתאימה על הציר</span>
     </div>
     <div class="exercise">
       <span id="questionText"></span>
@@ -118,6 +126,24 @@
        the equation's own blank slot each round. -->
   <div id="decimalAnswerHome" style="display:none;">
     <input type="text" inputmode="decimal" id="decimalTypedInput" class="decimal-typed-input" dir="ltr" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done">
+  </div>
+  <!-- Decimals level 3 (a number-line UI): the shown fraction still renders
+       into #mathQuestionRow like every other decimals level, but the answer
+       is a point picked along a 0-to-DECIMAL_NUMBER_LINE_RANGE_MAX line
+       (tick marks built fresh into #numberLineTicks each round) instead of
+       a typed value. #numberLineHitArea is one click/tap/keyboard target
+       spanning the whole line -- not one button per tick, which at this
+       level's tick density would be too small/cramped to hit reliably (see
+       wireDecimalNumberLineInteraction(), exercise-decimals.js) -- a pick
+       only *selects* a tick; checkBtn (or Enter) confirms it, same
+       select-then-confirm shape as letters reverse mode. Hidden except at
+       this one decimals level. -->
+  <div id="numberLineAnswerHome" style="display:none;">
+    <div class="number-line-wrap">
+      <div class="number-line-ticks" id="numberLineTicks"></div>
+      <div class="number-line-hit-area" id="numberLineHitArea" tabindex="0" role="slider" aria-valuemin="0" aria-label="בחירת נקודה על ציר המספרים"></div>
+      <div class="number-line-axis"></div>
+    </div>
   </div>
   <!-- Second blank, only used for fraction exercises where both the
        numerator and denominator are hidden; parked here (hidden) otherwise. -->
@@ -371,9 +397,9 @@
      (see preloadSoldierSprites() in render.js). -->
 <div id="spritePreload" style="position:fixed; left:-9999px; top:-9999px; width:1px; height:1px; overflow:hidden;" aria-hidden="true"></div>
 
-<script src="js/config.js?v=202609091900"></script>
+<script src="js/config.js?v=202609092330"></script>
 <script src="js/helpers.js?v=202608252100"></script>
-<script src="js/exercise-core.js?v=202609091545"></script>
+<script src="js/exercise-core.js?v=202609092330"></script>
 <script src="js/exercise-division.js?v=202608271300"></script>
 <script src="js/exercise-fractions.js?v=202608252000"></script>
 <script src="js/exercise-fraction-arithmetic.js?v=202608252200"></script>
@@ -387,7 +413,7 @@
 <script src="js/exercise-compare.js?v=202608252000"></script>
 <script src="js/exercise-vocabulary.js?v=202609041500"></script>
 <script src="js/exercise-grammar.js?v=202608301500"></script>
-<script src="js/exercise-decimals.js?v=202609091900"></script>
+<script src="js/exercise-decimals.js?v=202609100000"></script>
 <script src="js/combat.js?v=202608252100"></script>
 <script src="js/render.js?v=202608252000"></script>
 <script src="js/main.js?v=202609091200"></script>

@@ -553,6 +553,175 @@ button.check-btn:focus {
   box-shadow: 0 3px 0 #3349b0;
 }
 
+/* Decimals level 3 (number-line UI): a 0-to-DECIMAL_NUMBER_LINE_RANGE_MAX
+   line divided into tenths (see generateDecimalNumberLineExercise()/
+   wireDecimalNumberLineInteraction(), exercise-decimals.js). direction:ltr
+   regardless of the page's own RTL -- 0 must render on the left and the
+   line's max on the right, same reasoning as .exercise/.frac-eq forcing ltr
+   for their own equations. max-width wider than most of this app's other
+   inline elements (this app's own .card itself can run up to 1200px, see
+   its own comment in this file) since up to 30 tick marks need real room to
+   stay individually distinguishable -- still width:100% so it shrinks to
+   fit a narrow phone instead of overflowing (same min-width:0 concern
+   .exercise-row's own comment describes for equations that could otherwise
+   overflow). Even so, at 30 segments each one is necessarily only a few
+   pixels wide on a phone -- #numberLineHitArea (below) computing the
+   *nearest* tick from a click, rather than relying on individually-sized
+   per-tick buttons, is what keeps that usable at all. */
+.number-line-wrap {
+  position: relative;
+  direction: ltr;
+  width: 100%;
+  max-width: 520px;
+  height: 64px;
+  margin: 10px auto 24px;
+}
+
+.number-line-axis {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 22px;
+  height: 3px;
+  background: #2b3a67;
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+/* Plain, non-interactive marks -- all click/tap/keyboard handling lives on
+   #numberLineHitArea instead (one target for the whole line, not one button
+   per tick; see that rule below for why). Positioned by left:%, then pulled
+   back by half its own width via the negative margin so that % anchors its
+   *center* (not its left edge) to the tick's true position on the line --
+   otherwise the rightmost tick (100%) would overflow past the line's own
+   right edge. */
+.number-line-tick {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 36px;
+  margin-left: -18px;
+  /* Pushes the mark down so it actually crosses .number-line-axis (top:22px)
+     instead of floating entirely above it -- 6px + this mark's own 18px
+     height lands it at 6-24px, overlapping the axis's own 22-25px band. */
+  padding-top: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+}
+
+.number-line-tick-mark {
+  width: 3px;
+  height: 18px;
+  background: #2b3a67;
+  border-radius: 2px;
+}
+
+/* Whole-number ticks (0, 1, 2, ... RANGE_MAX -- every 10th tick, since
+   segments are tenths) get a taller, thicker mark and a slightly larger
+   label than the plain in-between ticks -- same "major tick vs. minor tick"
+   convention a real ruler uses, giving the student a landmark to judge an
+   in-between point's position against instead of counting from 0 every
+   time. Less padding-top than the plain tick's own 6px so the extra height
+   is spent extending both above *and* below the axis line, not just
+   downward from the same starting point. */
+.number-line-tick-whole {
+  padding-top: 2px;
+}
+
+.number-line-tick-whole .number-line-tick-mark {
+  width: 4px;
+  height: 26px;
+}
+
+.number-line-tick-whole .number-line-tick-label {
+  font-size: 17px;
+}
+
+/* The halfway point of each unit (.5, 1.5, 2.5 -- every 5th tick), a middle
+   tier between a plain tenths tick and a whole-number one: taller than the
+   former, shorter than the latter. Same "spend the extra height both above
+   and below the axis, not just downward" reasoning as .number-line-tick-whole's
+   own padding-top reduction, interpolated between that tick's 2px and the
+   plain tick's 6px. */
+.number-line-tick-half {
+  padding-top: 4px;
+}
+
+.number-line-tick-half .number-line-tick-mark {
+  height: 22px;
+}
+
+/* Reserves height even when empty (every interior tick) so every tick mark
+   stays vertically aligned regardless of tick count -- without this, only
+   the labeled endpoint ticks would be taller, throwing off alignment since
+   they're all flex children stacked from the same top. */
+.number-line-tick-label {
+  display: block;
+  min-height: 20px;
+  margin-top: 4px;
+  font-size: 15px;
+  font-weight: bold;
+  color: #2b3a67;
+}
+
+/* The tick currently picked but not yet confirmed with checkBtn/Enter --
+   same visual role .letter-selected plays for a reverse-mode sound button
+   (the stronger of the two states a choice can be in; see that rule's own
+   comment for why it needs to read as more dominant than a bare :focus). */
+.number-line-tick.number-line-selected .number-line-tick-mark {
+  background: #4a6cf7;
+  box-shadow: 0 0 0 4px rgba(74, 108, 247, 0.35);
+}
+
+.number-line-tick.number-line-correct .number-line-tick-mark {
+  background: #2e9e4f;
+  box-shadow: 0 0 0 4px rgba(46, 158, 79, 0.35);
+}
+
+/* Stays applied for the rest of the round once confirmed wrong (see
+   checkDecimalNumberLineAnswer(), exercise-decimals.js -- .number-line-wrong
+   is never removed, unlike an earlier version that faded it to a greyed
+   .number-line-eliminated look after the initial flash: reported as too
+   hard to actually see against the rest of the line, so red stays solid
+   here instead). .number-line-eliminated itself carries no styling of its
+   own now -- it's purely the "can't reselect this one" logic flag checked
+   in selectDecimalNumberLineTick(). */
+.number-line-tick.number-line-wrong .number-line-tick-mark {
+  background: #e0433d;
+  box-shadow: 0 0 0 4px rgba(224, 67, 61, 0.35);
+}
+
+/* One click/tap/keyboard target spanning the entire line, instead of one
+   button per tick -- at up to 30 segments, individually-sized tick buttons
+   would be only a few pixels apart (or literally overlapping), impossible
+   to hit reliably even before accounting for fat fingers. A click computes
+   the *nearest* tick from its x-position (see wireDecimalNumberLineInteraction(),
+   exercise-decimals.js); this only *selects* that tick -- checkBtn/Enter
+   still confirms it, per explicit user request (worried about mis-clicks
+   counting immediately). role="slider" plus a real tabindex/focus state for
+   the same free keyboard support every other click-choice topic's own
+   buttons get, just via one focusable element instead of many. */
+.number-line-hit-area {
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+}
+
+/* No visible focus ring here (unlike most of this app's other click-choice
+   elements) -- an earlier version glowed .number-line-axis on focus, but
+   since #numberLineHitArea auto-focuses on every single round (see
+   renderDecimalNumberLineExercise(), exercise-decimals.js), that glow was
+   effectively always on, reading as a persistent, unexplained blue wash
+   across the whole line rather than a meaningful focus indicator -- removed
+   per direct user report ("מציק למשתמש"). The selected/correct/wrong tick
+   states already give plenty of visual feedback once the student actually
+   interacts, so losing this doesn't leave keyboard use silent. */
+.number-line-hit-area:focus {
+  outline: none;
+}
+
 /* Vocabulary exercise: the English word shown as the prompt, and its Hebrew
    translation choices below. Same visual language as .letter-choice-btn
    (gradient/border/shadow, correct/wrong treatments) but sized for words
