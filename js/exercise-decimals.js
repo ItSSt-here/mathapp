@@ -35,22 +35,45 @@ function drawDecimalNumerator(digitCount) {
   return randInt(1, 9) * 100 + randInt(0, 9) * 10 + randInt(1, 9);
 }
 
+// Smallest power of ten a given denominator divides evenly -- 2/5/10 -> 10,
+// 20/25/50/100 -> 100, 4 -> 100, 8 -> 1000. Genuinely searches/checks
+// divisibility instead of a "denominator<=10?10:100" shortcut: that shortcut
+// happens to work for level 2's own pool, but breaks for level 3's harder
+// denominators (4<=10, yet 10%4 isn't 0 -- it needs 100, not 10). Every
+// denominator this topic ever draws is built purely from 2s and 5s, so this
+// always terminates -- see DECIMAL_L3_HARD_DENOMINATORS's own comment in
+// config.js for why a denominator like 15 (with a factor of 3) could never
+// be used here at all, loop or no loop.
+function decimalExpansionTarget(denominator) {
+  let target = 10;
+  while (target % denominator !== 0) target *= 10;
+  return target;
+}
+
+// Shared by every level: given the whole part and the shown fraction's own
+// numerator/denominator, expands to the smallest terminating power-of-ten
+// form and builds the final answer string. padStart is exactly what
+// supplies the "connecting zero(s)" every level's harder draws are built to
+// drill (e.g. numerator=3, denominator=100 -> "03" -> 0.03).
+function buildDecimalAnswer(whole, numerator, denominator) {
+  const target = decimalExpansionTarget(denominator);
+  const multiplier = target / denominator;
+  const places = String(target).length - 1;
+  const expandedNumerator = numerator * multiplier;
+  const decimalDigits = String(expandedNumerator).padStart(places, '0');
+  return `${whole}.${decimalDigits}`;
+}
+
 function generateDecimalLevel1Exercise() {
   const forceZero = Math.random() < DECIMAL_L1_ZERO_CHANCE;
   const whole = forceZero ? 0 : randInt(1, DECIMAL_WHOLE_MAX);
   const denominator = randChoice(DECIMAL_DENOMINATORS);
   const digitCount = pickDecimalNumeratorDigitCount(denominator);
   const numerator = drawDecimalNumerator(digitCount);
-  // Decimal place count always matches the denominator's own zero count
-  // (10->1, 100->2, 1000->3), regardless of the numerator's own digit count
-  // -- padStart is exactly what supplies the "connecting zero(s)" this level
-  // is built to drill (e.g. numerator=3, denominator=100 -> "03" -> 0.03).
-  const places = String(denominator).length - 1;
-  const decimalDigits = String(numerator).padStart(places, '0');
 
   return {
     whole, numerator, denominator,
-    answer: `${whole}.${decimalDigits}`,
+    answer: buildDecimalAnswer(whole, numerator, denominator),
   };
 }
 
@@ -58,7 +81,10 @@ function generateDecimalLevel1Exercise() {
 // denominators 50/100 get the same single-digit/two-digit split level 1
 // uses for its own denom-100 case (no "never a multiple of 10" exclusion
 // here, unlike level 1 -- see that constant's own comment); every other
-// denominator (2/5/10/20) is just a uniform proper draw, no split at all.
+// denominator (2/5/10/20/25) is just a uniform proper draw, no split at all
+// -- 25 deliberately excluded from the split despite being just as capable
+// of a single-digit expanded result (e.g. 1/25 -> 04/100), since it's meant
+// to read as "easy," not as a dedicated connecting-zero drill like 50/100.
 // Direct ranges throughout, no drawing-then-rejecting, per
 // [[feedback_no_reroll_mechanics]].
 function pickDecimalLevel2Numerator(denominator) {
@@ -70,25 +96,39 @@ function pickDecimalLevel2Numerator(denominator) {
 }
 
 // Same shown/typed mechanic as level 1, but the given denominator (2/5/10/
-// 20/50/100) isn't already a power of ten -- it's always a clean multiple
-// away from one, though: 2/5/10 expand to tenths (x5/x2/x1), 20/50/100
-// expand to hundredths (x5/x2/x1). "target<=10 ? 10 : 100" picks which one
-// based on the drawn denominator itself, so this one function covers every
-// case with no lookup table.
+// 20/25/50/100) isn't already a power of ten -- it's always a clean
+// multiple away from one, though (see decimalExpansionTarget()/
+// buildDecimalAnswer() above).
 function generateDecimalLevel2Exercise() {
   const forceZero = Math.random() < DECIMAL_L1_ZERO_CHANCE;
   const whole = forceZero ? 0 : randInt(1, DECIMAL_WHOLE_MAX);
   const denominator = randChoice(DECIMAL_L2_DENOMINATORS);
   const numerator = pickDecimalLevel2Numerator(denominator);
-  const target = denominator <= 10 ? 10 : 100;
-  const multiplier = target / denominator;
-  const places = target === 10 ? 1 : 2;
-  const expandedNumerator = numerator * multiplier;
-  const decimalDigits = String(expandedNumerator).padStart(places, '0');
 
   return {
     whole, numerator, denominator,
-    answer: `${whole}.${decimalDigits}`,
+    answer: buildDecimalAnswer(whole, numerator, denominator),
+  };
+}
+
+// Level 3: DECIMAL_L3_HARD_CHANCE of draws use a harder denominator (4 or 8,
+// equal chance -- see DECIMAL_L3_HARD_DENOMINATORS in config.js), needing a
+// much bigger expansion factor (x25 or x125) than anything in level 2's own
+// pool; no digit-count split on their numerator (both ranges are tiny --
+// 1-3 for denominator 4, 1-7 for denominator 8 -- so there's nothing
+// meaningful to split). The rest of the draws fall back to level 2's exact
+// mechanic/pool (denominator *and* numerator-picking both reused, not
+// reimplemented).
+function generateDecimalLevel3Exercise() {
+  const forceZero = Math.random() < DECIMAL_L1_ZERO_CHANCE;
+  const whole = forceZero ? 0 : randInt(1, DECIMAL_WHOLE_MAX);
+  const forceHard = Math.random() < DECIMAL_L3_HARD_CHANCE;
+  const denominator = forceHard ? randChoice(DECIMAL_L3_HARD_DENOMINATORS) : randChoice(DECIMAL_L2_DENOMINATORS);
+  const numerator = forceHard ? randInt(1, denominator - 1) : pickDecimalLevel2Numerator(denominator);
+
+  return {
+    whole, numerator, denominator,
+    answer: buildDecimalAnswer(whole, numerator, denominator),
   };
 }
 
@@ -96,6 +136,7 @@ function generateDecimalLevel2Exercise() {
 // generate<Topic>Exercise() uses.
 function generateDecimalExercise() {
   const level = exerciseDifficultyIndex + 1;
+  if (level === 3) return generateDecimalLevel3Exercise();
   if (level === 2) return generateDecimalLevel2Exercise();
   return generateDecimalLevel1Exercise();
 }
