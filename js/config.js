@@ -133,7 +133,7 @@ const URL_PARAM_WORDS = 'words';
 // URL_PARAM_DIFFICULTY (buildShareLink() in main.js) since it lives on the
 // same exDifficultyOverlay screen.
 const URL_PARAM_REVIEW = 'review';
-const VALID_TOPICS = ['multiplication', 'fractions', 'comparefractions', 'addfractions', 'subtractfractions', 'mixednumbers', 'addfractionsadvanced', 'letters', 'abc', 'nikud', 'vocabulary', 'division', 'grammar']; // matches gameMode's own values, no translation table needed
+const VALID_TOPICS = ['multiplication', 'fractions', 'comparefractions', 'addfractions', 'subtractfractions', 'mixednumbers', 'addfractionsadvanced', 'letters', 'abc', 'nikud', 'vocabulary', 'division', 'grammar', 'decimals']; // matches gameMode's own values, no translation table needed
 // The mode-select screen groups these 6 behind one "שברים" hub button
 // (fractionsSubtopicOverlay in index.html) instead of listing them flat --
 // see backToModeBtn's handler and parseUrlParams()/buildShareLink() in
@@ -473,6 +473,28 @@ const COMPARE_FRAC_L4_M_MAX = 5;
 const COMPARE_OPTIONS = ['<', '>'];
 const COMPARE_OPTIONS_WITH_EQUAL = ['<', '=', '>'];
 
+// Decimals exercise ("מספרים עשרוניים"), level 1 (see
+// generateDecimalLevel1Exercise() in exercise-decimals.js): a mixed number
+// (whole + proper fraction) is shown -- denominator drawn with equal chance
+// from DECIMAL_DENOMINATORS -- and the student types its decimal form
+// freehand (e.g. "3.05"), both '.' and ',' accepted as the separator. The
+// whole part is 0-DECIMAL_WHOLE_MAX, occasionally 0 (DECIMAL_L1_ZERO_CHANCE)
+// -- shown as a plain fraction with no literal "0" whole part, same
+// convention addfractionsadvanced's showsMixedAddends ternary uses for its
+// own w=0 addends -- though the *typed* decimal answer still needs its own
+// leading "0." there, same as real notation. The numerator's digit count is
+// controlled per denominator (see pickDecimalNumeratorDigitCount()) so the
+// student gets deliberate practice with the "connecting zero" trick (e.g.
+// 3/100 = 0.03): denominator 10 always draws a single digit (the only
+// option, since a proper, non-multiple-of-10 numerator under 10 is always
+// 1-9); 100 splits 50/50 between one and two digits; 1000 splits 25/25/50
+// across one/two/three digits. "Never a multiple of 10" is guaranteed by
+// construction in drawDecimalNumerator() -- the numerator's last digit is
+// always drawn from 1-9 -- rather than by drawing-then-rejecting.
+const DECIMAL_DENOMINATORS = [10, 100, 1000];
+const DECIMAL_WHOLE_MAX = 5;
+const DECIMAL_L1_ZERO_CHANCE = 0.15;
+
 const LEVEL1_NUMS = [0, 1, 10];
 const LEVEL2_NUMS = [2, 3, 5];
 const LEVEL3_NUMS_FULL = [4, 6, 7, 8, 9];
@@ -541,6 +563,7 @@ const EXERCISE_TOPIC_LEVEL_COUNTS = {
   vocabulary: 4,       // level 2 added 2026-08-24: reverse direction. level 3 added same day: English word spoken via TTS instead of shown as text. level 4 added same day: Hebrew word shown, typed English answer
   division: 5,         // level 1 added 2026-08-24; levels 2-3 added 2026-08-27; levels 4-5 added same day, mirroring multiplication's own levels 2-5 (same EXERCISE_LEVEL_CONFIGS indices, see pickDivisionFactors() in exercise-division.js)
   grammar: 2,           // level 1 added 2026-08-30: English V1 shown, student types V2 (e.g. verb base form -> past tense), exact spelling. level 2 added same day: reverse direction (V2 shown, V1 typed). See exercise-grammar.js.
+  decimals: 1,          // level 1 added 2026-09-09: whole + proper fraction (denominator 10/100/1000) shown, student types the decimal form freehand. See exercise-decimals.js.
 };
 
 function getExerciseLevelCount() {
@@ -633,6 +656,9 @@ const EXERCISE_LEVEL_DESCRIPTIONS = {
   grammar: [
     'מוצגת מילה באנגלית (V1), ויש לכתוב את הצורה המקבילה שלה (V2, למשל צורת עבר של פועל) באיות מדויק -- אין בחירה מתוך אפשרויות.',
     'הפוך: מוצגת הצורה המקבילה (V2), ויש לכתוב את המילה המקורית (V1) באיות מדויק.',
+  ],
+  decimals: [
+    'מוצג מספר בצורת שלם + שבר (המכנה תמיד 10, 100 או 1000, בהסתברות שווה; המונה לעולם לא מתחלק ב-10), ויש לכתוב אותו כמספר עשרוני (למשל "3.05" -- מקובלים גם נקודה וגם פסיק כמפריד עשרוני). כשהמכנה 100, ב-50% מהמקרים המונה חד-ספרתי -- כדי לתרגל את ה-0 המחבר (למשל 3/100 = 0.03); כשהמכנה 1000, ב-25% מהמקרים המונה חד-ספרתי, ב-25% דו-ספרתי וב-50% תלת-ספרתי. לעיתים (15%) אין חלק שלם כלל (מוצג שבר בלבד, ללא "0" לפניו) -- אבל בתשובה העשרונית עדיין יש לכתוב את ה-0 שלפני הנקודה.',
   ],
 };
 

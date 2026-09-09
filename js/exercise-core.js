@@ -286,6 +286,7 @@ function newExercise() {
   const isCompare = gameMode === 'comparefractions';
   const isVocabulary = gameMode === 'vocabulary';
   const isGrammar = gameMode === 'grammar';
+  const isDecimals = gameMode === 'decimals';
   const isLetterFamily = isLetters || isAbc || isNikud;
   const isReverse = isLetterReverseMode(); // always false for nikud -- no reverse direction yet
   // Vocabulary level 4 (typed answer) is the one vocabulary level that needs
@@ -294,7 +295,7 @@ function newExercise() {
   // levels with a genuine separate confirm step need it shown).
   const isVocabularyTyped = isVocabulary && isVocabularyTypedMode();
   document.getElementById('mathQuestionRow').style.display = (isLetterFamily || isVocabulary || isGrammar) ? 'none' : '';
-  answerHome.style.display = (isLetterFamily || isCompare || isVocabulary || isGrammar) ? 'none' : '';
+  answerHome.style.display = (isLetterFamily || isCompare || isVocabulary || isGrammar || isDecimals) ? 'none' : '';
   // Grammar is typed-only (like vocabulary level 4) -- checkBtn/swapBtn are
   // always shown for it, same as isVocabularyTyped, never hidden the way
   // vocabulary's multiple-choice levels hide them.
@@ -323,6 +324,20 @@ function newExercise() {
     const ex = pickExercise(generateGrammarExercise);
     currentGrammarAnswer = ex.correct;
     renderGrammarExercise(ex);
+    document.getElementById('feedback').textContent = '';
+    document.getElementById('feedback').className = 'feedback';
+    return;
+  }
+
+  // Decimals reuses #mathQuestionRow/#questionText (unlike vocabulary/
+  // grammar, which hide it) since its shown side is a fraction-family
+  // equation, not a plain word -- but its answer lives in its own
+  // #decimalTypedInput rather than the generic #answer, so it still needs
+  // its own early return before the generic tail below touches answerInput.
+  if (isDecimals) {
+    const ex = pickExercise(generateDecimalExercise);
+    currentDecimalAnswer = ex.answer;
+    renderDecimalExercise(ex);
     document.getElementById('feedback').textContent = '';
     document.getElementById('feedback').className = 'feedback';
     return;
@@ -669,6 +684,11 @@ function checkAnswer() {
     return;
   }
 
+  if (gameMode === 'decimals') {
+    checkDecimalAnswer();
+    return;
+  }
+
   if (isLetterReverseMode()) {
     checkLetterReverseAnswer();
     return;
@@ -764,6 +784,11 @@ function changeQuestion() {
 
   if (gameMode === 'grammar') {
     changeGrammarQuestion();
+    return;
+  }
+
+  if (gameMode === 'decimals') {
+    changeDecimalQuestion();
     return;
   }
 

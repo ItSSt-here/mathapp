@@ -13,7 +13,7 @@
      fetch of everything together instead of relying on cache timing to
      line up. No build step in this project, so this is manual -- there's
      nothing to automate it. -->
-<link rel="stylesheet" href="style.css?v=202608252300">
+<link rel="stylesheet" href="style.css?v=202609091200">
 </head>
 <body>
 
@@ -99,6 +99,15 @@
   <div id="grammarAnswerHome" style="display:none;">
     <div class="vocabulary-word-display" id="grammarWordDisplay"></div>
     <input type="text" id="grammarTypedInput" class="vocabulary-typed-input" dir="ltr" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done">
+  </div>
+  <!-- Decimals exercise (level 1, the only level so far): the shown mixed
+       number renders into #mathQuestionRow itself (see renderDecimalExercise(),
+       exercise-decimals.js), same as every other fraction-family topic --
+       unlike vocabulary/grammar, this div holds nothing but the typed answer
+       input, parked here (hidden) between rounds; newExercise() moves it into
+       the equation's own blank slot each round. -->
+  <div id="decimalAnswerHome" style="display:none;">
+    <input type="text" inputmode="decimal" id="decimalTypedInput" class="decimal-typed-input" dir="ltr" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done">
   </div>
   <!-- Second blank, only used for fraction exercises where both the
        numerator and denominator are hidden; parked here (hidden) otherwise. -->
@@ -187,6 +196,7 @@
       <button class="restart-btn" id="modeNikudBtn">ניקוד</button>
       <button class="restart-btn" id="modeVocabularyBtn">אוצר מילים</button>
       <button class="restart-btn" id="modeGrammarBtn">דקדוק</button>
+      <button class="restart-btn" id="modeDecimalsBtn">מספרים עשרוניים</button>
     </div>
 
     <div class="link-row">
@@ -351,9 +361,9 @@
      (see preloadSoldierSprites() in render.js). -->
 <div id="spritePreload" style="position:fixed; left:-9999px; top:-9999px; width:1px; height:1px; overflow:hidden;" aria-hidden="true"></div>
 
-<script src="js/config.js?v=202608301500"></script>
+<script src="js/config.js?v=202609091200"></script>
 <script src="js/helpers.js?v=202608252100"></script>
-<script src="js/exercise-core.js?v=202609041500"></script>
+<script src="js/exercise-core.js?v=202609091200"></script>
 <script src="js/exercise-division.js?v=202608271300"></script>
 <script src="js/exercise-fractions.js?v=202608252000"></script>
 <script src="js/exercise-fraction-arithmetic.js?v=202608252200"></script>
@@ -367,9 +377,10 @@
 <script src="js/exercise-compare.js?v=202608252000"></script>
 <script src="js/exercise-vocabulary.js?v=202609041500"></script>
 <script src="js/exercise-grammar.js?v=202608301500"></script>
+<script src="js/exercise-decimals.js?v=202609091200"></script>
 <script src="js/combat.js?v=202608252100"></script>
 <script src="js/render.js?v=202608252000"></script>
-<script src="js/main.js?v=202608301600"></script>
+<script src="js/main.js?v=202609091200"></script>
 
 </body>
 </html>

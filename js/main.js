@@ -28,7 +28,7 @@ function changeExerciseDifficulty(delta) {
   updateExerciseDifficultyLabel();
 }
 
-const MODE_LABELS = { fractions: 'מבוא לשברים', comparefractions: 'השוואת שברים', addfractions: 'חיבור שברים', subtractfractions: 'חיסור שברים', mixednumbers: 'מספרים מעורבים', addfractionsadvanced: 'חיבור שברים מתקדם', letters: 'אותיות', abc: 'ABC', nikud: 'ניקוד', vocabulary: 'אוצר מילים', division: 'מבוא לחילוק', grammar: 'דקדוק' };
+const MODE_LABELS = { fractions: 'מבוא לשברים', comparefractions: 'השוואת שברים', addfractions: 'חיבור שברים', subtractfractions: 'חיסור שברים', mixednumbers: 'מספרים מעורבים', addfractionsadvanced: 'חיבור שברים מתקדם', letters: 'אותיות', abc: 'ABC', nikud: 'ניקוד', vocabulary: 'אוצר מילים', division: 'מבוא לחילוק', grammar: 'דקדוק', decimals: 'מספרים עשרוניים' };
 
 function formatLevelInfo() {
   const modeLabel = MODE_LABELS[gameMode] || 'כפל';
@@ -277,6 +277,7 @@ function startGame() {
   document.getElementById('swapBtn').disabled = false;
   document.getElementById('vocabularyTypedInput').disabled = false;
   document.getElementById('grammarTypedInput').disabled = false;
+  document.getElementById('decimalTypedInput').disabled = false;
 
   updateCoinsDisplay();
   updateStatsCountersDisplay();
@@ -398,6 +399,22 @@ document.getElementById('grammarTypedInput').addEventListener('keydown', (e) => 
   if (e.key !== 'Enter') return;
   if (e.target.value.trim() === '') return;
   checkAnswer();
+});
+// Same "Enter submits, empty box is a no-op" behavior as the two typed
+// inputs just above -- decimals is typed-only too, just with digits/
+// separators only (see the 'input' listener below) instead of free text.
+document.getElementById('decimalTypedInput').addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter') return;
+  if (e.target.value.trim() === '') return;
+  checkAnswer();
+});
+// Restricts typed characters to digits and the two accepted decimal
+// separators ('.'/',', both normalized to '.' at check time -- see
+// normalizeDecimalTypedAnswer(), exercise-decimals.js) -- same filtering
+// idea as #answer's own digit-only listener just below, just widened by two
+// characters for this topic's own answer shape.
+document.getElementById('decimalTypedInput').addEventListener('input', (e) => {
+  e.target.value = e.target.value.replace(/[^0-9.,]/g, '');
 });
 document.getElementById('answer').addEventListener('input', (e) => {
   e.target.value = e.target.value.replace(/[^0-9]/g, '');
@@ -657,6 +674,7 @@ const MODE_BUTTON_TOPICS = {
   modeLettersBtn: 'letters',
   modeAbcBtn: 'abc',
   modeNikudBtn: 'nikud',
+  modeDecimalsBtn: 'decimals',
 };
 // Shared by both the flat mode-select buttons above and the fraction
 // subtopic hub's buttons below -- committing to a real topic always means

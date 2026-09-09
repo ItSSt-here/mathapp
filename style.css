@@ -597,6 +597,16 @@ button.check-btn:focus {
   direction: ltr;
 }
 
+/* Decimals exercise: sits inside .frac-eq itself (unlike
+   .vocabulary-typed-input, which lives in its own standalone row) -- narrower
+   than a typed English word, sized for a short digit string like "3.05" or
+   "0.007" instead. */
+.decimal-typed-input {
+  width: 130px !important;
+  font-size: 30px !important;
+  direction: ltr;
+}
+
 .vocabulary-choices {
   display: flex;
   flex-wrap: wrap;
