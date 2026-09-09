@@ -151,7 +151,19 @@ function generateDecimalLevel3Exercise() {
 // checkDecimalAnswer()/changeDecimalQuestion() -- see the
 // isDecimalNumberLineLevel() branch in newExercise()/exercise-core.js.
 function isDecimalNumberLineLevel() {
-  return gameMode === 'decimals' && exerciseDifficultyIndex === 2;
+  return gameMode === 'decimals' && (exerciseDifficultyIndex === 2 || exerciseDifficultyIndex === 4);
+}
+
+// Level 5 specifically (see generateDecimalNumberLineHundredthsExercise()
+// below) -- the same number-line mechanic as level 3, just a denser 0-to-1
+// line marked off in hundredths instead of a 0-to-RANGE_MAX line marked off
+// in tenths. Kept as its own predicate (rather than checking
+// exerciseDifficultyIndex directly wherever this distinction matters) since
+// only the *generation* differs between the two number-line levels --
+// render/select/check/wiring below are fully shared, parametrized by
+// whatever `segments`/`rangeMax` the drawn exercise itself carries.
+function isDecimalNumberLineHundredthsLevel() {
+  return gameMode === 'decimals' && exerciseDifficultyIndex === 4;
 }
 
 // Correct tick index (0..RANGE_MAX*10) and the index currently selected but
@@ -171,7 +183,32 @@ function generateDecimalNumberLineExercise() {
   // constant's own comment in config.js), so this is always a whole tick
   // index, never a fractional one.
   const tickIndex = whole * 10 + numerator * (10 / denominator);
-  return { whole, numerator, denominator, tickIndex };
+  return { whole, numerator, denominator, tickIndex, segments: DECIMAL_NUMBER_LINE_RANGE_MAX * 10, rangeMax: DECIMAL_NUMBER_LINE_RANGE_MAX };
+}
+
+// Level 5: same number-line mechanic, but a single 0-to-1 line marked off in
+// hundredths instead -- so there's no whole part to show at all (always 0,
+// omitted from display same as every other level's own w=0 case), and the
+// denominator pool is level 4's own (see generateDecimalLevel3Exercise()'s
+// comment below), minus 8. 8 doesn't divide 100 evenly (100/8 = 12.5), so a
+// fraction like 3/8 would have no exact hundredths tick to land on --
+// DECIMAL_NUMBER_LINE_HUNDREDTHS_HARD_DENOMINATOR (config.js) is just 4,
+// still drawn at the same DECIMAL_L3_HARD_CHANCE. Every other denominator in
+// that pool (2/5/10/20/25/50/100) divides 100 cleanly.
+function generateDecimalNumberLineHundredthsExercise() {
+  const forceHard = Math.random() < DECIMAL_L3_HARD_CHANCE;
+  const denominator = forceHard ? DECIMAL_NUMBER_LINE_HUNDREDTHS_HARD_DENOMINATOR : randChoice(DECIMAL_L2_DENOMINATORS);
+  const numerator = forceHard ? randInt(1, denominator - 1) : pickDecimalLevel2Numerator(denominator);
+  const tickIndex = numerator * (100 / denominator);
+  return { whole: 0, numerator, denominator, tickIndex, segments: 100, rangeMax: 1 };
+}
+
+// Picks which number-line generator this round draws from -- the only thing
+// that actually differs between levels 3 and 5 (see isDecimalNumberLineLevel()
+// above); everything downstream (render/select/check/keyboard wiring) reads
+// the drawn exercise's own segments/rangeMax rather than assuming either one.
+function generateDecimalNumberLineExerciseForLevel() {
+  return isDecimalNumberLineHundredthsLevel() ? generateDecimalNumberLineHundredthsExercise() : generateDecimalNumberLineExercise();
 }
 
 // Builds the tick marks fresh each round -- plain <div>s, not buttons, since
@@ -187,25 +224,41 @@ function renderDecimalNumberLineExercise(ex) {
     : mixedNumberDisplayHTML(ex.whole, ex.numerator, ex.denominator);
   document.getElementById('questionText').innerHTML = shownHTML;
 
-  const segments = DECIMAL_NUMBER_LINE_RANGE_MAX * 10;
+  const segments = ex.segments;
   const ticksContainer = document.getElementById('numberLineTicks');
   ticksContainer.innerHTML = '';
   ticksContainer.classList.remove('number-line-locked');
+  // Dense lines (level 5's hundredths scale, 100 segments) get thin/faint
+  // "hair" minor ticks (.number-line-tick-hair, style.css) instead of the
+  // normal-weight ones a coarser scale (level 3's tenths, 30 segments)
+  // uses -- at 100 segments, a normal 3px-wide mark every ~1% of the line's
+  // width would blur together into a solid smear rather than read as
+  // distinct ticks.
+  const useHairMinor = segments > 50;
   for (let i = 0; i <= segments; i++) {
-    // Every whole number along the line (0, 1, 2, ... RANGE_MAX -- i.e.
-    // every 10th tick, since segments are tenths) gets its own label and the
-    // tallest/boldest mark (.number-line-tick-whole, style.css); the
-    // halfway point of each unit (.5, 1.5, 2.5 -- every 5th tick) gets a
-    // mark a bit taller than the plain tenths ticks but shorter than a
-    // whole number's -- a three-tier "major/half/minor" convention a real
+    // Every major landmark along the line (every 10th tick) gets its own
+    // label and the tallest/boldest mark (.number-line-tick-whole,
+    // style.css -- named for level 3's own whole-number landmarks, reused
+    // as-is here for level 5's tenths landmarks instead, same "don't rename
+    // a class just because a later level reuses it for something slightly
+    // different" reasoning as this app's own tuning-constant convention);
+    // the halfway point of each major interval (every 5th tick) gets a
+    // medium mark -- a three-tier "major/half/minor" convention a real
     // ruler uses, giving the student landmarks to judge an in-between
     // point's position against instead of counting from 0 every time.
-    const isWhole = i % 10 === 0;
+    const isMajor = i % 10 === 0;
     const isHalf = i % 10 === 5;
     const tick = document.createElement('div');
-    tick.className = 'number-line-tick' + (isWhole ? ' number-line-tick-whole' : isHalf ? ' number-line-tick-half' : '');
+    let tickClass = 'number-line-tick';
+    if (isMajor) tickClass += ' number-line-tick-whole';
+    else if (isHalf) tickClass += ' number-line-tick-half';
+    else if (useHairMinor) tickClass += ' number-line-tick-hair';
+    tick.className = tickClass;
     tick.style.left = `${i * 100 / segments}%`;
-    const label = isWhole ? String(i / 10) : '';
+    // i*rangeMax/segments is the tick's real value regardless of scale --
+    // 10*3/30 -> 1 (level 3, whole numbers), 10*1/100 -> 0.1 (level 5,
+    // tenths) -- rounded to guard against float noise on odd future scales.
+    const label = isMajor ? String(Math.round((i * ex.rangeMax / segments) * 1000) / 1000) : '';
     tick.innerHTML = `<span class="number-line-tick-mark"></span><span class="number-line-tick-label">${label}</span>`;
     ticksContainer.appendChild(tick);
   }
@@ -325,9 +378,9 @@ function checkDecimalNumberLineAnswer() {
 // in this codebase): DECIMAL_L3_HARD_CHANCE of draws use a harder
 // denominator (4 or 8); the rest fall back to level 2's exact mechanic.
 // Dispatches by level, same pattern every other multi-level topic's own
-// generate<Topic>Exercise() uses. Level 3 (the number-line UI) is *not*
-// routed through here -- see isDecimalNumberLineLevel()'s own comment above
-// for why its answer shape doesn't fit this dispatcher at all.
+// generate<Topic>Exercise() uses. Levels 3 and 5 (the number-line UI) are
+// *not* routed through here -- see isDecimalNumberLineLevel()'s own comment
+// above for why their answer shape doesn't fit this dispatcher at all.
 function generateDecimalExercise() {
   const level = exerciseDifficultyIndex + 1;
   if (level === 4) return generateDecimalLevel3Exercise();

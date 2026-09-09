@@ -553,26 +553,29 @@ button.check-btn:focus {
   box-shadow: 0 3px 0 #3349b0;
 }
 
-/* Decimals level 3 (number-line UI): a 0-to-DECIMAL_NUMBER_LINE_RANGE_MAX
-   line divided into tenths (see generateDecimalNumberLineExercise()/
-   wireDecimalNumberLineInteraction(), exercise-decimals.js). direction:ltr
-   regardless of the page's own RTL -- 0 must render on the left and the
-   line's max on the right, same reasoning as .exercise/.frac-eq forcing ltr
-   for their own equations. max-width wider than most of this app's other
-   inline elements (this app's own .card itself can run up to 1200px, see
-   its own comment in this file) since up to 30 tick marks need real room to
-   stay individually distinguishable -- still width:100% so it shrinks to
-   fit a narrow phone instead of overflowing (same min-width:0 concern
-   .exercise-row's own comment describes for equations that could otherwise
-   overflow). Even so, at 30 segments each one is necessarily only a few
-   pixels wide on a phone -- #numberLineHitArea (below) computing the
-   *nearest* tick from a click, rather than relying on individually-sized
-   per-tick buttons, is what keeps that usable at all. */
+/* Decimals levels 3 and 5 (number-line UI): a 0-to-N line divided into
+   tenths (level 3, 30 segments) or hundredths (level 5, 100 segments -- see
+   generateDecimalNumberLineExercise()/generateDecimalNumberLineHundredthsExercise(),
+   exercise-decimals.js). direction:ltr regardless of the page's own RTL --
+   0 must render on the left and the line's max on the right, same reasoning
+   as .exercise/.frac-eq forcing ltr for their own equations. max-width set
+   to almost the full width this app's own .card can offer on a desktop
+   screen (.card itself caps at 1200px, see its own comment in this file,
+   minus its own padding) -- level 5's 100 segments need every pixel of that
+   room to stay individually distinguishable at all; level 3's 30 segments
+   benefit too (more room per tick), just less critically. Still width:100%
+   so it shrinks to fit a narrower window instead of overflowing (same
+   min-width:0 concern .exercise-row's own comment describes for equations
+   that could otherwise overflow) -- but level 5 was explicitly agreed to
+   not need to work on an actual phone-sized screen; #numberLineHitArea
+   (below) computing the *nearest* tick from a click, rather than relying on
+   individually-sized per-tick buttons, is what keeps either level usable at
+   its own density. */
 .number-line-wrap {
   position: relative;
   direction: ltr;
   width: 100%;
-  max-width: 520px;
+  max-width: 1080px;
   height: 64px;
   margin: 10px auto 24px;
 }
@@ -653,6 +656,25 @@ button.check-btn:focus {
   height: 22px;
 }
 
+/* Level 5's individual hundredths (see renderDecimalNumberLineExercise()'s
+   own useHairMinor check, exercise-decimals.js -- only applied once a
+   line's segment count is dense enough that a normal-weight minor tick
+   would blur into its neighbors): thinner, shorter, and faded, same "ruler
+   mm-marks between the labeled cm-marks" idea validated against the wide
+   prototype before this shipped -- a landmark to aim near, not a target in
+   its own right (the selected/correct/wrong states below override size and
+   opacity back to full strength, so an actual pick always reads clearly
+   regardless of which tier it started in). */
+.number-line-tick-hair {
+  padding-top: 9px;
+}
+
+.number-line-tick-hair .number-line-tick-mark {
+  width: 1px;
+  height: 14px;
+  opacity: 0.4;
+}
+
 /* Reserves height even when empty (every interior tick) so every tick mark
    stays vertically aligned regardless of tick count -- without this, only
    the labeled endpoint ticks would be taller, throwing off alignment since
@@ -670,14 +692,26 @@ button.check-btn:focus {
    same visual role .letter-selected plays for a reverse-mode sound button
    (the stronger of the two states a choice can be in; see that rule's own
    comment for why it needs to read as more dominant than a bare :focus). */
+/* width/height/opacity repeated on all three states below (not just color)
+   so a pick on a level-5 hair tick -- normally 1px/14px/faded, see
+   .number-line-tick-hair above -- reads at full, clear strength once
+   selected/confirmed, same as a major/half tick would. Higher specificity
+   than .number-line-tick-hair's own rule (three classes vs. two) wins this
+   regardless of order in the file. */
 .number-line-tick.number-line-selected .number-line-tick-mark {
   background: #4a6cf7;
   box-shadow: 0 0 0 4px rgba(74, 108, 247, 0.35);
+  width: 3px;
+  height: 22px;
+  opacity: 1;
 }
 
 .number-line-tick.number-line-correct .number-line-tick-mark {
   background: #2e9e4f;
   box-shadow: 0 0 0 4px rgba(46, 158, 79, 0.35);
+  width: 3px;
+  height: 22px;
+  opacity: 1;
 }
 
 /* Stays applied for the rest of the round once confirmed wrong (see
@@ -691,6 +725,9 @@ button.check-btn:focus {
 .number-line-tick.number-line-wrong .number-line-tick-mark {
   background: #e0433d;
   box-shadow: 0 0 0 4px rgba(224, 67, 61, 0.35);
+  width: 3px;
+  height: 22px;
+  opacity: 1;
 }
 
 /* One click/tap/keyboard target spanning the entire line, instead of one

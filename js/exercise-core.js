@@ -351,7 +351,7 @@ function newExercise() {
   // it's kept fully separate rather than folded into generateDecimalExercise()'s
   // own level dispatch.
   if (isDecimalNumberLine) {
-    const ex = pickExercise(generateDecimalNumberLineExercise);
+    const ex = pickExercise(generateDecimalNumberLineExerciseForLevel);
     document.getElementById('numberLineInstructionLabel').style.display = '';
     renderDecimalNumberLineExercise(ex);
     document.getElementById('feedback').textContent = '';
