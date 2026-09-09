@@ -251,6 +251,7 @@ function newExercise() {
   const answer3Home = document.getElementById('answer3Home');
   const simplifyLabel = document.getElementById('simplifyLabel');
   simplifyLabel.style.display = 'none';
+  document.getElementById('decimalInstructionLabel').style.display = 'none';
 
   // Mobile numeric keypads (inputmode="numeric") often have no visible
   // Enter/Go key by default -- enterkeyhint gives them a real one. Defaults
@@ -272,6 +273,13 @@ function newExercise() {
   answerHome.appendChild(answerInput);
   answer2Home.appendChild(answer2);
   answer3Home.appendChild(answer3);
+  // Same reasoning, same fix, for decimals' own dedicated input: it gets
+  // parked inside #questionText itself (see renderDecimalExercise(),
+  // exercise-decimals.js), so switching to any other topic without first
+  // moving it back out here would have that topic's own questionText.innerHTML
+  // rewrite destroy the real #decimalTypedInput element along with the old
+  // markup, leaving a future decimals round with nothing to append.
+  document.getElementById('decimalAnswerHome').appendChild(document.getElementById('decimalTypedInput'));
 
   // Letters/ABC modes have no equation/typed answer at all -- swap the whole
   // question+answer UI for the sound button + multiple-choice buttons
@@ -337,6 +345,7 @@ function newExercise() {
   if (isDecimals) {
     const ex = pickExercise(generateDecimalExercise);
     currentDecimalAnswer = ex.answer;
+    document.getElementById('decimalInstructionLabel').style.display = '';
     renderDecimalExercise(ex);
     document.getElementById('feedback').textContent = '';
     document.getElementById('feedback').className = 'feedback';
