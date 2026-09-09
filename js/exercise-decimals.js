@@ -125,11 +125,17 @@ function renderDecimalExercise(ex) {
   input.focus();
 }
 
-// Accepts both '.' and ',' as the decimal separator (per user request) --
-// normalized to '.' before comparing against currentDecimalAnswer, which is
-// always built with '.'. Otherwise an exact match, same "no fuzzy/near-miss
-// leniency" reasoning as normalizeGrammarTypedAnswer() (exercise-grammar.js)
-// -- this level's whole point is the exact digit count/placement.
+// Accepts both '.' and ',' as the decimal separator (per user request),
+// normalized to '.'. Unlike normalizeGrammarTypedAnswer()'s exact-string
+// match (exercise-grammar.js), this is compared numerically at the call
+// site (Number(), not ===) -- the padded digit count baked into
+// currentDecimalAnswer controls what gets *asked* (drilling the connecting
+// zero for a given numerator/denominator), not what the student's own
+// correct answer must look like. "0.6"/"0.60"/"0.600" are all the same
+// number and all correct; only a genuinely different value (e.g. "0.3" for
+// a correct "0.03") is wrong. Number() (not parseFloat()) so a malformed
+// string like "0.6.7" comes back NaN -- never equal to anything, including
+// itself -- instead of silently parsing as if the extra dot weren't there.
 function normalizeDecimalTypedAnswer(s) {
   return s.trim().replace(/,/g, '.');
 }
@@ -151,7 +157,7 @@ function checkDecimalAnswer() {
     return;
   }
 
-  const isCorrect = normalizeDecimalTypedAnswer(input.value) === currentDecimalAnswer;
+  const isCorrect = Number(normalizeDecimalTypedAnswer(input.value)) === Number(currentDecimalAnswer);
 
   checkBtn.disabled = true;
   input.disabled = true;
