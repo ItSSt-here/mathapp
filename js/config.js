@@ -493,7 +493,30 @@ const COMPARE_OPTIONS_WITH_EQUAL = ['<', '=', '>'];
 // always drawn from 1-9 -- rather than by drawing-then-rejecting.
 const DECIMAL_DENOMINATORS = [10, 100, 1000];
 const DECIMAL_WHOLE_MAX = 5;
+// Also reused as-is by level 2 below (same whole-part range, same zero
+// chance) -- kept its "L1" name rather than renaming on reuse, same
+// convention FRAC_ADD_L3_A_MIN/etc. already established for a constant that
+// outgrew the level it was named after.
 const DECIMAL_L1_ZERO_CHANCE = 0.30;
+
+// Level 2 (see generateDecimalLevel2Exercise() in exercise-decimals.js): same
+// shown/typed mechanic as level 1, but drawn from a denominator that's easy
+// to mentally expand to tenths or hundredths instead of already being one --
+// 2/5/10 expand to tenths (multiply by 5/2/1), 20/50/100 expand to
+// hundredths (multiply by 5/2/1), drawn with equal chance across all six.
+// The numerator is otherwise just drawn uniformly across its full proper
+// range (1 to denominator-1) with no other restriction -- e.g. 10/20 = 0.50
+// is a perfectly legitimate draw here, unlike level 1's own numerator, which
+// specifically excludes multiples of 10 (there is no such exclusion in level
+// 2). The one exception: denominators 50/100 get a single-digit/two-digit
+// split on the numerator, same as level 1's own denom-100 rule, so the
+// student gets deliberate practice with the connecting zero after expansion
+// (e.g. 1/50 -> expand x2 -> 02/100 -> 0.02). For denominator 50
+// specifically this split is on the *pre-expansion* numerator, so a
+// "single-digit" draw (1-9) can still expand to a two-digit result (x2 ->
+// 2-18) -- acknowledged and accepted as fine, not worth a dedicated
+// exclusion just for this one denominator.
+const DECIMAL_L2_DENOMINATORS = [2, 5, 10, 20, 50, 100];
 
 const LEVEL1_NUMS = [0, 1, 10];
 const LEVEL2_NUMS = [2, 3, 5];
@@ -563,7 +586,7 @@ const EXERCISE_TOPIC_LEVEL_COUNTS = {
   vocabulary: 4,       // level 2 added 2026-08-24: reverse direction. level 3 added same day: English word spoken via TTS instead of shown as text. level 4 added same day: Hebrew word shown, typed English answer
   division: 5,         // level 1 added 2026-08-24; levels 2-3 added 2026-08-27; levels 4-5 added same day, mirroring multiplication's own levels 2-5 (same EXERCISE_LEVEL_CONFIGS indices, see pickDivisionFactors() in exercise-division.js)
   grammar: 2,           // level 1 added 2026-08-30: English V1 shown, student types V2 (e.g. verb base form -> past tense), exact spelling. level 2 added same day: reverse direction (V2 shown, V1 typed). See exercise-grammar.js.
-  decimals: 1,          // level 1 added 2026-09-09: whole + proper fraction (denominator 10/100/1000) shown, student types the decimal form freehand. See exercise-decimals.js.
+  decimals: 2,          // level 1 added 2026-09-09: whole + proper fraction (denominator 10/100/1000) shown, student types the decimal form freehand. level 2 added same day: denominator drawn from 2/5/10/20/50/100 instead, always mentally expandable to tenths/hundredths. See exercise-decimals.js.
 };
 
 function getExerciseLevelCount() {
@@ -659,6 +682,7 @@ const EXERCISE_LEVEL_DESCRIPTIONS = {
   ],
   decimals: [
     'מוצג מספר בצורת שלם + שבר (המכנה תמיד 10, 100 או 1000, בהסתברות שווה; המונה לעולם לא מתחלק ב-10), ויש לכתוב אותו כמספר עשרוני (למשל "3.05" -- מקובלים גם נקודה וגם פסיק כמפריד עשרוני). כשהמכנה 100, ב-50% מהמקרים המונה חד-ספרתי -- כדי לתרגל את ה-0 המחבר (למשל 3/100 = 0.03); כשהמכנה 1000, ב-25% מהמקרים המונה חד-ספרתי, ב-25% דו-ספרתי וב-50% תלת-ספרתי. ב-30% מהמקרים אין חלק שלם כלל (מוצג שבר בלבד, ללא "0" לפניו) -- אבל בתשובה העשרונית עדיין יש לכתוב את ה-0 שלפני הנקודה.',
+    'כמו ברמה 1, אבל המכנה נבחר מתוך 2, 5, 10, 20, 50 או 100 (בהסתברות שווה) -- מכנים שקל להרחיב לעשיריות (2, 5, 10) או למאיות (20, 50, 100). יש להרחיב את השבר בראש -- לדוגמה 3/20 הופך ל-15/100 -- ואז לכתוב אותו כמספר עשרוני, בדיוק כמו ברמה 1. כשהמכנה 50 או 100, ב-50% מהמקרים המונה חד-ספרתי (לפני ההרחבה) כדי לתרגל את ה-0 המחבר -- לתשומת לב: במכנה 50 זה לא מבטיח שהתוצאה המורחבת תהיה חד-ספרתית (למשל 7/50 מורחב ל-14/100), וזה בסדר.',
   ],
 };
 

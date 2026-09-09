@@ -54,12 +54,49 @@ function generateDecimalLevel1Exercise() {
   };
 }
 
-// No level branching yet (only level 1 is implemented, see
-// EXERCISE_TOPIC_LEVEL_COUNTS.decimals in config.js) -- kept as its own
-// function anyway, matching every other topic's generate<Topic>Exercise()
-// dispatcher shape, so a future level 2 slots in the same way mixed-numbers/
-// addfractions etc. did.
+// Level 2's own numerator draw (see DECIMAL_L2_DENOMINATORS in config.js):
+// denominators 50/100 get the same single-digit/two-digit split level 1
+// uses for its own denom-100 case (no "never a multiple of 10" exclusion
+// here, unlike level 1 -- see that constant's own comment); every other
+// denominator (2/5/10/20) is just a uniform proper draw, no split at all.
+// Direct ranges throughout, no drawing-then-rejecting, per
+// [[feedback_no_reroll_mechanics]].
+function pickDecimalLevel2Numerator(denominator) {
+  if (denominator === 50 || denominator === 100) {
+    if (Math.random() < 0.5) return randInt(1, 9);
+    return randInt(10, denominator - 1);
+  }
+  return randInt(1, denominator - 1);
+}
+
+// Same shown/typed mechanic as level 1, but the given denominator (2/5/10/
+// 20/50/100) isn't already a power of ten -- it's always a clean multiple
+// away from one, though: 2/5/10 expand to tenths (x5/x2/x1), 20/50/100
+// expand to hundredths (x5/x2/x1). "target<=10 ? 10 : 100" picks which one
+// based on the drawn denominator itself, so this one function covers every
+// case with no lookup table.
+function generateDecimalLevel2Exercise() {
+  const forceZero = Math.random() < DECIMAL_L1_ZERO_CHANCE;
+  const whole = forceZero ? 0 : randInt(1, DECIMAL_WHOLE_MAX);
+  const denominator = randChoice(DECIMAL_L2_DENOMINATORS);
+  const numerator = pickDecimalLevel2Numerator(denominator);
+  const target = denominator <= 10 ? 10 : 100;
+  const multiplier = target / denominator;
+  const places = target === 10 ? 1 : 2;
+  const expandedNumerator = numerator * multiplier;
+  const decimalDigits = String(expandedNumerator).padStart(places, '0');
+
+  return {
+    whole, numerator, denominator,
+    answer: `${whole}.${decimalDigits}`,
+  };
+}
+
+// Dispatches by level, same pattern every other multi-level topic's own
+// generate<Topic>Exercise() uses.
 function generateDecimalExercise() {
+  const level = exerciseDifficultyIndex + 1;
+  if (level === 2) return generateDecimalLevel2Exercise();
   return generateDecimalLevel1Exercise();
 }
 
