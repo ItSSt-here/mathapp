@@ -77,6 +77,271 @@ function generateDecimalLevel1Exercise() {
   };
 }
 
+// ---------- Level 2: Hebrew fraction names ----------
+// Converts a numerator into Hebrew number-words (feminine gender -- every
+// noun this function's result ever attaches to, עשיריות/מאיות/אלפיות/
+// חמישיות/שמיניות, is grammatically feminine). Verified against a
+// standalone checker artifact before shipping (see
+// [[project_decimals_topic_plan]] in memory for the review process) --
+// covers 1-999, since a thousandths numerator can be up to three digits.
+
+// FEM_UNITS[2] is the *absolute* form ("שתיים") -- correct whenever "two"
+// is part of a larger compound (22, 102, ...). FEM_TWO_STANDALONE ("שתי")
+// is the *bound/construct* form, correct only when "two" is the entire
+// number on its own, directly before the noun (e.g. "שתי מאיות"). Every
+// other digit uses the same word either way. Confirmed directly with the
+// user after an initial draft used the bound form everywhere -- "עשרים
+// ושתי מאיות" is wrong, it needs to be "עשרים ושתיים מאיות".
+const FEM_UNITS = ['', 'אחת', 'שתיים', 'שלוש', 'ארבע', 'חמש', 'שש', 'שבע', 'שמונה', 'תשע'];
+const FEM_TWO_STANDALONE = 'שתי';
+const FEM_TEENS = ['עשר', 'אחת עשרה', 'שתים עשרה', 'שלוש עשרה', 'ארבע עשרה', 'חמש עשרה', 'שש עשרה', 'שבע עשרה', 'שמונה עשרה', 'תשע עשרה'];
+const FEM_TENS = ['', '', 'עשרים', 'שלושים', 'ארבעים', 'חמישים', 'שישים', 'שבעים', 'שמונים', 'תשעים'];
+const HEBREW_HUNDREDS = ['', 'מאה', 'מאתיים', 'שלוש מאות', 'ארבע מאות', 'חמש מאות', 'שש מאות', 'שבע מאות', 'שמונה מאות', 'תשע מאות'];
+
+// Builds the ordered word-components (not yet joined) for 1-999.
+function hebrewFemininePartsList(n) {
+  const h = Math.floor(n / 100);
+  const rem = n % 100;
+  const parts = [];
+  if (h > 0) parts.push(HEBREW_HUNDREDS[h]);
+  if (rem > 0) {
+    if (rem < 10) {
+      // rem is the *entire* number only if there's no hundreds component
+      // either -- that's the one case using the standalone "שתי" for 2.
+      const isEntireNumber = h === 0;
+      parts.push(rem === 2 && isEntireNumber ? FEM_TWO_STANDALONE : FEM_UNITS[rem]);
+    } else if (rem < 20) {
+      parts.push(FEM_TEENS[rem - 10]);
+    } else {
+      const t = Math.floor(rem / 10);
+      const u = rem % 10;
+      parts.push(FEM_TENS[t]);
+      if (u > 0) parts.push(FEM_UNITS[u]); // always compound here (tens present) -- absolute form
+    }
+  }
+  return parts;
+}
+
+// The Hebrew "vav" (ו) conjunction attaches only to the *last* component of
+// a compound number, never between earlier ones -- e.g. 123 is "מאה עשרים
+// ושלוש" (vav only before the final "שלוש"), not "מאה ועשרים ושלוש".
+function joinHebrewParts(parts) {
+  if (parts.length === 0) return '';
+  if (parts.length === 1) return parts[0];
+  return parts.slice(0, -1).join(' ') + ' ו' + parts[parts.length - 1];
+}
+
+function hebrewNumberFeminine(n) {
+  return joinHebrewParts(hebrewFemininePartsList(n));
+}
+
+// Masculine 2/3 -- only ever needed for רבעים (quarters), numerator 1-3.
+const MASC_SMALL = { 2: 'שני', 3: 'שלושה' };
+
+// singular alone for numerator 1 (that's literally what "חמישית"/"מאית"
+// etc. already mean); numeral + plural otherwise. חצי has no plural at all
+// since 2/2 is a whole, not a fraction case. עשירית/מאית/אלפית (the
+// "constant" denominators) fold into this exact same table/rule -- there's
+// no separate case needed for them beyond what's already here.
+const FRACTION_WORDS = {
+  2: { singular: 'חצי', plural: null, gender: 'fem' },
+  4: { singular: 'רבע', plural: 'רבעים', gender: 'masc' },
+  5: { singular: 'חמישית', plural: 'חמישיות', gender: 'fem' },
+  8: { singular: 'שמינית', plural: 'שמיניות', gender: 'fem' },
+  10: { singular: 'עשירית', plural: 'עשיריות', gender: 'fem' },
+  100: { singular: 'מאית', plural: 'מאיות', gender: 'fem' },
+  1000: { singular: 'אלפית', plural: 'אלפיות', gender: 'fem' },
+};
+
+function fractionNameHebrew(numerator, denominator) {
+  const info = FRACTION_WORDS[denominator];
+  if (numerator === 1) return info.singular;
+  if (info.gender === 'masc') return `${MASC_SMALL[numerator]} ${info.plural}`;
+  return `${hebrewNumberFeminine(numerator)} ${info.plural}`;
+}
+
+// Digit-count split for the "constant" denominators (10/100/1000) --
+// deliberately its *own* distribution, confirmed directly with the user,
+// not reused from pickDecimalNumeratorDigitCount() above despite the
+// superficial similarity: 100 happens to match that function's own 50/50
+// split, but 1000 splits evenly in *thirds* here (not that function's
+// 25/25/50). 10 has no real choice (numerator 1-9 is always a single
+// digit). Feeds into the existing drawDecimalNumerator() for the actual
+// construction (still guaranteeing "never a multiple of 10" by the same
+// last-digit-1-to-9 construction, see that function's own comment).
+function pickFractionNameDigitCount(denominator) {
+  if (denominator === 10) return 1;
+  if (denominator === 100) return Math.random() < 0.5 ? 1 : 2;
+  const r = Math.random();
+  if (r < 1 / 3) return 1;
+  if (r < 2 / 3) return 2;
+  return 3;
+}
+
+// Correct exercise object for the currently-shown Hebrew name -- checked
+// against directly, unlike every other decimals level's currentDecimalAnswer
+// (a plain decimal string), since this level needs the numerator/denominator
+// too, not just the final decimal value.
+let currentDecimalFractionNameExercise = null;
+
+function generateDecimalFractionNameExercise() {
+  const r = Math.random();
+  let denominator, numerator;
+  if (r < DECIMAL_FRACTION_NAME_SPECIAL_CHANCE) {
+    denominator = randChoice(DECIMAL_FRACTION_NAME_SPECIAL_DENOMINATORS);
+    numerator = randInt(1, denominator - 1);
+  } else if (r < DECIMAL_FRACTION_NAME_SPECIAL_CHANCE + DECIMAL_FRACTION_NAME_HUNDREDTHS_CHANCE) {
+    denominator = 100;
+    numerator = drawDecimalNumerator(pickFractionNameDigitCount(denominator));
+  } else if (r < DECIMAL_FRACTION_NAME_SPECIAL_CHANCE + DECIMAL_FRACTION_NAME_HUNDREDTHS_CHANCE + DECIMAL_FRACTION_NAME_THOUSANDTHS_CHANCE) {
+    denominator = 1000;
+    numerator = drawDecimalNumerator(pickFractionNameDigitCount(denominator));
+  } else {
+    denominator = 10;
+    numerator = randInt(1, 9);
+  }
+  return {
+    numerator, denominator,
+    name: fractionNameHebrew(numerator, denominator),
+    answer: buildDecimalAnswer(0, numerator, denominator),
+  };
+}
+
+// Renders the Hebrew name as its own word-display (same role
+// #grammarWordDisplay/#vocabularyWordDisplay play for their own topics --
+// #mathQuestionRow is hidden for this level, see newExercise() in
+// exercise-core.js, since there's no shown equation, only the name) and
+// parks #answer/#answer2 (fraction numerator/denominator) plus
+// #decimalTypedInput (decimal) into this level's own answer row -- three
+// required boxes, all reused from elsewhere rather than duplicated.
+function renderDecimalFractionNameExercise(ex) {
+  document.getElementById('fractionNameWordDisplay').textContent = ex.name;
+
+  const answerInput = document.getElementById('answer');
+  const answer2 = document.getElementById('answer2');
+  const decimalInput = document.getElementById('decimalTypedInput');
+
+  answerInput.classList.add('fraction-answer-input');
+  answer2.classList.add('fraction-answer-input');
+  answerInput.setAttribute('enterkeyhint', 'next');
+  answer2.setAttribute('enterkeyhint', 'next');
+
+  const slot = document.getElementById('fractionNameFracSlot');
+  slot.insertBefore(answerInput, slot.querySelector('.frac-bar'));
+  slot.appendChild(answer2);
+  document.getElementById('fractionNameDecimalSlot').appendChild(decimalInput);
+
+  answerInput.value = '';
+  answer2.value = '';
+  decimalInput.value = '';
+  answerInput.classList.remove('answer-revealed');
+  answer2.classList.remove('answer-revealed');
+  decimalInput.classList.remove('answer-revealed');
+  answerInput.focus();
+}
+
+// All three boxes required, checked together -- there's no partial credit
+// for getting the fraction right but the decimal wrong (or vice versa),
+// same "every blank required" convention every other multi-box exercise in
+// this app uses. Decimal compared numerically, not as a string (see
+// normalizeDecimalTypedAnswer()'s own comment above) -- same reasoning
+// applies here as everywhere else in this topic.
+function checkDecimalFractionNameAnswer() {
+  if (gameOver) return;
+  const answerInput = document.getElementById('answer');
+  const answer2 = document.getElementById('answer2');
+  const decimalInput = document.getElementById('decimalTypedInput');
+  const checkBtn = document.getElementById('checkBtn');
+  const feedback = document.getElementById('feedback');
+  if (checkBtn.disabled) return;
+
+  if (answerInput.value.trim() === '' || answer2.value.trim() === '' || decimalInput.value.trim() === '') {
+    feedback.textContent = 'הכנס תשובה';
+    feedback.className = 'feedback incorrect';
+    return;
+  }
+
+  const ex = currentDecimalFractionNameExercise;
+  const isCorrect =
+    parseInt(answerInput.value, 10) === ex.numerator &&
+    parseInt(answer2.value, 10) === ex.denominator &&
+    Number(normalizeDecimalTypedAnswer(decimalInput.value)) === Number(ex.answer);
+
+  checkBtn.disabled = true;
+  answerInput.disabled = true;
+  answer2.disabled = true;
+  decimalInput.disabled = true;
+
+  if (isCorrect) {
+    markCorrect(answerInput);
+    setTimeout(() => {
+      checkBtn.disabled = false;
+      answerInput.disabled = false;
+      answer2.disabled = false;
+      decimalInput.disabled = false;
+      newExercise();
+    }, 800);
+  } else {
+    markWrong(answerInput);
+    setTimeout(() => {
+      answerInput.value = '';
+      answer2.value = '';
+      decimalInput.value = '';
+      answerInput.disabled = false;
+      answer2.disabled = false;
+      decimalInput.disabled = false;
+      checkBtn.disabled = false;
+      answerInput.focus();
+      feedback.textContent = '';
+      feedback.className = 'feedback';
+    }, 800);
+  }
+}
+
+// Reveals all three correct values at once -- same cost/timing as every
+// other topic's swap.
+function changeDecimalFractionNameQuestion() {
+  const swapBtn = document.getElementById('swapBtn');
+  const checkBtn = document.getElementById('checkBtn');
+  const answerInput = document.getElementById('answer');
+  const answer2 = document.getElementById('answer2');
+  const decimalInput = document.getElementById('decimalTypedInput');
+  if (swapBtn.disabled) return;
+
+  playerMoney -= SWAP_QUESTION_COST;
+  swapCount++;
+  recordWeakPoolSwap();
+  updateCoinsDisplay();
+  updateStatsCountersDisplay();
+  showFloatingText(`-${SWAP_QUESTION_COST}`, 'negative', swapBtn);
+
+  swapBtn.disabled = true;
+  checkBtn.disabled = true;
+  answerInput.disabled = true;
+  answer2.disabled = true;
+  decimalInput.disabled = true;
+
+  const ex = currentDecimalFractionNameExercise;
+  answerInput.value = ex.numerator;
+  answer2.value = ex.denominator;
+  decimalInput.value = ex.answer;
+  answerInput.classList.add('answer-revealed');
+  answer2.classList.add('answer-revealed');
+  decimalInput.classList.add('answer-revealed');
+
+  document.getElementById('feedback').textContent = '';
+  document.getElementById('feedback').className = 'feedback';
+
+  swapTimeoutId = setTimeout(() => {
+    checkBtn.disabled = false;
+    answerInput.disabled = false;
+    answer2.disabled = false;
+    decimalInput.disabled = false;
+    swapBtn.disabled = false;
+    newExercise();
+  }, SWAP_REVEAL_MS);
+}
+
 // Level 2's own numerator draw (see DECIMAL_L2_DENOMINATORS in config.js):
 // denominators 50/100 get the same single-digit/two-digit split level 1
 // uses for its own denom-100 case (no "never a multiple of 10" exclusion
@@ -150,12 +415,16 @@ function generateDecimalLevel3Exercise() {
 // string shape, so it's kept fully separate from
 // checkDecimalAnswer()/changeDecimalQuestion() -- see the
 // isDecimalNumberLineLevel() branch in newExercise()/exercise-core.js.
+// Index 3 (level 4) and index 5 (level 6) -- shifted up by one from 2/4
+// once the Hebrew fraction-name exercise was inserted as level 2 (see
+// isDecimalFractionNameLevel() below), which pushed every level from the
+// old "level 2" onward down by one slot.
 function isDecimalNumberLineLevel() {
-  return gameMode === 'decimals' && (exerciseDifficultyIndex === 2 || exerciseDifficultyIndex === 4);
+  return gameMode === 'decimals' && (exerciseDifficultyIndex === 3 || exerciseDifficultyIndex === 5);
 }
 
-// Level 5 specifically (see generateDecimalNumberLineHundredthsExercise()
-// below) -- the same number-line mechanic as level 3, just a denser 0-to-1
+// Level 6 specifically (see generateDecimalNumberLineHundredthsExercise()
+// below) -- the same number-line mechanic as level 4, just a denser 0-to-1
 // line marked off in hundredths instead of a 0-to-RANGE_MAX line marked off
 // in tenths. Kept as its own predicate (rather than checking
 // exerciseDifficultyIndex directly wherever this distinction matters) since
@@ -163,7 +432,17 @@ function isDecimalNumberLineLevel() {
 // render/select/check/wiring below are fully shared, parametrized by
 // whatever `segments`/`rangeMax` the drawn exercise itself carries.
 function isDecimalNumberLineHundredthsLevel() {
-  return gameMode === 'decimals' && exerciseDifficultyIndex === 4;
+  return gameMode === 'decimals' && exerciseDifficultyIndex === 5;
+}
+
+// Level 2 (see generateDecimalFractionNameExercise() further below): the
+// Hebrew *name* of a fraction is shown, and the student writes both the
+// fraction and the decimal -- an answer shape (three required boxes) that
+// fits neither the plain decimal-string levels nor the number-line levels,
+// so it gets its own dedicated render/check/reveal path, same reasoning as
+// isDecimalNumberLineLevel() above.
+function isDecimalFractionNameLevel() {
+  return gameMode === 'decimals' && exerciseDifficultyIndex === 1;
 }
 
 // Correct tick index (0..RANGE_MAX*10) and the index currently selected but
@@ -373,18 +652,22 @@ function checkDecimalNumberLineAnswer() {
 }
 
 // Level 4 (see generateDecimalLevel3Exercise() -- kept its original "L3"
-// name despite shifting down a level, same don't-rename-tuning-constants-
-// on-a-renumber convention FRAC_ADD_L3_A_MIN already established elsewhere
-// in this codebase): DECIMAL_L3_HARD_CHANCE of draws use a harder
-// denominator (4 or 8); the rest fall back to level 2's exact mechanic.
-// Dispatches by level, same pattern every other multi-level topic's own
-// generate<Topic>Exercise() uses. Levels 3 and 5 (the number-line UI) are
-// *not* routed through here -- see isDecimalNumberLineLevel()'s own comment
-// above for why their answer shape doesn't fit this dispatcher at all.
+// name despite shifting down a level (twice now -- first when the number-
+// line level was promoted ahead of it, then again when the Hebrew
+// fraction-name level was inserted even earlier), same don't-rename-
+// tuning-constants-on-a-renumber convention FRAC_ADD_L3_A_MIN already
+// established elsewhere in this codebase): DECIMAL_L3_HARD_CHANCE of draws
+// use a harder denominator (4 or 8); the rest fall back to level 3's exact
+// mechanic. Dispatches by level, same pattern every other multi-level
+// topic's own generate<Topic>Exercise() uses. Level 2 (the Hebrew
+// fraction-name exercise) and levels 4/6 (the number-line UI) are *not*
+// routed through here -- see isDecimalFractionNameLevel()/
+// isDecimalNumberLineLevel()'s own comments above for why their answer
+// shapes don't fit this dispatcher at all.
 function generateDecimalExercise() {
   const level = exerciseDifficultyIndex + 1;
-  if (level === 4) return generateDecimalLevel3Exercise();
-  if (level === 2) return generateDecimalLevel2Exercise();
+  if (level === 5) return generateDecimalLevel3Exercise();
+  if (level === 3) return generateDecimalLevel2Exercise();
   return generateDecimalLevel1Exercise();
 }
 

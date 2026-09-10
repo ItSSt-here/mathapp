@@ -94,8 +94,12 @@ const DIFFICULTIES = ['לימוד - ללא אויב', 'לאט מאוד', 'לאט
 const DEFAULT_DIFFICULTY_INDEX = 3;
 let difficultyIndex = DEFAULT_DIFFICULTY_INDEX;
 
-// Exercise difficulty picker: just numbers 1-5, no gameplay effect yet.
-const EXERCISE_DIFFICULTIES = ['1', '2', '3', '4', '5'];
+// Exercise difficulty picker: just numbers 1-6, no gameplay effect on its
+// own (each topic's own getExerciseLevelCount() caps how far a given topic
+// can actually go -- this array only supplies the label text, so it just
+// needs to be at least as long as the topic with the most levels; extended
+// to 6 once decimals became the first topic to reach that many).
+const EXERCISE_DIFFICULTIES = ['1', '2', '3', '4', '5', '6'];
 const DEFAULT_EXERCISE_DIFFICULTY_INDEX = 4;
 let exerciseDifficultyIndex = DEFAULT_EXERCISE_DIFFICULTY_INDEX;
 
@@ -573,6 +577,38 @@ const DECIMAL_NUMBER_LINE_RANGE_MAX = 3;
 // work on a phone.
 const DECIMAL_NUMBER_LINE_HUNDREDTHS_HARD_DENOMINATOR = 4;
 
+// Level 2 (see generateDecimalFractionNameExercise() in
+// exercise-decimals.js, inserted between levels 1 and the former level 2 --
+// every level from here on shifted down by one, see EXERCISE_TOPIC_LEVEL_COUNTS.decimals'
+// own comment): the Hebrew *name* of a fraction is shown (e.g. "שלוש
+// חמישיות"), and the student writes it both as a fraction (numerator +
+// denominator) and as a decimal -- three required boxes checked together.
+// Every round is one of two families, chosen by weighted draw:
+// - "Special" named fractions (DECIMAL_FRACTION_NAME_SPECIAL_CHANCE, 30%):
+//   denominator 2/4/5/8, equal chance -- these are the only denominators
+//   below 10 with a short, irregular Hebrew fraction-name (חצי/רבע/חמישית/
+//   שמינית) that also terminates as a decimal (excludes e.g. שליש/שישית/
+//   שביעית -- 3/6/7 all fail the terminates-as-decimal test, same 2s-and-5s-
+//   only rule used throughout this topic). Numerator uniform across its
+//   full proper range (1 to denominator-1).
+// - "Constant" named fractions (10/100/1000, i.e. עשיריות/מאיות/אלפיות):
+//   tenths get the remaining 10%; hundredths and thousandths each get their
+//   own DECIMAL_FRACTION_NAME_*_CHANCE (30% apiece). Digit-count split
+//   deliberately different from every other level's own numerator rules in
+//   this topic (see pickFractionNameDigitCount(), exercise-decimals.js) --
+//   confirmed directly with the user: hundredths splits 50/50 single/double
+//   digit (same as level 1's own denom-100 rule, coincidentally), but
+//   thousandths splits evenly in *thirds* (single/double/triple), not
+//   level 1's 25/25/50.
+const DECIMAL_FRACTION_NAME_SPECIAL_DENOMINATORS = [2, 4, 5, 8];
+const DECIMAL_FRACTION_NAME_SPECIAL_CHANCE = 0.30;
+const DECIMAL_FRACTION_NAME_HUNDREDTHS_CHANCE = 0.30;
+const DECIMAL_FRACTION_NAME_THOUSANDTHS_CHANCE = 0.30;
+// The remaining 1 - (sum of the three above) = 10% always falls back to
+// denominator 10 (עשיריות) -- no dedicated chance constant of its own, since
+// it's just whatever probability mass is left over once the other three are
+// spent.
+
 const LEVEL1_NUMS = [0, 1, 10];
 const LEVEL2_NUMS = [2, 3, 5];
 const LEVEL3_NUMS_FULL = [4, 6, 7, 8, 9];
@@ -641,7 +677,7 @@ const EXERCISE_TOPIC_LEVEL_COUNTS = {
   vocabulary: 4,       // level 2 added 2026-08-24: reverse direction. level 3 added same day: English word spoken via TTS instead of shown as text. level 4 added same day: Hebrew word shown, typed English answer
   division: 5,         // level 1 added 2026-08-24; levels 2-3 added 2026-08-27; levels 4-5 added same day, mirroring multiplication's own levels 2-5 (same EXERCISE_LEVEL_CONFIGS indices, see pickDivisionFactors() in exercise-division.js)
   grammar: 2,           // level 1 added 2026-08-30: English V1 shown, student types V2 (e.g. verb base form -> past tense), exact spelling. level 2 added same day: reverse direction (V2 shown, V1 typed). See exercise-grammar.js.
-  decimals: 5,          // level 1 added 2026-09-09: whole + proper fraction (denominator 10/100/1000) shown, student types the decimal form freehand. level 2 added same day: denominator drawn from 2/5/10/20/25/50/100 instead, always mentally expandable to tenths/hundredths. level 3 added same day as an experimental "level 4" (0-to-1 number line, click-immediately-answers) -- once approved, promoted to level 3 (this slot), extended to a 0-to-3 range with a select-then-confirm mechanic; denominator 2/5/10 only (the only ones landing exactly on a tenths tick). level 4 is the harder-denominator level that used to be level 3 (40% of draws use denominator 4 or 8, the rest fall back to level 2) -- shifted down to make room for level 3's promotion. level 5 added same day: same number-line mechanic as level 3, but a wider 0-to-1 line marked off in hundredths, reusing level 4's own denominator pool minus 8 (doesn't divide 100 evenly). See exercise-decimals.js.
+  decimals: 6,          // level 1 added 2026-09-09: whole + proper fraction (denominator 10/100/1000) shown, student types the decimal form freehand. level 2 added 2026-09-10: shown the Hebrew *name* of a fraction (e.g. "שלוש חמישיות"), student writes both the fraction and the decimal -- inserted here (pushing every level below down by one) since it's foundational, not harder than what was level 2. level 3 (originally level 2): denominator drawn from 2/5/10/20/25/50/100 instead, always mentally expandable to tenths/hundredths. level 4 (originally an experimental "level 4" 0-to-1 number line, click-immediately-answers, then promoted to level 3): extended to a 0-to-3 range with a select-then-confirm mechanic; denominator 2/5/10 only (the only ones landing exactly on a tenths tick). level 5 (originally level 3, the harder-denominator level): 40% of draws use denominator 4 or 8, the rest fall back to level 3. level 6 (originally level 5): same number-line mechanic as level 4, but a wider 0-to-1 line marked off in hundredths, reusing level 5's own denominator pool minus 8 (doesn't divide 100 evenly). See exercise-decimals.js.
 };
 
 function getExerciseLevelCount() {
@@ -737,10 +773,11 @@ const EXERCISE_LEVEL_DESCRIPTIONS = {
   ],
   decimals: [
     'מוצג מספר בצורת שלם + שבר (המכנה תמיד 10, 100 או 1000, בהסתברות שווה; המונה לעולם לא מתחלק ב-10), ויש לכתוב אותו כמספר עשרוני (למשל "3.05" -- מקובלים גם נקודה וגם פסיק כמפריד עשרוני). כשהמכנה 100, ב-50% מהמקרים המונה חד-ספרתי -- כדי לתרגל את ה-0 המחבר (למשל 3/100 = 0.03); כשהמכנה 1000, ב-25% מהמקרים המונה חד-ספרתי, ב-25% דו-ספרתי וב-50% תלת-ספרתי. ב-30% מהמקרים אין חלק שלם כלל (מוצג שבר בלבד, ללא "0" לפניו) -- אבל בתשובה העשרונית עדיין יש לכתוב את ה-0 שלפני הנקודה.',
+    'מוצג שם של שבר בעברית (למשל "שלוש חמישיות" או "שבע עשרה מאיות"), ויש לכתוב אותו גם כשבר (מונה ומכנה) וגם כמספר עשרוני. ב-30% מהמקרים זהו שבר "מיוחד" -- חצי, רבע, חמישית או שמינית (בהסתברות שווה בין הארבעה; אלה היחידים מתחת ל-10 עם שם עברי קצר שגם ניתן לכתיבה עשרונית מדויקת). ב-30% נוספים זהו "X מאיות" (X בין 1 ל-99, לעולם לא כפולה של 10 -- ב-50% מהמקרים חד-ספרתי, ב-50% דו-ספרתי). ב-30% נוספים זהו "X אלפיות" (X בין 1 ל-999, באותה הסתברות שווה בין חד/דו/תלת-ספרתי). ב-10% הנותרים זהו "X עשיריות" (X בין 1 ל-9).',
     'כמו ברמה 1, אבל המכנה נבחר מתוך 2, 5, 10, 20, 25, 50 או 100 (בהסתברות שווה) -- מכנים שקל להרחיב לעשיריות (2, 5, 10) או למאיות (20, 25, 50, 100). יש להרחיב את השבר בראש -- לדוגמה 3/20 הופך ל-15/100 -- ואז לכתוב אותו כמספר עשרוני, בדיוק כמו ברמה 1. כשהמכנה 50 או 100, ב-50% מהמקרים המונה חד-ספרתי (לפני ההרחבה) כדי לתרגל את ה-0 המחבר -- לתשומת לב: במכנה 50 זה לא מבטיח שהתוצאה המורחבת תהיה חד-ספרתית (למשל 7/50 מורחב ל-14/100), וזה בסדר.',
     'מוצג מספר בצורת שלם + שבר (המכנה 2, 5 או 10 בהסתברות שווה -- היחידים שנופלים בדיוק על שנת עשיריות), בטווח 0 עד 3. יש לבחור את הנקודה המתאימה על ציר מספרים המחולק לעשיריות (30 קטעים) -- לחיצה/הקשה בוחרת נקודה בלבד, ויש לאשר עם "בדוק" (או Enter) כדי לענות בפועל. אישור שגוי פוסל את הנקודה ההיא, וניתן לבחור מחדש מבין הנקודות הנותרות.',
-    'כמו ברמה 2, אבל ב-40% מהמקרים המכנה קשה יותר -- 4 (הרחבה פי 25, למאיות) או 8 (הרחבה פי 125, לאלפיות), בהסתברות שווה בין השניים. ב-60% הנותרים המכנה נבחר בדיוק כמו ברמה 2 (מתוך 2, 5, 10, 20, 25, 50 או 100).',
-    'מוצג שבר בלבד (בלי חלק שלם, כי הציר הוא בין 0 ל-1) -- אותה חלוקת מכנים כמו ברמה 4 (2, 5, 10, 20, 25, 50 או 100 ב-60% מהמקרים, או 4 ב-40% הנותרים -- לא כולל 8, כי 8 אינו מתחלק ב-100 בדיוק ולכן שברים עם מכנה זה לא היו נופלים בדיוק על אף שנת). יש לבחור את הנקודה המתאימה על ציר מספרים רחב מ-0 עד 1, המחולק למאיות (100 שנתות) -- כמו ברמה 3, לחיצה בוחרת בלבד ויש לאשר עם "בדוק" (או Enter). מיועד למסך מחשב בלבד.',
+    'כמו ברמה 3, אבל ב-40% מהמקרים המכנה קשה יותר -- 4 (הרחבה פי 25, למאיות) או 8 (הרחבה פי 125, לאלפיות), בהסתברות שווה בין השניים. ב-60% הנותרים המכנה נבחר בדיוק כמו ברמה 3 (מתוך 2, 5, 10, 20, 25, 50 או 100).',
+    'מוצג שבר בלבד (בלי חלק שלם, כי הציר הוא בין 0 ל-1) -- אותה חלוקת מכנים כמו ברמה 5 (2, 5, 10, 20, 25, 50 או 100 ב-60% מהמקרים, או 4 ב-40% הנותרים -- לא כולל 8, כי 8 אינו מתחלק ב-100 בדיוק ולכן שברים עם מכנה זה לא היו נופלים בדיוק על אף שנת). יש לבחור את הנקודה המתאימה על ציר מספרים רחב מ-0 עד 1, המחולק למאיות (100 שנתות) -- כמו ברמה 4, לחיצה בוחרת בלבד ויש לאשר עם "בדוק" (או Enter). מיועד למסך מחשב בלבד.',
   ],
 };
 

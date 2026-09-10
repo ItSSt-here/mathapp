@@ -297,6 +297,7 @@ function newExercise() {
   const isGrammar = gameMode === 'grammar';
   const isDecimals = gameMode === 'decimals';
   const isDecimalNumberLine = isDecimalNumberLineLevel();
+  const isFractionName = isDecimalFractionNameLevel();
   const isLetterFamily = isLetters || isAbc || isNikud;
   const isReverse = isLetterReverseMode(); // always false for nikud -- no reverse direction yet
   // Vocabulary level 4 (typed answer) is the one vocabulary level that needs
@@ -304,7 +305,12 @@ function newExercise() {
   // click, same reasoning as isLetterFamily's !isReverse above (only the
   // levels with a genuine separate confirm step need it shown).
   const isVocabularyTyped = isVocabulary && isVocabularyTypedMode();
-  document.getElementById('mathQuestionRow').style.display = (isLetterFamily || isVocabulary || isGrammar) ? 'none' : '';
+  // Decimals' own Hebrew fraction-name level (level 2) hides mathQuestionRow
+  // too, same as grammar/vocabulary -- there's no shown equation, only the
+  // name (own #fractionNameWordDisplay, see renderDecimalFractionNameExercise(),
+  // exercise-decimals.js), unlike every other decimals level which reuses
+  // #mathQuestionRow/#questionText for its shown fraction.
+  document.getElementById('mathQuestionRow').style.display = (isLetterFamily || isVocabulary || isGrammar || isFractionName) ? 'none' : '';
   answerHome.style.display = (isLetterFamily || isCompare || isVocabulary || isGrammar || isDecimals) ? 'none' : '';
   // Grammar is typed-only (like vocabulary level 4) -- checkBtn/swapBtn are
   // always shown for it, same as isVocabularyTyped, never hidden the way
@@ -324,6 +330,7 @@ function newExercise() {
   document.getElementById('vocabularyAnswerHome').style.display = isVocabulary ? '' : 'none';
   document.getElementById('grammarAnswerHome').style.display = isGrammar ? '' : 'none';
   document.getElementById('numberLineAnswerHome').style.display = isDecimalNumberLine ? '' : 'none';
+  document.getElementById('fractionNameAnswerHome').style.display = isFractionName ? '' : 'none';
 
   if (isVocabulary) {
     const ex = pickExercise(generateVocabularyExercise);
@@ -344,7 +351,26 @@ function newExercise() {
     return;
   }
 
-  // Decimals level 3's number-line UI checked first -- its own gate
+  // Decimals level 2's Hebrew fraction-name exercise -- its answer shape
+  // (fraction numerator/denominator plus a decimal, three boxes) fits
+  // neither the plain decimal-string levels nor the number-line levels, so
+  // it's kept fully separate the same way those are. currentAnswer is set
+  // here (to the whole exercise object, not just a value) purely so the
+  // shared #answer/#answer2 keydown handlers in main.js -- which gate
+  // several branches on `typeof currentAnswer === 'object'` -- treat this
+  // as the two-blank-fraction shape it visually is; checkDecimalFractionNameAnswer()
+  // itself reads currentDecimalFractionNameExercise directly, never this.
+  if (isFractionName) {
+    const ex = pickExercise(generateDecimalFractionNameExercise);
+    currentDecimalFractionNameExercise = ex;
+    currentAnswer = ex;
+    renderDecimalFractionNameExercise(ex);
+    document.getElementById('feedback').textContent = '';
+    document.getElementById('feedback').className = 'feedback';
+    return;
+  }
+
+  // Decimals level 4's number-line UI checked first -- its own gate
   // (isDecimalNumberLineLevel(), exercise-decimals.js) already implies
   // isDecimals, but its answer shape (which tick index was confirmed) has
   // nothing in common with currentDecimalAnswer's decimal-string shape, so
@@ -716,6 +742,14 @@ function checkAnswer() {
   }
 
   // Checked before the generic decimals branch just below -- same reasoning
+  // as newExercise()'s own isFractionName check, this level's answer shape
+  // (fraction + decimal together) doesn't fit checkDecimalAnswer() at all.
+  if (isDecimalFractionNameLevel()) {
+    checkDecimalFractionNameAnswer();
+    return;
+  }
+
+  // Checked before the generic decimals branch just below -- same reasoning
   // as newExercise()'s own isDecimalNumberLine check, this level's answer
   // shape doesn't fit checkDecimalAnswer() at all.
   if (isDecimalNumberLineLevel()) {
@@ -823,6 +857,13 @@ function changeQuestion() {
 
   if (gameMode === 'grammar') {
     changeGrammarQuestion();
+    return;
+  }
+
+  // Checked before the generic decimals branch just below -- same reasoning
+  // as checkAnswer()'s own isDecimalFractionNameLevel() check.
+  if (isDecimalFractionNameLevel()) {
+    changeDecimalFractionNameQuestion();
     return;
   }
 

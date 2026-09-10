@@ -378,6 +378,14 @@ document.getElementById('answer').addEventListener('keydown', (e) => {
   }
   if (e.key !== 'Enter') return;
   if (e.target.value.trim() === '') return; // no-op on an empty box -- never advances or submits
+  // Decimals' fraction-name level always has a third required box
+  // (#decimalTypedInput) beyond #answer2 -- #answer's own Enter never
+  // submits there, only ever advances toward #answer2 (which then advances
+  // to #decimalTypedInput itself, see its own handler below).
+  if (isDecimalFractionNameLevel()) {
+    answer2.focus();
+    return;
+  }
   if (isTwoBlank && answer2.value.trim() === '') {
     answer2.focus();
     return;
@@ -481,6 +489,15 @@ document.getElementById('answer2').addEventListener('keydown', (e) => {
   }
   if (e.key !== 'Enter') return;
   if (e.target.value.trim() === '') return; // no-op on an empty box -- never advances or submits
+  // Decimals' fraction-name level: #answer2 (denominator) is the *middle*
+  // of three required boxes here, not the last -- Enter always advances to
+  // #decimalTypedInput instead of submitting (its own keydown handler,
+  // already shared by every other decimals level, submits from there once
+  // it's filled).
+  if (isDecimalFractionNameLevel()) {
+    document.getElementById('decimalTypedInput').focus();
+    return;
+  }
   checkAnswer();
 });
 document.getElementById('answer2').addEventListener('input', (e) => {

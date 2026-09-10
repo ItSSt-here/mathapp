@@ -13,7 +13,7 @@
      fetch of everything together instead of relying on cache timing to
      line up. No build step in this project, so this is manual -- there's
      nothing to automate it. -->
-<link rel="stylesheet" href="style.css?v=202609100200">
+<link rel="stylesheet" href="style.css?v=202609101200">
 </head>
 <body>
 
@@ -47,10 +47,10 @@
       <span>כתוב</span>
       <span>כמספר עשרוני</span>
     </div>
-    <!-- Decimals level 3 (number-line UI, see #numberLineAnswerHome below):
-         its own instruction, since "write as a decimal" doesn't apply here
-         -- same look/toggle mechanic as #decimalInstructionLabel just
-         above. -->
+    <!-- Decimals number-line levels (4 and 6, see #numberLineAnswerHome
+         below): its own instruction, since "write as a decimal" doesn't
+         apply here -- same look/toggle mechanic as #decimalInstructionLabel
+         just above. -->
     <div class="simplify-label" id="numberLineInstructionLabel" style="display:none;">
       <span>בחר את הנקודה</span>
       <span>המתאימה על הציר</span>
@@ -127,7 +127,26 @@
   <div id="decimalAnswerHome" style="display:none;">
     <input type="text" inputmode="decimal" id="decimalTypedInput" class="decimal-typed-input" dir="ltr" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done">
   </div>
-  <!-- Decimals level 3 (a number-line UI): the shown fraction still renders
+  <!-- Decimals level 2: the Hebrew *name* of a fraction is shown (e.g.
+       "שלוש חמישיות"), and the student writes it both as a fraction
+       (#answer/#answer2, reused from the shared numeric-answer pair -- see
+       #answer2Home just below -- parked here in their own frac-block slot,
+       numerator over denominator) and as a decimal (#decimalTypedInput,
+       reused from #decimalAnswerHome above). All three boxes required,
+       checked together -- see renderDecimalFractionNameExercise()/
+       checkDecimalFractionNameAnswer(), exercise-decimals.js. Unlike every
+       other decimals level, #mathQuestionRow is hidden for this one (same
+       as grammar/vocabulary) -- there's no shown equation, only the name.
+       Hidden except at this one decimals level. -->
+  <div id="fractionNameAnswerHome" style="display:none;">
+    <div class="vocabulary-word-display" id="fractionNameWordDisplay" dir="rtl"></div>
+    <div class="frac-eq">
+      <span class="frac-block frac-answer-block" id="fractionNameFracSlot"><span class="frac-bar"></span></span>
+      <span class="frac-op">=</span>
+      <span id="fractionNameDecimalSlot"></span>
+    </div>
+  </div>
+  <!-- Decimals level 4 (a number-line UI): the shown fraction still renders
        into #mathQuestionRow like every other decimals level, but the answer
        is a point picked along a 0-to-DECIMAL_NUMBER_LINE_RANGE_MAX line
        (tick marks built fresh into #numberLineTicks each round) instead of
@@ -397,9 +416,9 @@
      (see preloadSoldierSprites() in render.js). -->
 <div id="spritePreload" style="position:fixed; left:-9999px; top:-9999px; width:1px; height:1px; overflow:hidden;" aria-hidden="true"></div>
 
-<script src="js/config.js?v=202609100200"></script>
+<script src="js/config.js?v=202609101215"></script>
 <script src="js/helpers.js?v=202608252100"></script>
-<script src="js/exercise-core.js?v=202609100200"></script>
+<script src="js/exercise-core.js?v=202609101200"></script>
 <script src="js/exercise-division.js?v=202608271300"></script>
 <script src="js/exercise-fractions.js?v=202608252000"></script>
 <script src="js/exercise-fraction-arithmetic.js?v=202608252200"></script>
@@ -413,10 +432,10 @@
 <script src="js/exercise-compare.js?v=202608252000"></script>
 <script src="js/exercise-vocabulary.js?v=202609041500"></script>
 <script src="js/exercise-grammar.js?v=202608301500"></script>
-<script src="js/exercise-decimals.js?v=202609100200"></script>
+<script src="js/exercise-decimals.js?v=202609101200"></script>
 <script src="js/combat.js?v=202608252100"></script>
 <script src="js/render.js?v=202608252000"></script>
-<script src="js/main.js?v=202609091200"></script>
+<script src="js/main.js?v=202609101200"></script>
 
 </body>
 </html>
