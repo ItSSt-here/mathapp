@@ -94,12 +94,15 @@ const DIFFICULTIES = ['לימוד - ללא אויב', 'לאט מאוד', 'לאט
 const DEFAULT_DIFFICULTY_INDEX = 3;
 let difficultyIndex = DEFAULT_DIFFICULTY_INDEX;
 
-// Exercise difficulty picker: just numbers 1-6, no gameplay effect on its
+// Exercise difficulty picker: just numbers 1-5, no gameplay effect on its
 // own (each topic's own getExerciseLevelCount() caps how far a given topic
 // can actually go -- this array only supplies the label text, so it just
-// needs to be at least as long as the topic with the most levels; extended
-// to 6 once decimals became the first topic to reach that many).
-const EXERCISE_DIFFICULTIES = ['1', '2', '3', '4', '5', '6'];
+// needs to be at least as long as the topic with the most levels). Grew to
+// 7 briefly while decimals was a single topic with that many levels;
+// shrunk back to 5 once decimals split into 'decimalstyped' (5 levels) and
+// 'decimalnumberline' (2) on 2026-09-10 -- 5 is once again the max across
+// every topic (fractions/addfractions/nikud/division/decimalstyped).
+const EXERCISE_DIFFICULTIES = ['1', '2', '3', '4', '5'];
 const DEFAULT_EXERCISE_DIFFICULTY_INDEX = 4;
 let exerciseDifficultyIndex = DEFAULT_EXERCISE_DIFFICULTY_INDEX;
 
@@ -109,17 +112,27 @@ let exerciseDifficultyIndex = DEFAULT_EXERCISE_DIFFICULTY_INDEX;
 let gameMode = 'multiplication';
 
 // How far a teacher-generated link skips ahead, based on which URL params
-// were present at load: 'mode' (no/invalid ?topic=, land on the topic
-// picker as normal), 'difficulty' (?topic= only -- topic locked, land on
-// the difficulty picker with ?difficulty= as its pre-filled starting
-// position if given, still changeable), or 'speed' (?topic=&difficulty=&
-// speed= all present -- topic+difficulty locked, land on the speed picker
-// with ?speed= as its pre-filled starting position, still changeable).
-// Suppresses the paths back to whichever screens got locked in for the
-// rest of the session (see parseUrlParams() and applyLinkModeUI() in
-// main.js). Each of the three pre-start screens has its own "העתק קישור"
-// button building a link at that screen's own stage (buildShareLink()).
+// were present at load: 'mode' (no/invalid ?topic= and no recognized
+// ?group=, land on the topic picker as normal), 'subtopic' (?group=<name>
+// instead of a real ?topic=, e.g. a link built from the fractions or
+// decimals hub screen before a specific sub-topic was chosen -- land on
+// that group's own subtopic overlay, see TOPIC_GROUPS in main.js),
+// 'difficulty' (?topic= only -- topic locked, land on the difficulty
+// picker with ?difficulty= as its pre-filled starting position if given,
+// still changeable), or 'speed' (?topic=&difficulty=&speed= all present --
+// topic+difficulty locked, land on the speed picker with ?speed= as its
+// pre-filled starting position, still changeable). Suppresses the paths
+// back to whichever screens got locked in for the rest of the session (see
+// parseUrlParams() and applyLinkModeUI() in main.js). Each of the four
+// pre-start screens has its own "העתק קישור" button building a link at
+// that screen's own stage (buildShareLink()).
 let arrivedStage = 'mode';
+// Which topic group (a key into TOPIC_GROUPS, main.js) a 'subtopic'-stage
+// arrival resolved to -- null otherwise. Set by parseUrlParams()'s own
+// resolveGroupFallback() helper, read by showInitialOverlay() (which
+// overlay to show) and applyLinkModeUI() (which group's own "back to full
+// topic list" button to suppress).
+let arrivedGroup = null;
 const URL_PARAM_TOPIC = 'topic';
 const URL_PARAM_DIFFICULTY = 'difficulty';
 const URL_PARAM_SPEED = 'speed';
@@ -137,13 +150,23 @@ const URL_PARAM_WORDS = 'words';
 // URL_PARAM_DIFFICULTY (buildShareLink() in main.js) since it lives on the
 // same exDifficultyOverlay screen.
 const URL_PARAM_REVIEW = 'review';
-const VALID_TOPICS = ['multiplication', 'fractions', 'comparefractions', 'addfractions', 'subtractfractions', 'mixednumbers', 'addfractionsadvanced', 'letters', 'abc', 'nikud', 'vocabulary', 'division', 'grammar', 'decimals']; // matches gameMode's own values, no translation table needed
+const VALID_TOPICS = ['multiplication', 'fractions', 'comparefractions', 'addfractions', 'subtractfractions', 'mixednumbers', 'addfractionsadvanced', 'letters', 'abc', 'nikud', 'vocabulary', 'division', 'grammar', 'decimalstyped', 'decimalnumberline']; // matches gameMode's own values, no translation table needed
 // The mode-select screen groups these 6 behind one "שברים" hub button
 // (fractionsSubtopicOverlay in index.html) instead of listing them flat --
 // see backToModeBtn's handler and parseUrlParams()/buildShareLink() in
 // main.js for how this list is used to route "back" navigation and the
 // hub's own ?group=fractions share link.
 const FRACTIONS_GROUP_TOPICS = ['fractions', 'comparefractions', 'addfractions', 'subtractfractions', 'mixednumbers', 'addfractionsadvanced'];
+// Same pattern, added 2026-09-10 when the single 'decimals' topic (which
+// had grown to 7 levels mixing two genuinely different mechanics -- typed
+// decimal answers and number-line clicks) was split behind its own
+// "מספרים עשרוניים" hub button (decimalsSubtopicOverlay in index.html):
+// 'decimalstyped' (5 levels, everything answered by typing -- including the
+// Hebrew fraction-name level, which also has a typed decimal component)
+// and 'decimalnumberline' (2 levels, the number-line click UI). See
+// TOPIC_GROUPS in main.js, which both this and FRACTIONS_GROUP_TOPICS feed
+// into for the now-generalized hub/back/share-link machinery.
+const DECIMALS_GROUP_TOPICS = ['decimalstyped', 'decimalnumberline'];
 
 // Letters exercise (recognition, for younger children): child taps a sound
 // button to hear the letter's name (a recorded clip, see
@@ -609,6 +632,43 @@ const DECIMAL_FRACTION_NAME_THOUSANDTHS_CHANCE = 0.30;
 // it's just whatever probability mass is left over once the other three are
 // spent.
 
+// Level 7 (see generateDecimalLevel4Exercise() in exercise-decimals.js --
+// "L4" because it's the fourth *typed*-mechanic generator this topic ever
+// added, same "internal name tracks introduction order, not current level
+// number" convention DECIMAL_L3_HARD_DENOMINATORS/etc. already established):
+// a three-tier weighted denominator draw, entirely user-specified (every
+// number below was given directly by the user, not derived) --
+// DECIMAL_L4_HARD_CHANCE (70%) draws one of the six hardest denominators
+// this topic has ever used (4/8, already level 5's own hard tier, plus 40/
+// 200/250/500, new here); DECIMAL_L4_MEDIUM_CHANCE (20%) draws one of
+// 2/5/20/25/50 (level 2's own pool minus 10/100, which move to the "really
+// easy" tier below instead); the remaining 10% falls back to level 1's own
+// 10/100/1000 pool and its own digit-count rule (pickDecimalNumeratorDigitCount()),
+// not level 2's -- reused as-is rather than duplicated. Numerator
+// construction (drawDecimalLevel4HardNumerator(), exercise-decimals.js),
+// after three rounds of user-driven correction: 4/8/200/250/500 draw
+// uniformly from 1 to min(20, denominator-1) -- keeps the real
+// multiplication to at most a 2-digit x 1-digit product, mixing reducible
+// (4, 8, 12, 20) and non-reducible (7, 13, 17) numerators with no dedicated
+// case for either (for 4/8 the cap just reproduces their own already-tiny
+// full range, 3 and 7). Denominator 40 is the one exception, reverted to
+// units (1-9) or a whole ten (10/20/30): even a capped-at-20 numerator
+// times 40's own x25 expansion factor (e.g. 17x25=425) was still showing up
+// as a genuinely hard multiplication -- harder than 200/250/500 hitting the
+// same cap with their smaller x5/x4/x2 factors. This reintroduces the
+// "always reduces cleanly" artifact (10/40=1/4) that got the 200/250/500
+// version of this same idea dropped earlier -- accepted here specifically
+// because keeping the multiplication itself trivial mattered more for this
+// one denominator's much bigger expansion factor.
+const DECIMAL_L4_HARD_DENOMINATORS = [4, 8, 40, 200, 250, 500];
+const DECIMAL_L4_HARD_CHANCE = 0.70;
+const DECIMAL_L4_MEDIUM_DENOMINATORS = [2, 5, 20, 25, 50];
+const DECIMAL_L4_MEDIUM_CHANCE = 0.20;
+// The remaining 1 - (DECIMAL_L4_HARD_CHANCE + DECIMAL_L4_MEDIUM_CHANCE) =
+// 10% falls back to DECIMAL_DENOMINATORS (10/100/1000, level 1's own pool)
+// -- no dedicated chance constant of its own, same "leftover probability
+// mass" convention DECIMAL_FRACTION_NAME_*_CHANCE's own comment above uses.
+
 const LEVEL1_NUMS = [0, 1, 10];
 const LEVEL2_NUMS = [2, 3, 5];
 const LEVEL3_NUMS_FULL = [4, 6, 7, 8, 9];
@@ -677,7 +737,15 @@ const EXERCISE_TOPIC_LEVEL_COUNTS = {
   vocabulary: 4,       // level 2 added 2026-08-24: reverse direction. level 3 added same day: English word spoken via TTS instead of shown as text. level 4 added same day: Hebrew word shown, typed English answer
   division: 5,         // level 1 added 2026-08-24; levels 2-3 added 2026-08-27; levels 4-5 added same day, mirroring multiplication's own levels 2-5 (same EXERCISE_LEVEL_CONFIGS indices, see pickDivisionFactors() in exercise-division.js)
   grammar: 2,           // level 1 added 2026-08-30: English V1 shown, student types V2 (e.g. verb base form -> past tense), exact spelling. level 2 added same day: reverse direction (V2 shown, V1 typed). See exercise-grammar.js.
-  decimals: 6,          // level 1 added 2026-09-09: whole + proper fraction (denominator 10/100/1000) shown, student types the decimal form freehand. level 2 added 2026-09-10: shown the Hebrew *name* of a fraction (e.g. "שלוש חמישיות"), student writes both the fraction and the decimal -- inserted here (pushing every level below down by one) since it's foundational, not harder than what was level 2. level 3 (originally level 2): denominator drawn from 2/5/10/20/25/50/100 instead, always mentally expandable to tenths/hundredths. level 4 (originally an experimental "level 4" 0-to-1 number line, click-immediately-answers, then promoted to level 3): extended to a 0-to-3 range with a select-then-confirm mechanic; denominator 2/5/10 only (the only ones landing exactly on a tenths tick). level 5 (originally level 3, the harder-denominator level): 40% of draws use denominator 4 or 8, the rest fall back to level 3. level 6 (originally level 5): same number-line mechanic as level 4, but a wider 0-to-1 line marked off in hundredths, reusing level 5's own denominator pool minus 8 (doesn't divide 100 evenly). See exercise-decimals.js.
+  // 'decimals' was a single 7-level topic through 2026-09-10, then split
+  // into these two gameModes the same day (see DECIMALS_GROUP_TOPICS'
+  // own comment above) once it had grown to mix two genuinely different
+  // answer mechanics. Old level numbers below are kept for history --
+  // trust EXERCISE_TOPIC_LEVEL_COUNTS/EXERCISE_LEVEL_DESCRIPTIONS'
+  // current entries over any level-number claim in prose, here or
+  // elsewhere, per [[project_decimals_topic_plan]] in memory.
+  decimalstyped: 5,     // typed-decimal levels only, in their original relative order: level 1 = old level 1 (whole+fraction shown, denominator 10/100/1000, type the decimal). level 2 = old level 2, added 2026-09-10: shown the Hebrew *name* of a fraction, student writes both the fraction and the decimal. level 3 = old level 3: denominator drawn from 2/5/10/20/25/50/100 instead, mentally expand to tenths/hundredths first. level 4 = old level 5: same pool as level 3, but 40% of draws use denominator 4 or 8 instead. level 5 = old level 7, added 2026-09-10 same day: a three-tier denominator draw -- 70% one of 4/8/40/200/250/500 (see exercise-decimals.js's own drawDecimalLevel4HardNumerator() comment for how each of those got its numerator capped, after several rounds of user correction), 20% one of 2/5/20/25/50, 10% one of 10/100/1000.
+  decimalnumberline: 2, // the number-line click UI, in their original relative order: level 1 = old level 4 (denominator 2/5/10 only, range 0-3, marked in tenths -- the only denominators landing exactly on a tenths tick). level 2 = old level 6: same mechanic, denominator pool widened (adds 4, minus 8 -- 8 doesn't divide 100 evenly), a single 0-to-1 line marked in hundredths instead, desktop-only.
 };
 
 function getExerciseLevelCount() {
@@ -771,13 +839,16 @@ const EXERCISE_LEVEL_DESCRIPTIONS = {
     'מוצגת מילה באנגלית (V1), ויש לכתוב את הצורה המקבילה שלה (V2, למשל צורת עבר של פועל) באיות מדויק -- אין בחירה מתוך אפשרויות.',
     'הפוך: מוצגת הצורה המקבילה (V2), ויש לכתוב את המילה המקורית (V1) באיות מדויק.',
   ],
-  decimals: [
+  decimalstyped: [
     'מוצג מספר בצורת שלם + שבר (המכנה תמיד 10, 100 או 1000, בהסתברות שווה; המונה לעולם לא מתחלק ב-10), ויש לכתוב אותו כמספר עשרוני (למשל "3.05" -- מקובלים גם נקודה וגם פסיק כמפריד עשרוני). כשהמכנה 100, ב-50% מהמקרים המונה חד-ספרתי -- כדי לתרגל את ה-0 המחבר (למשל 3/100 = 0.03); כשהמכנה 1000, ב-25% מהמקרים המונה חד-ספרתי, ב-25% דו-ספרתי וב-50% תלת-ספרתי. ב-30% מהמקרים אין חלק שלם כלל (מוצג שבר בלבד, ללא "0" לפניו) -- אבל בתשובה העשרונית עדיין יש לכתוב את ה-0 שלפני הנקודה.',
     'מוצג שם של שבר בעברית (למשל "שלוש חמישיות" או "שבע עשרה מאיות"), ויש לכתוב אותו גם כשבר (מונה ומכנה) וגם כמספר עשרוני. ב-30% מהמקרים זהו שבר "מיוחד" -- חצי, רבע, חמישית או שמינית (בהסתברות שווה בין הארבעה; אלה היחידים מתחת ל-10 עם שם עברי קצר שגם ניתן לכתיבה עשרונית מדויקת). ב-30% נוספים זהו "X מאיות" (X בין 1 ל-99, לעולם לא כפולה של 10 -- ב-50% מהמקרים חד-ספרתי, ב-50% דו-ספרתי). ב-30% נוספים זהו "X אלפיות" (X בין 1 ל-999, באותה הסתברות שווה בין חד/דו/תלת-ספרתי). ב-10% הנותרים זהו "X עשיריות" (X בין 1 ל-9).',
     'כמו ברמה 1, אבל המכנה נבחר מתוך 2, 5, 10, 20, 25, 50 או 100 (בהסתברות שווה) -- מכנים שקל להרחיב לעשיריות (2, 5, 10) או למאיות (20, 25, 50, 100). יש להרחיב את השבר בראש -- לדוגמה 3/20 הופך ל-15/100 -- ואז לכתוב אותו כמספר עשרוני, בדיוק כמו ברמה 1. כשהמכנה 50 או 100, ב-50% מהמקרים המונה חד-ספרתי (לפני ההרחבה) כדי לתרגל את ה-0 המחבר -- לתשומת לב: במכנה 50 זה לא מבטיח שהתוצאה המורחבת תהיה חד-ספרתית (למשל 7/50 מורחב ל-14/100), וזה בסדר.',
-    'מוצג מספר בצורת שלם + שבר (המכנה 2, 5 או 10 בהסתברות שווה -- היחידים שנופלים בדיוק על שנת עשיריות), בטווח 0 עד 3. יש לבחור את הנקודה המתאימה על ציר מספרים המחולק לעשיריות (30 קטעים) -- לחיצה/הקשה בוחרת נקודה בלבד, ויש לאשר עם "בדוק" (או Enter) כדי לענות בפועל. אישור שגוי פוסל את הנקודה ההיא, וניתן לבחור מחדש מבין הנקודות הנותרות.',
     'כמו ברמה 3, אבל ב-40% מהמקרים המכנה קשה יותר -- 4 (הרחבה פי 25, למאיות) או 8 (הרחבה פי 125, לאלפיות), בהסתברות שווה בין השניים. ב-60% הנותרים המכנה נבחר בדיוק כמו ברמה 3 (מתוך 2, 5, 10, 20, 25, 50 או 100).',
-    'מוצג שבר בלבד (בלי חלק שלם, כי הציר הוא בין 0 ל-1) -- אותה חלוקת מכנים כמו ברמה 5 (2, 5, 10, 20, 25, 50 או 100 ב-60% מהמקרים, או 4 ב-40% הנותרים -- לא כולל 8, כי 8 אינו מתחלק ב-100 בדיוק ולכן שברים עם מכנה זה לא היו נופלים בדיוק על אף שנת). יש לבחור את הנקודה המתאימה על ציר מספרים רחב מ-0 עד 1, המחולק למאיות (100 שנתות) -- כמו ברמה 4, לחיצה בוחרת בלבד ויש לאשר עם "בדוק" (או Enter). מיועד למסך מחשב בלבד.',
+    'כמו ברמה 1 (מוצג שלם + שבר, ויש לכתוב כמספר עשרוני), אבל המכנה נבחר מתוך 3 שכבות קושי: ב-70% מהמקרים מכנה "קשה" -- 4, 8, 40, 200, 250 או 500 (בהסתברות שווה); ב-20% מהמקרים מכנה "בינוני" -- 2, 5, 20, 25 או 50; וב-10% הנותרים מכנה "קל מאוד" -- 10, 100 או 1000 (בדיוק כמו ברמה 1, כולל אותה חלוקת ספרות למונה). במכנים 4, 8, 200, 250 ו-500 המונה מוגבל תמיד ל-20 לכל היותר (או למונה המקסימלי של אותו מכנה, אם הוא קטן מ-20) -- כדי שההרחבה למאיות/אלפיות תישאר כפל סביר. במכנה 40 (שההרחבה שלו פי 25, הגדולה מכולן) המונה מוגבל עוד יותר -- אחדות (1 עד 9) או עשרות שלמות (10, 20 או 30) בלבד -- כדי שהכפל בפועל יישאר תמיד כפל בספרה בודדת.',
+  ],
+  decimalnumberline: [
+    'מוצג מספר בצורת שלם + שבר (המכנה 2, 5 או 10 בהסתברות שווה -- היחידים שנופלים בדיוק על שנת עשיריות), בטווח 0 עד 3. יש לבחור את הנקודה המתאימה על ציר מספרים המחולק לעשיריות (30 קטעים) -- לחיצה/הקשה בוחרת נקודה בלבד, ויש לאשר עם "בדוק" (או Enter) כדי לענות בפועל. אישור שגוי פוסל את הנקודה ההיא, וניתן לבחור מחדש מבין הנקודות הנותרות.',
+    'מוצג שבר בלבד (בלי חלק שלם, כי הציר הוא בין 0 ל-1) -- המכנה נבחר מתוך 2, 5, 10, 20, 25, 50 או 100 ב-60% מהמקרים, או 4 ב-40% הנותרים (לא כולל 8, כי 8 אינו מתחלק ב-100 בדיוק ולכן שברים עם מכנה זה לא היו נופלים בדיוק על אף שנת). יש לבחור את הנקודה המתאימה על ציר מספרים רחב מ-0 עד 1, המחולק למאיות (100 שנתות) -- כמו ברמה 1, לחיצה בוחרת בלבד ויש לאשר עם "בדוק" (או Enter). מיועד למסך מחשב בלבד.',
   ],
 };
 

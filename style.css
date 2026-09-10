@@ -335,6 +335,90 @@ input.answer-revealed:disabled {
   margin: 0 !important;
 }
 
+/* Decimals' Hebrew-fraction-name level (level 2): its denominator can be as
+   large as 1000 (thousandths), which .fraction-answer-input's 50px width
+   truncates -- widened just for this one box via a dedicated class added in
+   renderDecimalFractionNameExercise() (exercise-decimals.js) and removed
+   again at the top of newExercise(), so it can't leak its width onto
+   #answer2 in some other fraction topic that also reuses
+   .fraction-answer-input. Source order after .fraction-answer-input matters
+   here -- both rules are !important on the same property, so the later one
+   wins for elements carrying both classes. */
+.decimal-fraction-name-denominator-input {
+  width: 76px !important;
+}
+
+/* Wraps #fractionNameWordDisplay + its .frac-eq so the pair acts as one grid
+   item in .fraction-name-row (below), sitting beside the instruction labels
+   instead of the whole row stretching full-width -- same shrink+center
+   reasoning as .exercise's own min-width:0 comment, applied one level up
+   since here it wraps two stacked children instead of one line of text. */
+#fractionNameExerciseBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+}
+
+/* 3-column grid, not a flex row -- see this row's own comment in index.html
+   for why: the middle (auto-width) column always lands at the row's true
+   center regardless of what's in the flanking minmax(0,1fr) columns, so
+   #fractionNameExerciseBlock never shifts off-center just because real
+   label content sits next to it. .fraction-name-spacer is empty on
+   purpose -- it exists only to mirror .fraction-name-labels' column so the
+   two 1fr tracks are genuinely symmetric. */
+.fraction-name-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: 14px;
+  margin-bottom: 16px;
+}
+
+/* Stacked vertically (not side-by-side like #mathQuestionRow's own labels)
+   to keep this column's footprint narrow -- .simplify-label is
+   white-space:nowrap, so a narrow minmax(0,1fr) track can't shrink these
+   chips themselves, only give them less room, and a narrow column is far
+   less likely to ever need more room than the grid can spare.
+   justify-self:end places the group at this column's *inner* edge (the one
+   touching the exercise column) under RTL, i.e. hugging the boxes rather
+   than drifting to the card's outer edge. align-self:end (overriding the
+   row's own align-items:center) drops the whole label group down to sit
+   level with the input boxes (the bottom of #fractionNameExerciseBlock,
+   where its own .frac-eq lives) instead of the vertical center of the
+   entire block -- which, with #fractionNameWordDisplay sitting above the
+   boxes, used to read as "beside the whole exercise" rather than
+   specifically beside the boxes, per the user's own report. */
+.fraction-name-labels {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-self: end;
+  align-self: end;
+}
+
+/* Below this width the label column and the exercise block's own natural
+   width no longer reliably both fit -- same 600px breakpoint every other
+   mobile override in this file uses. Falls back to stacking (labels above
+   the exercise, both full-row centered) rather than letting the grid
+   squeeze .fraction-name-labels' nowrap chips into an overflow. */
+@media (max-width: 600px) {
+  .fraction-name-row {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+  .fraction-name-labels {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .fraction-name-spacer {
+    display: none;
+  }
+}
+
 /* Mixed numbers: the whole-number box is the one case where a plain
    (non-.fraction-answer-input) input sits inside .frac-eq -- the default
    input's margin-bottom would otherwise sink it below the fraction block's

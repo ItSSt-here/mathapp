@@ -28,7 +28,7 @@ function changeExerciseDifficulty(delta) {
   updateExerciseDifficultyLabel();
 }
 
-const MODE_LABELS = { fractions: 'מבוא לשברים', comparefractions: 'השוואת שברים', addfractions: 'חיבור שברים', subtractfractions: 'חיסור שברים', mixednumbers: 'מספרים מעורבים', addfractionsadvanced: 'חיבור שברים מתקדם', letters: 'אותיות', abc: 'ABC', nikud: 'ניקוד', vocabulary: 'אוצר מילים', division: 'מבוא לחילוק', grammar: 'דקדוק', decimals: 'מספרים עשרוניים' };
+const MODE_LABELS = { fractions: 'מבוא לשברים', comparefractions: 'השוואת שברים', addfractions: 'חיבור שברים', subtractfractions: 'חיסור שברים', mixednumbers: 'מספרים מעורבים', addfractionsadvanced: 'חיבור שברים מתקדם', letters: 'אותיות', abc: 'ABC', nikud: 'ניקוד', vocabulary: 'אוצר מילים', division: 'מבוא לחילוק', grammar: 'דקדוק', decimalstyped: 'כתיבה כעשרוני', decimalnumberline: 'ציר מספרים' };
 
 function formatLevelInfo() {
   const modeLabel = MODE_LABELS[gameMode] || 'כפל';
@@ -77,18 +77,32 @@ function logRoundStats(playerWon, surrendered) {
 }
 
 // ---------- Teacher link: URL config parsing + share-link generation ----------
+// Shared by every "topic didn't resolve" branch in parseUrlParams() below --
+// a hub link (?group=fractions or ?group=decimals) with no resolved topic
+// yet lands on that group's own subtopic screen instead of the full mode
+// list; anything else (including an unrecognized group value) falls back to
+// 'mode'. Sets the module-level arrivedGroup (config.js) so
+// showInitialOverlay()/applyLinkModeUI() know which group's overlay/back-
+// button this resolved to.
+function resolveGroupFallback(params) {
+  const group = params.get(URL_PARAM_GROUP);
+  if (TOPIC_GROUPS[group]) {
+    arrivedGroup = group;
+    return 'subtopic';
+  }
+  return 'mode';
+}
 // Returns which screen to land on -- see arrivedStage's comment in
 // config.js for what each stage means and how it was decided.
 function parseUrlParams() {
   const params = new URLSearchParams(location.search);
   const topic = params.get(URL_PARAM_TOPIC);
   if (!VALID_TOPICS.includes(topic)) {
-    // A hub link (?group=fractions) with no resolved topic yet lands on the
-    // subtopic screen instead of the full mode list -- only checked once
-    // topic itself fails to resolve, so a link carrying both a valid topic
-    // and a group param still prefers the topic (skips straight past the hub,
+    // A hub link with no resolved topic yet -- only checked once topic
+    // itself fails to resolve, so a link carrying both a valid topic and a
+    // group param still prefers the topic (skips straight past the hub,
     // same as it already skips modeOverlay).
-    return params.get(URL_PARAM_GROUP) === 'fractions' ? 'subtopic' : 'mode';
+    return resolveGroupFallback(params);
   }
   // Vocabulary's own word list rides along as one more param on this same
   // link (see URL_PARAM_WORDS in config.js) rather than needing a separate
@@ -99,7 +113,7 @@ function parseUrlParams() {
   // risk newExercise() crashing on an empty list later.
   if (topic === 'vocabulary') {
     const { pairs } = parseVocabularyWordList(params.get(URL_PARAM_WORDS) || '');
-    if (pairs.length < 2) return params.get(URL_PARAM_GROUP) === 'fractions' ? 'subtopic' : 'mode';
+    if (pairs.length < 2) return resolveGroupFallback(params);
     vocabularyWordList = pairs;
     saveVocabularyWordListToStorage(pairs); // this device's fallback for a future bare-URL open
   }
@@ -109,7 +123,7 @@ function parseUrlParams() {
   // (see grammarContinueBtn below).
   if (topic === 'grammar') {
     const { pairs } = parseGrammarWordList(params.get(URL_PARAM_WORDS) || '');
-    if (pairs.length < 2) return params.get(URL_PARAM_GROUP) === 'fractions' ? 'subtopic' : 'mode';
+    if (pairs.length < 2) return resolveGroupFallback(params);
     grammarWordList = pairs;
     saveGrammarWordListToStorage(pairs); // this device's fallback for a future bare-URL open
   }
@@ -137,12 +151,15 @@ function parseUrlParams() {
   return 'speed';
 }
 
-const ARRIVED_STAGE_OVERLAY = { mode: 'modeOverlay', subtopic: 'fractionsSubtopicOverlay', difficulty: 'exDifficultyOverlay', speed: 'startOverlay' };
+// 'subtopic' has no fixed overlay here -- which one depends on arrivedGroup
+// (set by resolveGroupFallback() above), resolved in showInitialOverlay().
+const ARRIVED_STAGE_OVERLAY = { mode: 'modeOverlay', difficulty: 'exDifficultyOverlay', speed: 'startOverlay' };
 
 function showInitialOverlay() {
   arrivedStage = parseUrlParams();
   document.getElementById('weakPoolCheckbox').checked = weakPoolReviewEnabled;
-  document.getElementById(ARRIVED_STAGE_OVERLAY[arrivedStage]).classList.add('show');
+  const overlayId = arrivedStage === 'subtopic' ? TOPIC_GROUPS[arrivedGroup].overlayId : ARRIVED_STAGE_OVERLAY[arrivedStage];
+  document.getElementById(overlayId).classList.add('show');
 }
 
 function applyLinkModeUI() {
@@ -150,28 +167,34 @@ function applyLinkModeUI() {
   // the link the student arrived on -- 'difficulty'/'speed' both lock the
   // topic (hide the difficulty screen's "back to topics" button), 'speed'
   // additionally locks the difficulty level (hide the speed screen's "back
-  // to difficulty" button too), and 'subtopic' locks the fraction-family
-  // choice one level up (hide the subtopic hub's "back to full topic list"
-  // button) without yet locking which fraction sub-topic.
+  // to difficulty" button too), and 'subtopic' locks whichever hub group
+  // (arrivedGroup) the link pointed at one level up (hide that group's own
+  // subtopic-hub "back to full topic list" button) without yet locking
+  // which of that group's sub-topics.
   const topicLocked = arrivedStage === 'difficulty' || arrivedStage === 'speed';
   document.getElementById('backToModeBtn').style.display = topicLocked ? 'none' : '';
-  document.getElementById('backToModeFromSubtopicBtn').style.display = arrivedStage === 'subtopic' ? 'none' : '';
+  for (const [groupName, group] of Object.entries(TOPIC_GROUPS)) {
+    const hideBackBtn = arrivedStage === 'subtopic' && arrivedGroup === groupName;
+    document.getElementById(group.backBtnId).style.display = hideBackBtn ? 'none' : '';
+  }
   document.getElementById('backToLinkBtn').style.display = arrivedStage === 'speed' ? 'none' : '';
   document.getElementById('reconfigureBtn').style.display = arrivedStage === 'mode' ? '' : 'none';
 }
 
 // stage controls how much of the current selection gets baked into the
 // link: 'mode' includes nothing (topic not chosen yet), 'subtopic' includes
-// just the fraction-family marker (which fraction sub-topic is still open),
-// 'difficulty' includes topic+difficulty (the difficulty screen's own
-// "suggested starting level" for whoever opens it), 'speed' includes
-// topic+difficulty+speed (the speed screen's "suggested starting speed").
-// See arrivedStage in config.js for how parseUrlParams() turns these back
-// into a landing screen.
-function buildShareLink(stage) {
+// just which hub group's screen this is (group -- a TOPIC_GROUPS key --
+// since gameMode itself isn't reliably set yet at this stage; each hub's
+// own "העתק קישור" button passes its own group directly rather than trying
+// to infer it), 'difficulty' includes topic+difficulty (the difficulty
+// screen's own "suggested starting level" for whoever opens it), 'speed'
+// includes topic+difficulty+speed (the speed screen's own "suggested
+// starting speed"). See arrivedStage in config.js for how parseUrlParams()
+// turns these back into a landing screen.
+function buildShareLink(stage, group) {
   const params = new URLSearchParams();
   if (stage === 'subtopic') {
-    params.set(URL_PARAM_GROUP, 'fractions');
+    params.set(URL_PARAM_GROUP, group);
   }
   if (stage === 'difficulty' || stage === 'speed') {
     params.set(URL_PARAM_TOPIC, gameMode);
@@ -683,19 +706,18 @@ document.getElementById('reconfigureBtn').addEventListener('click', () => {
 // Each mode button just sets gameMode to its own topic string and advances
 // to the difficulty picker -- looped over a table instead of one near-
 // identical listener per button, so a future topic is a one-line entry here.
-// The 5 fraction-family topics live on their own subtopic hub screen (see
-// FRACTIONS_SUBTOPIC_BUTTONS below) instead of this flat list.
+// The fraction-family and decimals-family topics live on their own subtopic
+// hub screens instead of this flat list (see TOPIC_GROUPS below).
 const MODE_BUTTON_TOPICS = {
   modeMultiplyBtn: 'multiplication',
   modeDivisionBtn: 'division',
   modeLettersBtn: 'letters',
   modeAbcBtn: 'abc',
   modeNikudBtn: 'nikud',
-  modeDecimalsBtn: 'decimals',
 };
-// Shared by both the flat mode-select buttons above and the fraction
-// subtopic hub's buttons below -- committing to a real topic always means
-// the same thing regardless of which screen it was picked from.
+// Shared by both the flat mode-select buttons above and every subtopic
+// hub's buttons below -- committing to a real topic always means the same
+// thing regardless of which screen it was picked from.
 function selectTopicAndContinue(topic) {
   gameMode = topic;
   // The previously-picked level can be out of range for the new topic
@@ -711,9 +733,20 @@ for (const [btnId, topic] of Object.entries(MODE_BUTTON_TOPICS)) {
     selectTopicAndContinue(topic);
   });
 }
+// A "hub" is a mode-select button that opens a second overlay listing that
+// family's real topics, instead of setting gameMode itself -- generalizes
+// FRACTIONS_GROUP_TOPICS/DECIMALS_GROUP_TOPICS (config.js) into everything
+// the UI/URL-sharing layer needs per hub: which overlay it opens, and which
+// button on that overlay goes back to the full topic list. Adding a third
+// hub in the future means one more entry here (plus its own overlay markup
+// in index.html) rather than touching every function below individually.
+const TOPIC_GROUPS = {
+  fractions: { topics: FRACTIONS_GROUP_TOPICS, overlayId: 'fractionsSubtopicOverlay', backBtnId: 'backToModeFromSubtopicBtn' },
+  decimals: { topics: DECIMALS_GROUP_TOPICS, overlayId: 'decimalsSubtopicOverlay', backBtnId: 'backToModeFromDecimalsSubtopicBtn' },
+};
 document.getElementById('modeFractionsHubBtn').addEventListener('click', () => {
   document.getElementById('modeOverlay').classList.remove('show');
-  document.getElementById('fractionsSubtopicOverlay').classList.add('show');
+  document.getElementById(TOPIC_GROUPS.fractions.overlayId).classList.add('show');
 });
 const FRACTIONS_SUBTOPIC_BUTTONS = {
   modeFractionsBtn: 'fractions',
@@ -725,12 +758,33 @@ const FRACTIONS_SUBTOPIC_BUTTONS = {
 };
 for (const [btnId, topic] of Object.entries(FRACTIONS_SUBTOPIC_BUTTONS)) {
   document.getElementById(btnId).addEventListener('click', () => {
-    document.getElementById('fractionsSubtopicOverlay').classList.remove('show');
+    document.getElementById(TOPIC_GROUPS.fractions.overlayId).classList.remove('show');
     selectTopicAndContinue(topic);
   });
 }
-document.getElementById('backToModeFromSubtopicBtn').addEventListener('click', () => {
-  document.getElementById('fractionsSubtopicOverlay').classList.remove('show');
+document.getElementById(TOPIC_GROUPS.fractions.backBtnId).addEventListener('click', () => {
+  document.getElementById(TOPIC_GROUPS.fractions.overlayId).classList.remove('show');
+  document.getElementById('modeOverlay').classList.add('show');
+});
+// Decimals hub, added 2026-09-10 when the single 'decimals' topic split
+// into 'decimalstyped'/'decimalnumberline' -- same shape as the fractions
+// hub just above, one hub button + a two-entry subtopic overlay.
+document.getElementById('modeDecimalsHubBtn').addEventListener('click', () => {
+  document.getElementById('modeOverlay').classList.remove('show');
+  document.getElementById(TOPIC_GROUPS.decimals.overlayId).classList.add('show');
+});
+const DECIMALS_SUBTOPIC_BUTTONS = {
+  modeDecimalsTypedBtn: 'decimalstyped',
+  modeDecimalsNumberLineBtn: 'decimalnumberline',
+};
+for (const [btnId, topic] of Object.entries(DECIMALS_SUBTOPIC_BUTTONS)) {
+  document.getElementById(btnId).addEventListener('click', () => {
+    document.getElementById(TOPIC_GROUPS.decimals.overlayId).classList.remove('show');
+    selectTopicAndContinue(topic);
+  });
+}
+document.getElementById(TOPIC_GROUPS.decimals.backBtnId).addEventListener('click', () => {
+  document.getElementById(TOPIC_GROUPS.decimals.overlayId).classList.remove('show');
   document.getElementById('modeOverlay').classList.add('show');
 });
 document.getElementById('modeVocabularyBtn').addEventListener('click', () => {
@@ -854,11 +908,14 @@ document.getElementById('grammarContinueBtn').addEventListener('click', () => {
   selectTopicAndContinue('grammar');
 });
 // Returns to whichever screen this topic was actually picked from, so a
-// student refining a fraction sub-topic choice doesn't get bounced all the
-// way out to the full topic list.
+// student refining a sub-topic choice (fractions or decimals) doesn't get
+// bounced all the way out to the full topic list.
 document.getElementById('backToModeBtn').addEventListener('click', () => {
   document.getElementById('exDifficultyOverlay').classList.remove('show');
-  const backOverlayId = FRACTIONS_GROUP_TOPICS.includes(gameMode) ? 'fractionsSubtopicOverlay' : 'modeOverlay';
+  let backOverlayId = 'modeOverlay';
+  for (const group of Object.values(TOPIC_GROUPS)) {
+    if (group.topics.includes(gameMode)) { backOverlayId = group.overlayId; break; }
+  }
   document.getElementById(backOverlayId).classList.add('show');
 });
 document.getElementById('exDiffContinueBtn').addEventListener('click', () => {
@@ -873,7 +930,10 @@ document.getElementById('copyLinkModeBtn').addEventListener('click', () => {
   copyShareLink(buildShareLink('mode'), document.getElementById('copyFeedbackMode'));
 });
 document.getElementById('copyLinkSubtopicBtn').addEventListener('click', () => {
-  copyShareLink(buildShareLink('subtopic'), document.getElementById('copyFeedbackSubtopic'));
+  copyShareLink(buildShareLink('subtopic', 'fractions'), document.getElementById('copyFeedbackSubtopic'));
+});
+document.getElementById('copyLinkDecimalsSubtopicBtn').addEventListener('click', () => {
+  copyShareLink(buildShareLink('subtopic', 'decimals'), document.getElementById('copyFeedbackDecimalsSubtopic'));
 });
 document.getElementById('copyLinkDifficultyBtn').addEventListener('click', () => {
   copyShareLink(buildShareLink('difficulty'), document.getElementById('copyFeedbackDifficulty'));

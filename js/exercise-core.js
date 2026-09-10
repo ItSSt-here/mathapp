@@ -274,6 +274,12 @@ function newExercise() {
   answerHome.appendChild(answerInput);
   answer2Home.appendChild(answer2);
   answer3Home.appendChild(answer3);
+  // Only renderDecimalFractionNameExercise() (exercise-decimals.js) ever
+  // adds this -- unconditional removal here, same reset-then-let-the-
+  // matching-branch-re-add-it shape as simplifyLabel/decimalInstructionLabel
+  // above, keeps it from leaking its wider width onto #answer2 in some
+  // other fraction topic that also reuses .fraction-answer-input.
+  answer2.classList.remove('decimal-fraction-name-denominator-input');
   // Same reasoning, same fix, for decimals' own dedicated input: it gets
   // parked inside #questionText itself (see renderDecimalExercise(),
   // exercise-decimals.js), so switching to any other topic without first
@@ -295,7 +301,14 @@ function newExercise() {
   const isCompare = gameMode === 'comparefractions';
   const isVocabulary = gameMode === 'vocabulary';
   const isGrammar = gameMode === 'grammar';
-  const isDecimals = gameMode === 'decimals';
+  // The decimals topic was split into two gameModes on 2026-09-10 --
+  // 'decimalstyped' (typed-answer levels, using #decimalTypedInput via the
+  // generic branch below) and 'decimalnumberline' (its own dedicated
+  // render/check path, isDecimalNumberLine below). isDecimalsTyped alone
+  // gates the generic decimals branch further down; the two are combined
+  // wherever both sub-topics need the same generic UI treatment (e.g.
+  // hiding the shared #answerHome, which neither ever uses).
+  const isDecimalsTyped = gameMode === 'decimalstyped';
   const isDecimalNumberLine = isDecimalNumberLineLevel();
   const isFractionName = isDecimalFractionNameLevel();
   const isLetterFamily = isLetters || isAbc || isNikud;
@@ -311,7 +324,7 @@ function newExercise() {
   // exercise-decimals.js), unlike every other decimals level which reuses
   // #mathQuestionRow/#questionText for its shown fraction.
   document.getElementById('mathQuestionRow').style.display = (isLetterFamily || isVocabulary || isGrammar || isFractionName) ? 'none' : '';
-  answerHome.style.display = (isLetterFamily || isCompare || isVocabulary || isGrammar || isDecimals) ? 'none' : '';
+  answerHome.style.display = (isLetterFamily || isCompare || isVocabulary || isGrammar || isDecimalsTyped || isDecimalNumberLine) ? 'none' : '';
   // Grammar is typed-only (like vocabulary level 4) -- checkBtn/swapBtn are
   // always shown for it, same as isVocabularyTyped, never hidden the way
   // vocabulary's multiple-choice levels hide them. Decimals' own number-line
@@ -370,12 +383,12 @@ function newExercise() {
     return;
   }
 
-  // Decimals level 4's number-line UI checked first -- its own gate
-  // (isDecimalNumberLineLevel(), exercise-decimals.js) already implies
-  // isDecimals, but its answer shape (which tick index was confirmed) has
-  // nothing in common with currentDecimalAnswer's decimal-string shape, so
-  // it's kept fully separate rather than folded into generateDecimalExercise()'s
-  // own level dispatch.
+  // The 'decimalnumberline' topic (own gate: isDecimalNumberLineLevel(),
+  // exercise-decimals.js) checked first -- its answer shape (which tick
+  // index was confirmed) has nothing in common with currentDecimalAnswer's
+  // decimal-string shape, so it's kept fully separate rather than folded
+  // into generateDecimalExercise()'s own level dispatch (which only ever
+  // serves 'decimalstyped').
   if (isDecimalNumberLine) {
     const ex = pickExercise(generateDecimalNumberLineExerciseForLevel);
     document.getElementById('numberLineInstructionLabel').style.display = '';
@@ -385,12 +398,13 @@ function newExercise() {
     return;
   }
 
-  // Decimals reuses #mathQuestionRow/#questionText (unlike vocabulary/
-  // grammar, which hide it) since its shown side is a fraction-family
-  // equation, not a plain word -- but its answer lives in its own
-  // #decimalTypedInput rather than the generic #answer, so it still needs
-  // its own early return before the generic tail below touches answerInput.
-  if (isDecimals) {
+  // 'decimalstyped' reuses #mathQuestionRow/#questionText (unlike
+  // vocabulary/grammar, which hide it) since its shown side is a
+  // fraction-family equation, not a plain word -- but its answer lives in
+  // its own #decimalTypedInput rather than the generic #answer, so it
+  // still needs its own early return before the generic tail below touches
+  // answerInput.
+  if (isDecimalsTyped) {
     const ex = pickExercise(generateDecimalExercise);
     currentDecimalAnswer = ex.answer;
     document.getElementById('decimalInstructionLabel').style.display = '';
@@ -757,7 +771,7 @@ function checkAnswer() {
     return;
   }
 
-  if (gameMode === 'decimals') {
+  if (gameMode === 'decimalstyped') {
     checkDecimalAnswer();
     return;
   }
@@ -867,7 +881,7 @@ function changeQuestion() {
     return;
   }
 
-  if (gameMode === 'decimals') {
+  if (gameMode === 'decimalstyped') {
     changeDecimalQuestion();
     return;
   }

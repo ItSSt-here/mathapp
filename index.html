@@ -13,7 +13,7 @@
      fetch of everything together instead of relying on cache timing to
      line up. No build step in this project, so this is manual -- there's
      nothing to automate it. -->
-<link rel="stylesheet" href="style.css?v=202609101200">
+<link rel="stylesheet" href="style.css?v=202609101430">
 </head>
 <body>
 
@@ -37,9 +37,9 @@
       <span>צמצם</span>
       <span>ככל הניתן</span>
     </div>
-    <!-- Decimals exercise: every round needs this instruction (there's no
-         hint otherwise that "3  57/100 = [blank]" means "write as a
-         decimal", unlike every other fraction-family topic where the
+    <!-- 'decimalstyped' exercise: every round needs this instruction
+         (there's no hint otherwise that "3  57/100 = [blank]" means "write
+         as a decimal", unlike every other fraction-family topic where the
          equation shape alone is self-explanatory) -- same dashed-amber-tag
          look as #simplifyLabel just above, shown/hidden the same way (see
          newExercise() in exercise-core.js). -->
@@ -47,7 +47,7 @@
       <span>כתוב</span>
       <span>כמספר עשרוני</span>
     </div>
-    <!-- Decimals number-line levels (4 and 6, see #numberLineAnswerHome
+    <!-- 'decimalnumberline's own two levels (see #numberLineAnswerHome
          below): its own instruction, since "write as a decimal" doesn't
          apply here -- same look/toggle mechanic as #decimalInstructionLabel
          just above. -->
@@ -118,16 +118,17 @@
     <div class="vocabulary-word-display" id="grammarWordDisplay"></div>
     <input type="text" id="grammarTypedInput" class="vocabulary-typed-input" dir="ltr" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done">
   </div>
-  <!-- Decimals exercise (level 1, the only level so far): the shown mixed
-       number renders into #mathQuestionRow itself (see renderDecimalExercise(),
-       exercise-decimals.js), same as every other fraction-family topic --
-       unlike vocabulary/grammar, this div holds nothing but the typed answer
-       input, parked here (hidden) between rounds; newExercise() moves it into
-       the equation's own blank slot each round. -->
+  <!-- 'decimalstyped' exercise (levels 1/3/4/5 -- see generateDecimalExercise(),
+       exercise-decimals.js): the shown mixed number renders into
+       #mathQuestionRow itself (see renderDecimalExercise()), same as every
+       other fraction-family topic -- unlike vocabulary/grammar, this div
+       holds nothing but the typed answer input, parked here (hidden)
+       between rounds; newExercise() moves it into the equation's own blank
+       slot each round. -->
   <div id="decimalAnswerHome" style="display:none;">
     <input type="text" inputmode="decimal" id="decimalTypedInput" class="decimal-typed-input" dir="ltr" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done">
   </div>
-  <!-- Decimals level 2: the Hebrew *name* of a fraction is shown (e.g.
+  <!-- 'decimalstyped' level 2: the Hebrew *name* of a fraction is shown (e.g.
        "שלוש חמישיות"), and the student writes it both as a fraction
        (#answer/#answer2, reused from the shared numeric-answer pair -- see
        #answer2Home just below -- parked here in their own frac-block slot,
@@ -135,28 +136,68 @@
        reused from #decimalAnswerHome above). All three boxes required,
        checked together -- see renderDecimalFractionNameExercise()/
        checkDecimalFractionNameAnswer(), exercise-decimals.js. Unlike every
-       other decimals level, #mathQuestionRow is hidden for this one (same
-       as grammar/vocabulary) -- there's no shown equation, only the name.
-       Hidden except at this one decimals level. -->
+       other 'decimalstyped' level, #mathQuestionRow is hidden for this one
+       (same as grammar/vocabulary) -- there's no shown equation, only the
+       name. Hidden except at this one level. -->
   <div id="fractionNameAnswerHome" style="display:none;">
-    <div class="vocabulary-word-display" id="fractionNameWordDisplay" dir="rtl"></div>
-    <div class="frac-eq">
-      <span class="frac-block frac-answer-block" id="fractionNameFracSlot"><span class="frac-bar"></span></span>
-      <span class="frac-op">=</span>
-      <span id="fractionNameDecimalSlot"></span>
+    <!-- Static instructions -- unlike #decimalInstructionLabel/etc. above,
+         these never need JS show/hide: they're plain children of this whole
+         answer block, which newExercise() already toggles as one unit, so
+         they appear/disappear along with everything else here for free.
+         Two separate dashed-amber tags (same .simplify-label look as
+         elsewhere), since the two facts (which box is which, and that
+         reducing isn't required) are unrelated enough to read better apart
+         than crammed into one long label.
+
+         Deliberately NOT just #mathQuestionRow's own .exercise-row (flex,
+         justify-content:center) -- that centers the *group* (labels +
+         exercise) as a unit, which visibly drags the actual answer boxes
+         off true-center once real label content sits beside them (reported
+         by the user right after that first attempt shipped). Instead
+         .fraction-name-row is a 3-column grid (side columns
+         minmax(0,1fr), middle column auto) with a matching empty
+         .fraction-name-spacer as the mirror-image third column -- the
+         middle (exercise) column's width is content-only, so it always
+         lands at the row's true horizontal center regardless of what's in
+         the flanking columns, while the labels (in the near-side column,
+         justify-self:end so they hug the boxes rather than the outer edge)
+         just ride along to the right under RTL without perturbing that
+         center. See this rule's own comment in style.css for the mobile
+         fallback (stacks instead of flanking) once this can't fit
+         side-by-side. -->
+    <div class="fraction-name-row">
+      <div class="fraction-name-labels">
+        <div class="simplify-label" id="fractionNameLayoutLabel">
+          <span>משמאל: עשרוני</span>
+          <span>מימין: שבר</span>
+        </div>
+        <div class="simplify-label" id="fractionNameSimplifyHintLabel">
+          <span>אין צורך</span>
+          <span>לצמצם</span>
+        </div>
+      </div>
+      <div id="fractionNameExerciseBlock">
+        <div class="vocabulary-word-display" id="fractionNameWordDisplay" dir="rtl"></div>
+        <div class="frac-eq">
+          <span class="frac-block frac-answer-block" id="fractionNameFracSlot"><span class="frac-bar"></span></span>
+          <span class="frac-op">=</span>
+          <span id="fractionNameDecimalSlot"></span>
+        </div>
+      </div>
+      <div class="fraction-name-spacer" aria-hidden="true"></div>
     </div>
   </div>
-  <!-- Decimals level 4 (a number-line UI): the shown fraction still renders
-       into #mathQuestionRow like every other decimals level, but the answer
-       is a point picked along a 0-to-DECIMAL_NUMBER_LINE_RANGE_MAX line
-       (tick marks built fresh into #numberLineTicks each round) instead of
-       a typed value. #numberLineHitArea is one click/tap/keyboard target
-       spanning the whole line -- not one button per tick, which at this
-       level's tick density would be too small/cramped to hit reliably (see
-       wireDecimalNumberLineInteraction(), exercise-decimals.js) -- a pick
-       only *selects* a tick; checkBtn (or Enter) confirms it, same
-       select-then-confirm shape as letters reverse mode. Hidden except at
-       this one decimals level. -->
+  <!-- 'decimalnumberline' (both its levels): the shown fraction still
+       renders into #mathQuestionRow like 'decimalstyped' does, but the
+       answer is a point picked along a 0-to-DECIMAL_NUMBER_LINE_RANGE_MAX
+       (or 0-to-1) line (tick marks built fresh into #numberLineTicks each
+       round) instead of a typed value. #numberLineHitArea is one
+       click/tap/keyboard target spanning the whole line -- not one button
+       per tick, which at this level's tick density would be too
+       small/cramped to hit reliably (see wireDecimalNumberLineInteraction(),
+       exercise-decimals.js) -- a pick only *selects* a tick; checkBtn (or
+       Enter) confirms it, same select-then-confirm shape as letters reverse
+       mode. Hidden except in this one gameMode. -->
   <div id="numberLineAnswerHome" style="display:none;">
     <div class="number-line-wrap">
       <div class="number-line-ticks" id="numberLineTicks"></div>
@@ -251,7 +292,7 @@
       <button class="restart-btn" id="modeNikudBtn">ניקוד</button>
       <button class="restart-btn" id="modeVocabularyBtn">אוצר מילים</button>
       <button class="restart-btn" id="modeGrammarBtn">דקדוק</button>
-      <button class="restart-btn" id="modeDecimalsBtn">מספרים עשרוניים</button>
+      <button class="restart-btn" id="modeDecimalsHubBtn">מספרים עשרוניים</button>
     </div>
 
     <div class="link-row">
@@ -280,6 +321,29 @@
       <button class="copy-link-btn" id="copyLinkSubtopicBtn">העתק קישור</button>
     </div>
     <div class="copy-feedback" id="copyFeedbackSubtopic"></div>
+  </div>
+</div>
+
+<!-- Decimals hub, added 2026-09-10 when the single 'decimals' topic (grown
+     to 7 levels mixing two genuinely different mechanics -- typed decimal
+     answers and number-line clicks) was split into 'decimalstyped'/
+     'decimalnumberline'. Same shape as fractionsSubtopicOverlay just
+     above -- see TOPIC_GROUPS in main.js for the shared hub wiring. -->
+<div class="overlay" id="decimalsSubtopicOverlay">
+  <div class="overlay-card">
+    <div class="overlay-title" style="color:#4a3fd1;">קרב טירות ⚔️</div>
+    <p class="overlay-text">איזה תרגיל מספרים עשרוניים תרצו לתרגל?</p>
+
+    <div class="postgame-buttons">
+      <button class="restart-btn" id="modeDecimalsTypedBtn">כתיבה כעשרוני</button>
+      <button class="restart-btn" id="modeDecimalsNumberLineBtn">ציר מספרים</button>
+      <button class="home-btn" id="backToModeFromDecimalsSubtopicBtn">חזרה</button>
+    </div>
+
+    <div class="link-row">
+      <button class="copy-link-btn" id="copyLinkDecimalsSubtopicBtn">העתק קישור</button>
+    </div>
+    <div class="copy-feedback" id="copyFeedbackDecimalsSubtopic"></div>
   </div>
 </div>
 
@@ -416,26 +480,26 @@
      (see preloadSoldierSprites() in render.js). -->
 <div id="spritePreload" style="position:fixed; left:-9999px; top:-9999px; width:1px; height:1px; overflow:hidden;" aria-hidden="true"></div>
 
-<script src="js/config.js?v=202609101215"></script>
-<script src="js/helpers.js?v=202608252100"></script>
-<script src="js/exercise-core.js?v=202609101200"></script>
-<script src="js/exercise-division.js?v=202608271300"></script>
-<script src="js/exercise-fractions.js?v=202608252000"></script>
-<script src="js/exercise-fraction-arithmetic.js?v=202608252200"></script>
-<script src="js/exercise-addfractions.js?v=202608252200"></script>
-<script src="js/exercise-subtractfractions.js?v=202608252200"></script>
-<script src="js/exercise-mixednumbers.js?v=202608252000"></script>
-<script src="js/exercise-addfractionsadvanced.js?v=202608252000"></script>
-<script src="js/exercise-letters.js?v=202608252000"></script>
-<script src="js/exercise-abc.js?v=202608252000"></script>
-<script src="js/exercise-nikud.js?v=202608252000"></script>
-<script src="js/exercise-compare.js?v=202608252000"></script>
-<script src="js/exercise-vocabulary.js?v=202609041500"></script>
-<script src="js/exercise-grammar.js?v=202608301500"></script>
-<script src="js/exercise-decimals.js?v=202609101200"></script>
-<script src="js/combat.js?v=202608252100"></script>
-<script src="js/render.js?v=202608252000"></script>
-<script src="js/main.js?v=202609101200"></script>
+<script src="js/config.js?v=202609101430"></script>
+<script src="js/helpers.js?v=202609101430"></script>
+<script src="js/exercise-core.js?v=202609101430"></script>
+<script src="js/exercise-division.js?v=202609101430"></script>
+<script src="js/exercise-fractions.js?v=202609101430"></script>
+<script src="js/exercise-fraction-arithmetic.js?v=202609101430"></script>
+<script src="js/exercise-addfractions.js?v=202609101430"></script>
+<script src="js/exercise-subtractfractions.js?v=202609101430"></script>
+<script src="js/exercise-mixednumbers.js?v=202609101430"></script>
+<script src="js/exercise-addfractionsadvanced.js?v=202609101430"></script>
+<script src="js/exercise-letters.js?v=202609101430"></script>
+<script src="js/exercise-abc.js?v=202609101430"></script>
+<script src="js/exercise-nikud.js?v=202609101430"></script>
+<script src="js/exercise-compare.js?v=202609101430"></script>
+<script src="js/exercise-vocabulary.js?v=202609101430"></script>
+<script src="js/exercise-grammar.js?v=202609101430"></script>
+<script src="js/exercise-decimals.js?v=202609101430"></script>
+<script src="js/combat.js?v=202609101430"></script>
+<script src="js/render.js?v=202609101430"></script>
+<script src="js/main.js?v=202609101430"></script>
 
 </body>
 </html>

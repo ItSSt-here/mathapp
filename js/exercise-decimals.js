@@ -223,6 +223,10 @@ function renderDecimalFractionNameExercise(ex) {
 
   answerInput.classList.add('fraction-answer-input');
   answer2.classList.add('fraction-answer-input');
+  // Denominator alone can reach 1000 (thousandths) -- see the class's own
+  // comment in style.css. Cleared again at the top of newExercise()
+  // (exercise-core.js) so it doesn't linger on #answer2 for another topic.
+  answer2.classList.add('decimal-fraction-name-denominator-input');
   answerInput.setAttribute('enterkeyhint', 'next');
   answer2.setAttribute('enterkeyhint', 'next');
 
@@ -262,9 +266,20 @@ function checkDecimalFractionNameAnswer() {
   }
 
   const ex = currentDecimalFractionNameExercise;
+  // Any fraction *equal in value* to ex.numerator/ex.denominator is accepted,
+  // not just that exact pair -- e.g. the name "עשרים מאיות" draws
+  // {numerator:20, denominator:100}, but a student who reduces on sight and
+  // writes 1/5 is just as correct. Checked by cross-multiplication
+  // (enteredNum/enteredDen === ex.numerator/ex.denominator, without
+  // dividing) rather than reducing both sides -- also naturally accepts an
+  // *expanded* equivalent (e.g. 40/200), not just a reduced one. Both
+  // entered values must be positive -- otherwise 0/0 would cross-multiply to
+  // a false "equal" (0 === 0) against any ex.numerator/ex.denominator.
+  const enteredNumerator = parseInt(answerInput.value, 10);
+  const enteredDenominator = parseInt(answer2.value, 10);
   const isCorrect =
-    parseInt(answerInput.value, 10) === ex.numerator &&
-    parseInt(answer2.value, 10) === ex.denominator &&
+    enteredNumerator > 0 && enteredDenominator > 0 &&
+    enteredNumerator * ex.denominator === ex.numerator * enteredDenominator &&
     Number(normalizeDecimalTypedAnswer(decimalInput.value)) === Number(ex.answer);
 
   checkBtn.disabled = true;
@@ -397,6 +412,60 @@ function generateDecimalLevel3Exercise() {
   };
 }
 
+// Level 7's own hard-tier numerator (see DECIMAL_L4_HARD_DENOMINATORS' own
+// comment in config.js). For 4/8/200/250/500: capped at 20 (or the
+// denominator's own max proper numerator, whichever is smaller), uniform
+// across that range -- keeps the real multiplication to at most a 2-digit x
+// 1-digit product, and naturally mixes reducible (4, 8, 12, 20) and
+// non-reducible (7, 13, 17) numerators with no dedicated case for either.
+// Denominator 40 is the one exception: even a capped-at-20 numerator times
+// 40's own x25 expansion factor (e.g. 17x25=425) is still a genuinely hard
+// multiplication -- harder than 200/250/500 hitting the same cap with their
+// smaller x5/x4/x2 factors, and still showing up as "hard multiplication
+// exercises" per the user's own report. So 40 alone reverts to units (1-9)
+// or a whole ten (10/20/30), same as an earlier attempt at 200/250/500 that
+// got dropped there for reducing too cleanly (70/200 = 7/20) -- the user
+// explicitly accepted that same tradeoff here once multiplication size, not
+// "does it look natural," became the deciding factor for this one
+// denominator specifically.
+function drawDecimalLevel4HardNumerator(denominator) {
+  if (denominator === 40) {
+    if (Math.random() < 0.5) return randInt(1, 9);
+    return randInt(1, 3) * 10;
+  }
+  return randInt(1, Math.min(20, denominator - 1));
+}
+
+// Level 7: a three-tier weighted denominator draw, every number here given
+// directly by the user rather than derived (see DECIMAL_L4_* constants'
+// own comment in config.js for the full breakdown). Hard tier reuses
+// drawDecimalLevel4HardNumerator() above; medium tier reuses level 2's own
+// pickDecimalLevel2Numerator() (none of 2/5/20/25/50 trigger its 50/100
+// digit-split branch); easy tier reuses level 1's own pool and digit-count
+// rule (pickDecimalNumeratorDigitCount()) rather than level 2's, since
+// 10/100/1000 are level 1's pool, not level 2's.
+function generateDecimalLevel4Exercise() {
+  const forceZero = Math.random() < DECIMAL_L1_ZERO_CHANCE;
+  const whole = forceZero ? 0 : randInt(1, DECIMAL_WHOLE_MAX);
+  const r = Math.random();
+  let denominator, numerator;
+  if (r < DECIMAL_L4_HARD_CHANCE) {
+    denominator = randChoice(DECIMAL_L4_HARD_DENOMINATORS);
+    numerator = drawDecimalLevel4HardNumerator(denominator);
+  } else if (r < DECIMAL_L4_HARD_CHANCE + DECIMAL_L4_MEDIUM_CHANCE) {
+    denominator = randChoice(DECIMAL_L4_MEDIUM_DENOMINATORS);
+    numerator = pickDecimalLevel2Numerator(denominator);
+  } else {
+    denominator = randChoice(DECIMAL_DENOMINATORS);
+    numerator = drawDecimalNumerator(pickDecimalNumeratorDigitCount(denominator));
+  }
+
+  return {
+    whole, numerator, denominator,
+    answer: buildDecimalAnswer(whole, numerator, denominator),
+  };
+}
+
 // Level 3 (a number-line UI, promoted from its original "experimental level
 // 4" slot once the UI itself was approved -- easier than the harder-
 // denominator level, which shifted down to level 4 to make room, see
@@ -415,34 +484,39 @@ function generateDecimalLevel3Exercise() {
 // string shape, so it's kept fully separate from
 // checkDecimalAnswer()/changeDecimalQuestion() -- see the
 // isDecimalNumberLineLevel() branch in newExercise()/exercise-core.js.
-// Index 3 (level 4) and index 5 (level 6) -- shifted up by one from 2/4
-// once the Hebrew fraction-name exercise was inserted as level 2 (see
-// isDecimalFractionNameLevel() below), which pushed every level from the
-// old "level 2" onward down by one slot.
+// The decimals topic was split into two gameModes on 2026-09-10 --
+// 'decimalstyped' (typed-answer levels) and 'decimalnumberline' (this one) --
+// so every level in *this* gameMode is a number-line level; no index check
+// needed at all. Before the split this same predicate had to single out
+// two specific indices (then 3 and 5) out of one shared 7-level list --
+// see [[project_decimals_topic_plan]] in memory for that history if a level
+// number quoted anywhere else still assumes the old single-topic numbering.
 function isDecimalNumberLineLevel() {
-  return gameMode === 'decimals' && (exerciseDifficultyIndex === 3 || exerciseDifficultyIndex === 5);
+  return gameMode === 'decimalnumberline';
 }
 
-// Level 6 specifically (see generateDecimalNumberLineHundredthsExercise()
-// below) -- the same number-line mechanic as level 4, just a denser 0-to-1
-// line marked off in hundredths instead of a 0-to-RANGE_MAX line marked off
-// in tenths. Kept as its own predicate (rather than checking
-// exerciseDifficultyIndex directly wherever this distinction matters) since
-// only the *generation* differs between the two number-line levels --
-// render/select/check/wiring below are fully shared, parametrized by
-// whatever `segments`/`rangeMax` the drawn exercise itself carries.
+// The second (harder) of 'decimalnumberline's own two levels (see
+// generateDecimalNumberLineHundredthsExercise() below) -- the same
+// number-line mechanic as the first, just a denser 0-to-1 line marked off
+// in hundredths instead of a 0-to-RANGE_MAX line marked off in tenths.
+// Kept as its own predicate (rather than checking exerciseDifficultyIndex
+// directly wherever this distinction matters) since only the *generation*
+// differs between the two number-line levels -- render/select/check/wiring
+// below are fully shared, parametrized by whatever `segments`/`rangeMax`
+// the drawn exercise itself carries.
 function isDecimalNumberLineHundredthsLevel() {
-  return gameMode === 'decimals' && exerciseDifficultyIndex === 5;
+  return gameMode === 'decimalnumberline' && exerciseDifficultyIndex === 1;
 }
 
-// Level 2 (see generateDecimalFractionNameExercise() further below): the
-// Hebrew *name* of a fraction is shown, and the student writes both the
-// fraction and the decimal -- an answer shape (three required boxes) that
-// fits neither the plain decimal-string levels nor the number-line levels,
-// so it gets its own dedicated render/check/reveal path, same reasoning as
+// The second of 'decimalstyped's own five levels (see
+// generateDecimalFractionNameExercise() further below): the Hebrew *name*
+// of a fraction is shown, and the student writes both the fraction and the
+// decimal -- an answer shape (three required boxes) that fits neither the
+// plain decimal-string levels nor the number-line topic, so it gets its own
+// dedicated render/check/reveal path, same reasoning as
 // isDecimalNumberLineLevel() above.
 function isDecimalFractionNameLevel() {
-  return gameMode === 'decimals' && exerciseDifficultyIndex === 1;
+  return gameMode === 'decimalstyped' && exerciseDifficultyIndex === 1;
 }
 
 // Correct tick index (0..RANGE_MAX*10) and the index currently selected but
@@ -651,22 +725,23 @@ function checkDecimalNumberLineAnswer() {
   }
 }
 
-// Level 4 (see generateDecimalLevel3Exercise() -- kept its original "L3"
-// name despite shifting down a level (twice now -- first when the number-
-// line level was promoted ahead of it, then again when the Hebrew
-// fraction-name level was inserted even earlier), same don't-rename-
-// tuning-constants-on-a-renumber convention FRAC_ADD_L3_A_MIN already
-// established elsewhere in this codebase): DECIMAL_L3_HARD_CHANCE of draws
-// use a harder denominator (4 or 8); the rest fall back to level 3's exact
-// mechanic. Dispatches by level, same pattern every other multi-level
-// topic's own generate<Topic>Exercise() uses. Level 2 (the Hebrew
-// fraction-name exercise) and levels 4/6 (the number-line UI) are *not*
-// routed through here -- see isDecimalFractionNameLevel()/
-// isDecimalNumberLineLevel()'s own comments above for why their answer
-// shapes don't fit this dispatcher at all.
+// Dispatches across 'decimalstyped's own 5 levels -- generateDecimalLevel1/
+// 2/3/4Exercise() names track the order each was *introduced* in, not
+// current level position (same don't-rename-tuning-constants-on-a-renumber
+// convention FRAC_ADD_L3_A_MIN established elsewhere): level 1 =
+// generateDecimalLevel1Exercise, level 3 = generateDecimalLevel2Exercise,
+// level 4 = generateDecimalLevel3Exercise (DECIMAL_L3_HARD_CHANCE of its
+// draws use a harder denominator, 4 or 8; the rest fall back to level 3's
+// exact mechanic), level 5 = generateDecimalLevel4Exercise (the three-tier
+// draw). Level 2, the Hebrew fraction-name exercise, is *not* routed
+// through here -- see isDecimalFractionNameLevel()'s own comment above for
+// why its answer shape doesn't fit this dispatcher at all. The
+// number-line mechanic lives entirely in the separate 'decimalnumberline'
+// gameMode now, not in this list at all.
 function generateDecimalExercise() {
   const level = exerciseDifficultyIndex + 1;
-  if (level === 5) return generateDecimalLevel3Exercise();
+  if (level === 5) return generateDecimalLevel4Exercise();
+  if (level === 4) return generateDecimalLevel3Exercise();
   if (level === 3) return generateDecimalLevel2Exercise();
   return generateDecimalLevel1Exercise();
 }
@@ -712,8 +787,8 @@ function normalizeDecimalTypedAnswer(s) {
 }
 
 // Dispatched from checkAnswer() (exercise-core.js) via its
-// gameMode === 'decimals' branch -- same shared checkBtn/Enter-to-submit flow
-// every typed-answer topic uses.
+// gameMode === 'decimalstyped' branch -- same shared checkBtn/Enter-to-submit
+// flow every typed-answer topic uses.
 function checkDecimalAnswer() {
   if (gameOver) return;
 
