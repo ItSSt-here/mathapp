@@ -100,9 +100,11 @@ let difficultyIndex = DEFAULT_DIFFICULTY_INDEX;
 // needs to be at least as long as the topic with the most levels). Grew to
 // 7 briefly while decimals was a single topic with that many levels;
 // shrunk back to 5 once decimals split into 'decimalstyped' (5 levels) and
-// 'decimalnumberline' (2) on 2026-09-10 -- 5 is once again the max across
-// every topic (fractions/addfractions/nikud/division/decimalstyped).
-const EXERCISE_DIFFICULTIES = ['1', '2', '3', '4', '5'];
+// 'decimalnumberline' (2) on 2026-09-10. Grew to 6 on 2026-09-15 when
+// 'fractions' gained a new level 1 (expand-by-a-given-multiplier) ahead of
+// its previous 5 levels -- fractions is once again the max across every
+// topic.
+const EXERCISE_DIFFICULTIES = ['1', '2', '3', '4', '5', '6'];
 const DEFAULT_EXERCISE_DIFFICULTY_INDEX = 4;
 let exerciseDifficultyIndex = DEFAULT_EXERCISE_DIFFICULTY_INDEX;
 
@@ -308,6 +310,16 @@ const FRACTION_FACTOR_LOW_MIN = 2;
 const FRACTION_FACTOR_LOW_MAX = 9;
 const FRACTION_FACTOR_HIGH_MIN = 2;
 const FRACTION_FACTOR_HIGH_MAX = 5;
+
+// Level 1 (see generateLevel1ExpandExercise() in exercise-fractions.js): the
+// multiplier X is stated in the question itself (unlike every other level,
+// where the student has to infer it), so this range is tuned independently
+// of FRACTION_FACTOR_LOW/HIGH_MIN/MAX above -- X reuses the same
+// FRACTION_TARGET_DEN_MIN/MAX range as the shown fraction's own denominator,
+// but that's a coincidence of both being "any single digit from 2-9", not a
+// shared concept.
+const FRACTION_L1_EXPAND_MULT_MIN = 2;
+const FRACTION_L1_EXPAND_MULT_MAX = 9;
 
 // Level 4: this fraction of exercises are a full independent reduction with
 // both the numerator and denominator blank; the rest fall back to level 3's
@@ -725,7 +737,7 @@ function getExerciseLevelConfig() {
 // 4 to level 5 on 2026-08-24).
 const EXERCISE_TOPIC_LEVEL_COUNTS = {
   multiplication: 5,
-  fractions: 5,
+  fractions: 6, // level 1 added 2026-09-15: expand a reduced fraction by a stated multiplier X (old levels 1-5 became 2-6)
   comparefractions: 4, // level 5 was identical to level 4
   addfractions: 5, // level 3 added 2026-08-25: an expand-to-common-denominator scaffold between the old levels 2 and 3 (now 4)
   subtractfractions: 4,
@@ -768,6 +780,7 @@ const EXERCISE_LEVEL_DESCRIPTIONS = {
     'הרמה הקשה ביותר: ב-70% מהמקרים שני המספרים נבחרים מתוך 4, 6, 7, 8, 9 (כולל צירופים כמו 7×8, 8×9, 9×9). ב-10% אחד המספרים הוא 0, 1 או 10, וב-20% אחד המספרים הוא 2, 3 או 5.',
   ],
   fractions: [
+    'מוצג שבר מצומצם (מכנה חד-ספרתי), וכיתוב "הרחיבו את השבר ב-X" עם מספר להרחבה X (חד-ספרתי גם הוא, בין 2 ל-9) -- יש להרחיב את השבר לפי X: למלא גם את המונה וגם את המכנה של השבר המורחב. לדוגמה: השבר 2/3 עם הכיתוב "הרחיבו ב-4" -- יש למלא 8/12.',
     'מוצג שבר לא מצומצם, ויש למלא את המונה של הצורה המצומצמת שלו (המכנה שלה כבר נתון). לדוגמה: 6/8 = ?/4.',
     'בכל תרגיל מוצג שבר אחד ויש למלא את המונה של השבר המקביל לו — לפעמים צריך לצמצם שבר לא מצומצם, ולפעמים להרחיב שבר מצומצם. המכנה תמיד נתון.',
     'בכל תרגיל מוצג שבר אחד ויש להשלים חלק אחד בשבר המקביל לו — הצמצום או ההרחבה, וכן האם החלק החסר הוא המונה או המכנה, נבחרים באקראי.',

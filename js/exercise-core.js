@@ -53,7 +53,11 @@ function mixedNumberDisplayHTML(whole, remainderNumerator, denominator) {
 // 'numerator', since their denominator is always given) but handling it
 // generically here costs nothing and keeps this usable by all three.
 function renderFractionAnswerEquation(shownHTML, ex, questionText, answerInput, answer2, answer2Home, simplifyLabel) {
-  if (ex.missing === 'both') simplifyLabel.style.display = '';
+  // fractions level 1 (ex.multiplier set) also blanks both numerator and
+  // denominator, but the task is "expand by X", not "simplify" -- showing
+  // the "צמצם ככל הניתן" label there would actively mislead, so it's
+  // excluded here even though missing === 'both'.
+  if (ex.missing === 'both' && ex.multiplier === undefined) simplifyLabel.style.display = '';
   questionText.innerHTML =
     '<span class="frac-eq">' +
       shownHTML +
@@ -253,6 +257,7 @@ function newExercise() {
   simplifyLabel.style.display = 'none';
   document.getElementById('decimalInstructionLabel').style.display = 'none';
   document.getElementById('numberLineInstructionLabel').style.display = 'none';
+  document.getElementById('fractionExpandInstructionLabel').style.display = 'none';
 
   // Mobile numeric keypads (inputmode="numeric") often have no visible
   // Enter/Go key by default -- enterkeyhint gives them a real one. Defaults
@@ -653,7 +658,17 @@ function newExercise() {
   } else if (gameMode === 'fractions') {
     const ex = pickExercise(generateFractionExercise);
     currentAnswer = ex.answer;
+    // Level 1 (generateLevel1ExpandExercise() in exercise-fractions.js)
+    // states its multiplier X in words via #fractionExpandInstructionLabel
+    // below, not as "×X" beside the fraction -- that would read as
+    // multiplying the fraction's *value* by X (a different, wrong
+    // operation) instead of "multiply numerator and denominator by X".
     const shownHTML = fractionBlockHTML(ex.shownNumerator, ex.shownDenominator);
+    if (ex.multiplier !== undefined) {
+      const label = document.getElementById('fractionExpandInstructionLabel');
+      label.style.display = '';
+      document.getElementById('fractionExpandMultiplierText').textContent = `ב-${ex.multiplier}`;
+    }
     renderFractionAnswerEquation(shownHTML, ex, questionText, answerInput, answer2, answer2Home, simplifyLabel);
   } else if (gameMode === 'division') {
     // Same "num1 × num2 = [blank]" template multiplication uses, just with

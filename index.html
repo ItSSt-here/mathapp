@@ -55,6 +55,18 @@
       <span>בחר את הנקודה</span>
       <span>המתאימה על הציר</span>
     </div>
+    <!-- 'fractions' level 1 only: states the multiplier in words instead of
+         showing it as "× X" beside the fraction, since that reads as
+         multiplying the fraction's *value* by X (a different, wrong
+         operation) rather than "multiply numerator and denominator by X".
+         The second span's text is set per-question by newExercise() in
+         exercise-core.js -- same show/hide mechanic as
+         #decimalInstructionLabel above, but (like #fractionNameLayoutLabel)
+         with dynamic content. -->
+    <div class="simplify-label" id="fractionExpandInstructionLabel" style="display:none;">
+      <span>הרחיבו את השבר</span>
+      <span id="fractionExpandMultiplierText"></span>
+    </div>
     <div class="exercise">
       <span id="questionText"></span>
     </div>
@@ -480,11 +492,11 @@
      (see preloadSoldierSprites() in render.js). -->
 <div id="spritePreload" style="position:fixed; left:-9999px; top:-9999px; width:1px; height:1px; overflow:hidden;" aria-hidden="true"></div>
 
-<script src="js/config.js?v=202609101430"></script>
+<script src="js/config.js?v=202609151306"></script>
 <script src="js/helpers.js?v=202609101430"></script>
-<script src="js/exercise-core.js?v=202609101430"></script>
+<script src="js/exercise-core.js?v=202609151306"></script>
 <script src="js/exercise-division.js?v=202609101430"></script>
-<script src="js/exercise-fractions.js?v=202609101430"></script>
+<script src="js/exercise-fractions.js?v=202609151257"></script>
 <script src="js/exercise-fraction-arithmetic.js?v=202609101430"></script>
 <script src="js/exercise-addfractions.js?v=202609101430"></script>
 <script src="js/exercise-subtractfractions.js?v=202609101430"></script>
