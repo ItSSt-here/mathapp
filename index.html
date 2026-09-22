@@ -4,8 +4,14 @@
 <meta charset="UTF-8">
 <!-- Repo root moved to v1/+v2/ subfolders on 2026-09-22 so a new experimental
      version (v2) can be developed live alongside the stable one (v1) without
-     touching it. This redirect keeps the old bookmarked root URL working. -->
-<meta http-equiv="refresh" content="0; url=v1/">
+     touching it. This redirects the old bookmarked root URL to v1/ --
+     crucially forwarding location.search/hash, since shareable links built by
+     buildShareLink() (main.js) from before the split carry state (topic,
+     difficulty, vocabulary/grammar word lists, etc.) as query params on this
+     exact root URL. A plain <meta refresh> would drop them. The <noscript>
+     fallback can't preserve them, but the game requires JS to run anyway. -->
+<script>location.replace('v1/' + location.search + location.hash);</script>
+<noscript><meta http-equiv="refresh" content="0; url=v1/"></noscript>
 <title>Mathapp</title>
 </head>
 <body>
