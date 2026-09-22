@@ -1,0 +1,1846 @@
+html, body {
+  /* Locks the page so it can never scroll at all, in either direction --
+     see .overlay's own comment below for why this matters (2026-08-05,
+     round 5 of the Android overlay-positioning bug): real device numbers
+     showed position:fixed elements' actual painted position drifting by
+     exactly the page's scroll offset, i.e. position:fixed isn't behaving
+     as fixed at all on this phone/browser -- it's being painted as if it
+     scrolled with the document. Switching .overlay to position:absolute
+     sidesteps that broken mechanism, but only actually looks identical to
+     "fixed" if the document can never scroll out from under it, since
+     absolute (unlike fixed) is anchored to the document, not the viewport.
+     .card has its own overflow-y:auto as the fallback for content taller
+     than the screen, instead of relying on the page itself to scroll. */
+  overflow: hidden;
+}
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+  background: linear-gradient(180deg, #bfe3ff 0%, #eaf6ff 55%, #f5f0e0 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  margin: 0;
+}
+
+.card {
+  background: linear-gradient(180deg, #ffffff, #f6f8ff);
+  border: 3px solid #d3ddf7;
+  border-radius: 24px;
+  box-shadow: 0 12px 32px rgba(30, 50, 100, 0.2);
+  padding: 26px 30px;
+  text-align: center;
+  /* min() instead of a plain `width: 1200px; max-width: 95vw;` pair --
+     same computed result (whichever is smaller), but this never gives the
+     browser a bare large fixed-pixel width to key off of. A leading theory
+     (unconfirmed) for the Android overlay-positioning bug is that some
+     phones' viewport-adaptation heuristics widen the whole page's layout
+     viewport in reaction to spotting a wide fixed-pixel element like the
+     old `width: 1200px`, ignoring the <meta viewport> tag that says not to
+     -- worth eliminating even though it wasn't proven, since two rounds of
+     purely JS-side position compensation haven't fully fixed the bug on a
+     real device. */
+  width: min(1200px, 95vw);
+  /* flex column instead of relying on plain block stacking -- lets
+     placeBattlefield() (main.js) reorder #castleRow to the top on mobile
+     purely via a CSS `order` toggle instead of physically moving it in the
+     DOM (`.prepend()`). Visually identical to block stacking since column
+     flex items default to full cross-axis width (same as a block). Tried
+     2026-08-05 as an experiment after two rounds of JS viewport-position
+     compensation didn't fully fix the Android overlay bug -- an early
+     DOM mutation (the old prepend(), which ran during page-init, before
+     first layout/paint settles) was flagged back in the original
+     investigation as a plausible trigger for exactly this class of mobile
+     layout-viewport bug but was never actually tested; this removes it
+     without changing anything the player sees. */
+  display: flex;
+  flex-direction: column;
+  /* Fallback for content taller than the screen, now that html/body can
+     never scroll at all (see that rule's comment) -- .card becomes the
+     thing that scrolls internally instead of the page. No visible effect
+     when content fits (the common case), since max-height only constrains
+     it when content would otherwise exceed the viewport. */
+  max-height: 100vh;
+  overflow-y: auto;
+  /* Without this, max-height:100vh only caps the *content* box -- .card's
+     own padding+border (58px total) then still pushes the actual rendered
+     element past the viewport, and since .card is vertically centered by
+     body's flex, the excess gets clipped equally off both the top AND
+     bottom edges by html/body's own overflow:hidden instead of ever
+     reaching .card's overflow-y:auto at all (there's nothing for it to
+     scroll -- .card's *content* still fit within the too-tall *box*).
+     border-box makes max-height:100vh cap the whole rendered element
+     instead, so anything taller (e.g. the addfractions level 3 scaffold's
+     two stacked equation rows, reported 2026-08-25 as making #surrenderBtn
+     unreachable) now genuinely overflows .card's own content area and
+     scrolls the way the comment above already assumed it would. */
+  box-sizing: border-box;
+}
+
+/* Pulls #castleRow (the battlefield/HP-bars block) to the very top of
+   .card -- toggled by placeBattlefield() (main.js) on narrow screens, so
+   the keyboard covering the bottom of the screen while typing doesn't hide
+   it. See the .card comment above for why this is a CSS order flip instead
+   of a DOM move. */
+.castle-row-top {
+  order: -1;
+}
+
+h1 {
+  display: inline-block;
+  font-size: 22px;
+  margin: 0 0 22px;
+  color: white;
+  background: linear-gradient(135deg, #5b7cfa, #4a3fd1);
+  padding: 8px 26px;
+  border-radius: 30px;
+  letter-spacing: 1px;
+  box-shadow: 0 4px 10px rgba(74, 63, 209, 0.35);
+}
+
+.level-info {
+  font-size: 13px;
+  color: #777;
+  margin: 0 0 10px;
+}
+
+/* Clock + session counters, grouped together at the top of the card and
+   kept well away from .stats-row's coins counter below -- coins is what the
+   player needs to track constantly, so nothing here should compete with it
+   for attention. RTL flex packs these to the visual right edge, first DOM
+   child (the clock) rightmost. */
+.top-stats-row {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 10px;
+}
+
+.mini-stat {
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.mini-stat-correct { color: #2e9e4f; }
+.mini-stat-wrong { color: #e0433d; }
+.mini-stat-swap { color: #4a6cf7; }
+
+.overlay-level-info {
+  font-size: 13px;
+  color: #777;
+  margin: -10px 0 18px;
+}
+
+/* Row pairing the exercise with its optional hint label (see
+   .simplify-label below) -- sits in the page's ambient RTL flow (unlike
+   .exercise itself, which forces ltr for the equation), so the label as
+   the first DOM child lands to the right of the equation. */
+.exercise-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-bottom: 16px;
+  /* Without this, a flex item's default min-width:auto keeps it from ever
+     shrinking below its content's natural width -- harmless for short
+     equations, but a wide one (e.g. addfractionsadvanced level 4's two
+     mixed-number addends + a 3-box reduced answer) then pushes .card wider
+     than the phone screen instead of yielding to it, and since .card's own
+     overflow-x is visible (only overflow-y is set), the excess just spills
+     past the viewport edge and gets clipped by html/body's overflow:hidden
+     -- confirmed 2026-08-12 by measuring a 76px overflow on a 375px phone
+     width at that level. min-width:0 here lets this row actually shrink to
+     the available width instead. */
+  min-width: 0;
+}
+
+/* Shown only above a full-reduction fraction exercise (both numerator and
+   denominator blank), where without it there's no indication of what
+   operation to perform on the shown fraction. A dashed amber tag rather
+   than a solid pill (like the h1 title) so it reads as a hint, not a
+   second heading. */
+.simplify-label {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1.3;
+  font-size: 15px;
+  font-weight: bold;
+  color: #d9700a;
+  background: #fff4e6;
+  border: 2px dashed #ff8c1a;
+  padding: 4px 14px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+/* Exercise (now above the battlefield) */
+.exercise {
+  font-size: 46px;
+  font-weight: bold;
+  color: #2b3a67;
+  direction: ltr; /* keep "a × b = c" in the correct left-to-right order despite the RTL page */
+  min-width: 0; /* see .exercise-row's min-width comment -- same flex-shrink fix, one level down */
+}
+
+input {
+  font-size: 26px;
+  width: 90px;
+  text-align: center;
+  padding: 6px;
+  border: 2px solid #ccc;
+  border-radius: 10px;
+  margin-bottom: 16px;
+}
+
+input:focus {
+  outline: none;
+  border-color: #4a6cf7;
+}
+
+/* Swap-question reveal: the blank itself shows the answer in red, in place,
+   for both exercise types. Overrides the browser's default disabled-input
+   graying so the red actually shows. */
+input.answer-revealed:disabled {
+  color: #e0433d;
+  -webkit-text-fill-color: #e0433d;
+  opacity: 1;
+  border-color: #e0433d;
+}
+
+/* Multiplication exercise: "a × b = [input]" as one inline equation, same
+   pattern as the fraction layout below -- the answer lives in the equation
+   itself instead of in a separate box beneath it. */
+.mult-eq {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.mult-eq input {
+  margin-bottom: 0;
+}
+
+/* Fraction exercise: "(b*c)/(b*a) = [answer]/a" laid out as two stacked
+   fraction blocks joined by an "=" sign, all vertically centered together. */
+.frac-eq {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  /* Lets a too-wide equation (see .exercise-row's min-width comment) break
+     onto a second line within the available width instead of overflowing
+     past it -- row-gap kept smaller than the column gap since a wrapped
+     line break is a cheaper visual seam than the gap between terms. */
+  flex-wrap: wrap;
+  row-gap: 8px;
+  max-width: 100%;
+}
+
+.frac-block {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Fraction-addition scaffold level (addfractions level 3, see
+   generateFractionAdditionLevel3Exercise() in exercise-addfractions.js): the
+   given problem shown plain above, its expanded form shown below -- stacked
+   as two separate .frac-eq rows (each already centers/wraps its own terms)
+   rather than crammed into one wide row. */
+.frac-eq-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Groups a mixed number's whole-number box with its own fraction (see
+   mixedNumberDisplayHTML()/mixedNumberAnswerBlockHTML() in exercise-core.js)
+   into one flex item -- same gap as .frac-eq's own, so visually nothing
+   changes versus the two parts being bare .frac-eq children directly. Exists
+   only so .frac-eq's flex-wrap (above) can never break a line *between* a
+   mixed number's own whole box and fraction -- without this wrapper that was
+   a legal wrap point, splitting one mixed number across two lines (reported
+   2026-08-12, right after flex-wrap shipped). */
+.mixed-num-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.frac-num, .frac-den {
+  font-size: 40px;
+  line-height: 1.2;
+  padding: 0 4px;
+}
+
+.frac-bar {
+  width: 100%;
+  height: 3px;
+  background: #2b3a67;
+  margin: 4px 0;
+}
+
+.frac-op {
+  font-size: 40px;
+}
+
+/* Compare-fractions exercise: an empty box between the two fraction blocks,
+   styled like the plain-input blank in every other exercise, signals
+   "answer goes here" -- the </> pick buttons that actually fill it live
+   below in #compareAnswerHome (see renderCompareChoices()/
+   checkCompareAnswer() in js/exercise.js), not inline with the question.
+   '<'/'>' are Unicode "mirrored" characters -- the page's dir="rtl" flips
+   how they render unless explicitly forced back to ltr, which is why both
+   this box and #compareChoices set direction/unicode-bidi below. */
+.compare-blank {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  font-size: 26px;
+  font-weight: bold;
+  border: 2px solid #ccc;
+  border-radius: 10px;
+  color: #2b3a67;
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+/* Correct pick: shown in the box, green. Wrong pick: the *correct* answer
+   (not the wrong pick) is revealed here in red -- same red-for-reveal
+   convention as input.answer-revealed:disabled uses for the swap-question
+   button -- while newExercise() is about to swap in a new question. */
+.compare-blank.answer-correct { color: #2e9e4f; border-color: #2e9e4f; }
+.compare-blank.revealed { color: #e0433d; border-color: #e0433d; }
+
+#compareChoices {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+#compareAnswerHome {
+  margin-bottom: 16px;
+}
+
+.fraction-answer-input {
+  width: 50px !important;
+  font-size: 30px !important;
+  padding: 4px !important;
+  margin: 0 !important;
+}
+
+/* Decimals' Hebrew-fraction-name level (level 2): its denominator can be as
+   large as 1000 (thousandths), which .fraction-answer-input's 50px width
+   truncates -- widened just for this one box via a dedicated class added in
+   renderDecimalFractionNameExercise() (exercise-decimals.js) and removed
+   again at the top of newExercise(), so it can't leak its width onto
+   #answer2 in some other fraction topic that also reuses
+   .fraction-answer-input. Source order after .fraction-answer-input matters
+   here -- both rules are !important on the same property, so the later one
+   wins for elements carrying both classes. */
+.decimal-fraction-name-denominator-input {
+  width: 76px !important;
+}
+
+/* Wraps #fractionNameWordDisplay + its .frac-eq so the pair acts as one grid
+   item in .fraction-name-row (below), sitting beside the instruction labels
+   instead of the whole row stretching full-width -- same shrink+center
+   reasoning as .exercise's own min-width:0 comment, applied one level up
+   since here it wraps two stacked children instead of one line of text. */
+#fractionNameExerciseBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+}
+
+/* 3-column grid, not a flex row -- see this row's own comment in index.html
+   for why: the middle (auto-width) column always lands at the row's true
+   center regardless of what's in the flanking minmax(0,1fr) columns, so
+   #fractionNameExerciseBlock never shifts off-center just because real
+   label content sits next to it. .fraction-name-spacer is empty on
+   purpose -- it exists only to mirror .fraction-name-labels' column so the
+   two 1fr tracks are genuinely symmetric. */
+.fraction-name-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: 14px;
+  margin-bottom: 16px;
+}
+
+/* Stacked vertically (not side-by-side like #mathQuestionRow's own labels)
+   to keep this column's footprint narrow -- .simplify-label is
+   white-space:nowrap, so a narrow minmax(0,1fr) track can't shrink these
+   chips themselves, only give them less room, and a narrow column is far
+   less likely to ever need more room than the grid can spare.
+   justify-self:end places the group at this column's *inner* edge (the one
+   touching the exercise column) under RTL, i.e. hugging the boxes rather
+   than drifting to the card's outer edge. align-self:end (overriding the
+   row's own align-items:center) drops the whole label group down to sit
+   level with the input boxes (the bottom of #fractionNameExerciseBlock,
+   where its own .frac-eq lives) instead of the vertical center of the
+   entire block -- which, with #fractionNameWordDisplay sitting above the
+   boxes, used to read as "beside the whole exercise" rather than
+   specifically beside the boxes, per the user's own report. */
+.fraction-name-labels {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-self: end;
+  align-self: end;
+}
+
+/* Below this width the label column and the exercise block's own natural
+   width no longer reliably both fit -- same 600px breakpoint every other
+   mobile override in this file uses. Falls back to stacking (labels above
+   the exercise, both full-row centered) rather than letting the grid
+   squeeze .fraction-name-labels' nowrap chips into an overflow. */
+@media (max-width: 600px) {
+  .fraction-name-row {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+  .fraction-name-labels {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .fraction-name-spacer {
+    display: none;
+  }
+}
+
+/* Mixed numbers: the whole-number box is the one case where a plain
+   (non-.fraction-answer-input) input sits inside .frac-eq -- the default
+   input's margin-bottom would otherwise sink it below the fraction block's
+   vertical center. */
+.frac-eq input {
+  margin-bottom: 0;
+}
+
+/* Mixed numbers' whole-number box: always a single digit (0-MIXED_NUM_WHOLE_MAX,
+   see config.js), so the app's default plain-input width (90px, sized for
+   multi-digit multiplication answers) is unnecessarily wide here. */
+.mixed-whole-input {
+  width: 45px !important;
+}
+
+/* Division-intro's blanked factor: always a single value from pickNumbers()'s
+   own pool (0-10, see config.js/exercise-division.js), never a full product
+   like multiplication's own answer box -- same "narrower than the 90px
+   default" reasoning as .mixed-whole-input above, just one size up since 10
+   (unlike MIXED_NUM_WHOLE_MAX) is two digits. */
+.division-answer-input {
+  width: 50px !important;
+}
+
+/* Mixed numbers only: the whole-number box is a legitimate blank (it
+   asserts 0), toggled purely visually on blur/focus (see main.js) -- never
+   disabled, never a validity gate (that lives entirely in
+   checkMixedNumberAnswer() in exercise-mixednumbers.js). */
+input.answer-left-blank {
+  background: #eee;
+  border-color: #bbb;
+  color: #999;
+}
+
+button.check-btn {
+  font-size: 18px;
+  padding: 9px 28px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #6685ff, #4a6cf7);
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 3px 0 #3349b0;
+  transition: transform 0.1s ease;
+}
+
+button.check-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #3349b0;
+}
+
+/* Same reasoning as .letter-sound-btn:focus above -- already solid blue, so
+   a contrasting outline ring shows up where a fill change wouldn't. */
+button.check-btn:focus {
+  outline: 3px solid #2b3a67;
+  outline-offset: 2px;
+}
+
+.swap-btn {
+  font-size: 13px;
+  padding: 9px 16px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #ffb347, #ff8c1a);
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 3px 0 #cc6f00;
+  transition: transform 0.1s ease;
+}
+
+.swap-btn:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #cc6f00;
+}
+
+.swap-btn:disabled {
+  background: #b7b7b7;
+  box-shadow: 0 3px 0 #8f8f8f;
+  cursor: not-allowed;
+}
+
+/* Letters exercise: sound button + multiple-choice letter buttons, shown
+   instead of the numeric input/equation in letters mode (see newExercise()
+   in js/exercise.js). */
+#lettersAnswerHome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 16px;
+}
+
+#letterListenMode, #letterRevealMode {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+
+.letter-reveal-display {
+  font-size: 56px;
+  font-weight: bold;
+  width: 90px;
+  height: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #d3ddf7;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #ffffff, #f6f8ff);
+  color: #2b3a67;
+  box-shadow: 0 3px 0 #b9c4e6;
+}
+
+.letter-sound-btn {
+  font-size: 30px;
+  width: 66px;
+  height: 66px;
+  border: none;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #6685ff, #4a6cf7);
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 3px 0 #3349b0;
+  transition: transform 0.1s ease;
+}
+
+.letter-sound-btn:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #3349b0;
+}
+
+.letter-sound-btn:disabled {
+  background: #b7b7b7;
+  box-shadow: 0 3px 0 #8f8f8f;
+  cursor: not-allowed;
+}
+
+/* Keyboard focus ring: this button is already solid blue, so a fill change
+   (like .letter-choice-btn:focus below) wouldn't read as different -- a
+   contrasting outline shows up regardless of the button's own color. */
+.letter-sound-btn:focus {
+  outline: 3px solid #2b3a67;
+  outline-offset: 2px;
+}
+
+.letter-choices {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
+
+.letter-choice-btn {
+  font-size: 32px;
+  font-weight: bold;
+  width: 64px;
+  height: 64px;
+  border: 2px solid #d3ddf7;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #ffffff, #f6f8ff);
+  color: #2b3a67;
+  cursor: pointer;
+  box-shadow: 0 3px 0 #b9c4e6;
+  transition: transform 0.1s ease;
+}
+
+.letter-choice-btn:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #b9c4e6;
+}
+
+.letter-choice-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Keyboard focus: a thin ring only, no fill change -- deliberately the
+   *weaker* of the two blue treatments here. .letter-selected below (a full
+   fill) means "this is what I've actually chosen"; :focus just means "the
+   keyboard cursor happens to be here," which can be a *different* button
+   from the selected one (reverse mode: a player can arrow away from their
+   already-confirmed pick to preview another option before deciding) -- the
+   more important state (selected) needs to stay the more visually dominant
+   one, or a player can't tell them apart at a glance. */
+.letter-choice-btn:focus {
+  outline: none;
+  border-color: #4a6cf7;
+  box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.35), 0 3px 0 #b9c4e6;
+}
+
+.letter-choice-btn.letter-correct {
+  background: linear-gradient(180deg, #7ee29a, #2e9e4f);
+  color: white;
+  border-color: #2e9e4f;
+  opacity: 1;
+}
+
+.letter-choice-btn.letter-wrong {
+  background: linear-gradient(180deg, #f18b85, #e0433d);
+  color: white;
+  border-color: #e0433d;
+  opacity: 1;
+}
+
+/* Levels 2-5: the sound button the child last tapped, pending "בדוק". A full
+   fill, not just a ring -- see the :focus comment above for why this needs
+   to read as the *stronger* of the two blue states. Combines fine with
+   :focus when they're the same button (the common case, right after
+   picking): fill plus ring just reads as "selected, and that's also where
+   the keyboard cursor is." */
+.letter-choice-btn.letter-selected {
+  background: linear-gradient(180deg, #a8c0ff, #7e9fff);
+  color: white;
+  border-color: #4a6cf7;
+  box-shadow: 0 3px 0 #3349b0;
+}
+
+/* Decimals levels 3 and 5 (number-line UI): a 0-to-N line divided into
+   tenths (level 3, 30 segments) or hundredths (level 5, 100 segments -- see
+   generateDecimalNumberLineExercise()/generateDecimalNumberLineHundredthsExercise(),
+   exercise-decimals.js). direction:ltr regardless of the page's own RTL --
+   0 must render on the left and the line's max on the right, same reasoning
+   as .exercise/.frac-eq forcing ltr for their own equations. max-width set
+   to almost the full width this app's own .card can offer on a desktop
+   screen (.card itself caps at 1200px, see its own comment in this file,
+   minus its own padding) -- level 5's 100 segments need every pixel of that
+   room to stay individually distinguishable at all; level 3's 30 segments
+   benefit too (more room per tick), just less critically. Still width:100%
+   so it shrinks to fit a narrower window instead of overflowing (same
+   min-width:0 concern .exercise-row's own comment describes for equations
+   that could otherwise overflow) -- but level 5 was explicitly agreed to
+   not need to work on an actual phone-sized screen; #numberLineHitArea
+   (below) computing the *nearest* tick from a click, rather than relying on
+   individually-sized per-tick buttons, is what keeps either level usable at
+   its own density. */
+.number-line-wrap {
+  position: relative;
+  direction: ltr;
+  width: 100%;
+  max-width: 1080px;
+  height: 64px;
+  margin: 10px auto 24px;
+}
+
+.number-line-axis {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 22px;
+  height: 3px;
+  background: #2b3a67;
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+/* Plain, non-interactive marks -- all click/tap/keyboard handling lives on
+   #numberLineHitArea instead (one target for the whole line, not one button
+   per tick; see that rule below for why). Positioned by left:%, then pulled
+   back by half its own width via the negative margin so that % anchors its
+   *center* (not its left edge) to the tick's true position on the line --
+   otherwise the rightmost tick (100%) would overflow past the line's own
+   right edge. */
+.number-line-tick {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 36px;
+  margin-left: -18px;
+  /* Pushes the mark down so it actually crosses .number-line-axis (top:22px)
+     instead of floating entirely above it -- 6px + this mark's own 18px
+     height lands it at 6-24px, overlapping the axis's own 22-25px band. */
+  padding-top: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+}
+
+.number-line-tick-mark {
+  width: 3px;
+  height: 18px;
+  background: #2b3a67;
+  border-radius: 2px;
+}
+
+/* Whole-number ticks (0, 1, 2, ... RANGE_MAX -- every 10th tick, since
+   segments are tenths) get a taller, thicker mark and a slightly larger
+   label than the plain in-between ticks -- same "major tick vs. minor tick"
+   convention a real ruler uses, giving the student a landmark to judge an
+   in-between point's position against instead of counting from 0 every
+   time. Less padding-top than the plain tick's own 6px so the extra height
+   is spent extending both above *and* below the axis line, not just
+   downward from the same starting point. */
+.number-line-tick-whole {
+  padding-top: 2px;
+}
+
+.number-line-tick-whole .number-line-tick-mark {
+  width: 4px;
+  height: 26px;
+}
+
+.number-line-tick-whole .number-line-tick-label {
+  font-size: 17px;
+}
+
+/* The halfway point of each unit (.5, 1.5, 2.5 -- every 5th tick), a middle
+   tier between a plain tenths tick and a whole-number one: taller than the
+   former, shorter than the latter. Same "spend the extra height both above
+   and below the axis, not just downward" reasoning as .number-line-tick-whole's
+   own padding-top reduction, interpolated between that tick's 2px and the
+   plain tick's 6px. */
+.number-line-tick-half {
+  padding-top: 4px;
+}
+
+.number-line-tick-half .number-line-tick-mark {
+  height: 22px;
+}
+
+/* Level 5's individual hundredths (see renderDecimalNumberLineExercise()'s
+   own useHairMinor check, exercise-decimals.js -- only applied once a
+   line's segment count is dense enough that a normal-weight minor tick
+   would blur into its neighbors): thinner, shorter, and faded, same "ruler
+   mm-marks between the labeled cm-marks" idea validated against the wide
+   prototype before this shipped -- a landmark to aim near, not a target in
+   its own right (the selected/correct/wrong states below override size and
+   opacity back to full strength, so an actual pick always reads clearly
+   regardless of which tier it started in). */
+.number-line-tick-hair {
+  padding-top: 9px;
+}
+
+.number-line-tick-hair .number-line-tick-mark {
+  width: 1px;
+  height: 14px;
+  opacity: 0.4;
+}
+
+/* Reserves height even when empty (every interior tick) so every tick mark
+   stays vertically aligned regardless of tick count -- without this, only
+   the labeled endpoint ticks would be taller, throwing off alignment since
+   they're all flex children stacked from the same top. */
+.number-line-tick-label {
+  display: block;
+  min-height: 20px;
+  margin-top: 4px;
+  font-size: 15px;
+  font-weight: bold;
+  color: #2b3a67;
+}
+
+/* The tick currently picked but not yet confirmed with checkBtn/Enter --
+   same visual role .letter-selected plays for a reverse-mode sound button
+   (the stronger of the two states a choice can be in; see that rule's own
+   comment for why it needs to read as more dominant than a bare :focus). */
+/* width/height/opacity repeated on all three states below (not just color)
+   so a pick on a level-5 hair tick -- normally 1px/14px/faded, see
+   .number-line-tick-hair above -- reads at full, clear strength once
+   selected/confirmed, same as a major/half tick would. Higher specificity
+   than .number-line-tick-hair's own rule (three classes vs. two) wins this
+   regardless of order in the file. */
+.number-line-tick.number-line-selected .number-line-tick-mark {
+  background: #4a6cf7;
+  box-shadow: 0 0 0 4px rgba(74, 108, 247, 0.35);
+  width: 3px;
+  height: 22px;
+  opacity: 1;
+}
+
+.number-line-tick.number-line-correct .number-line-tick-mark {
+  background: #2e9e4f;
+  box-shadow: 0 0 0 4px rgba(46, 158, 79, 0.35);
+  width: 3px;
+  height: 22px;
+  opacity: 1;
+}
+
+/* Stays applied for the rest of the round once confirmed wrong (see
+   checkDecimalNumberLineAnswer(), exercise-decimals.js -- .number-line-wrong
+   is never removed, unlike an earlier version that faded it to a greyed
+   .number-line-eliminated look after the initial flash: reported as too
+   hard to actually see against the rest of the line, so red stays solid
+   here instead). .number-line-eliminated itself carries no styling of its
+   own now -- it's purely the "can't reselect this one" logic flag checked
+   in selectDecimalNumberLineTick(). */
+.number-line-tick.number-line-wrong .number-line-tick-mark {
+  background: #e0433d;
+  box-shadow: 0 0 0 4px rgba(224, 67, 61, 0.35);
+  width: 3px;
+  height: 22px;
+  opacity: 1;
+}
+
+/* One click/tap/keyboard target spanning the entire line, instead of one
+   button per tick -- at up to 30 segments, individually-sized tick buttons
+   would be only a few pixels apart (or literally overlapping), impossible
+   to hit reliably even before accounting for fat fingers. A click computes
+   the *nearest* tick from its x-position (see wireDecimalNumberLineInteraction(),
+   exercise-decimals.js); this only *selects* that tick -- checkBtn/Enter
+   still confirms it, per explicit user request (worried about mis-clicks
+   counting immediately). role="slider" plus a real tabindex/focus state for
+   the same free keyboard support every other click-choice topic's own
+   buttons get, just via one focusable element instead of many. */
+.number-line-hit-area {
+  position: absolute;
+  inset: 0;
+  cursor: pointer;
+}
+
+/* No visible focus ring here (unlike most of this app's other click-choice
+   elements) -- an earlier version glowed .number-line-axis on focus, but
+   since #numberLineHitArea auto-focuses on every single round (see
+   renderDecimalNumberLineExercise(), exercise-decimals.js), that glow was
+   effectively always on, reading as a persistent, unexplained blue wash
+   across the whole line rather than a meaningful focus indicator -- removed
+   per direct user report ("מציק למשתמש"). The selected/correct/wrong tick
+   states already give plenty of visual feedback once the student actually
+   interacts, so losing this doesn't leave keyboard use silent. */
+.number-line-hit-area:focus {
+  outline: none;
+}
+
+/* Vocabulary exercise: the English word shown as the prompt, and its Hebrew
+   translation choices below. Same visual language as .letter-choice-btn
+   (gradient/border/shadow, correct/wrong treatments) but sized for words
+   instead of a single glyph -- padding-based width instead of a fixed
+   64x64 box, which .letter-choice-btn couldn't offer without truncating or
+   overflowing anything longer than one character. */
+.vocabulary-word-display {
+  font-size: 38px;
+  font-weight: bold;
+  padding: 14px 28px;
+  border: 2px solid #d3ddf7;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #ffffff, #f6f8ff);
+  color: #2b3a67;
+  box-shadow: 0 3px 0 #b9c4e6;
+  margin-bottom: 20px;
+  direction: ltr; /* English word by default, regardless of the page's RTL direction */
+}
+
+/* Level 2 (reverse mode): the prompt is Hebrew instead, so it needs the
+   page's own rtl direction back rather than the English-word default above. */
+.vocabulary-word-display-reverse {
+  direction: rtl;
+}
+
+/* Level 3 (listen mode): reuses .letter-sound-btn's circular blue look, just
+   needs the same margin-bottom as .vocabulary-word-display above so the
+   choices row below sits at a consistent distance regardless of which of
+   the two is showing. */
+.vocabulary-sound-btn {
+  margin-bottom: 20px;
+}
+
+/* Level 4 (typed mode): the base `input` rule's 90px width (sized for a
+   couple of digits) is too narrow for a typed English word -- widened the
+   same way .fraction-answer-input/.mixed-whole-input override it for their
+   own answer shapes. direction:ltr for the same reason as
+   .vocabulary-word-display -- an English answer inside this RTL page. */
+.vocabulary-typed-input {
+  width: 220px !important;
+  font-size: 24px;
+  direction: ltr;
+}
+
+/* Decimals exercise: sits inside .frac-eq itself (unlike
+   .vocabulary-typed-input, which lives in its own standalone row) -- narrower
+   than a typed English word, sized for a short digit string like "3.05" or
+   "0.007" instead. */
+.decimal-typed-input {
+  width: 130px !important;
+  font-size: 30px !important;
+  direction: ltr;
+}
+
+.vocabulary-choices {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+}
+
+.vocabulary-choice-btn {
+  font-size: 20px;
+  font-weight: bold;
+  padding: 12px 22px;
+  min-width: 90px;
+  border: 2px solid #d3ddf7;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #ffffff, #f6f8ff);
+  color: #2b3a67;
+  cursor: pointer;
+  box-shadow: 0 3px 0 #b9c4e6;
+  transition: transform 0.1s ease;
+}
+
+.vocabulary-choice-btn:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #b9c4e6;
+}
+
+.vocabulary-choice-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.vocabulary-choice-btn:focus {
+  outline: none;
+  border-color: #4a6cf7;
+  box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.35), 0 3px 0 #b9c4e6;
+}
+
+.vocabulary-choice-btn.vocabulary-correct {
+  background: linear-gradient(180deg, #7ee29a, #2e9e4f);
+  color: white;
+  border-color: #2e9e4f;
+  opacity: 1;
+}
+
+.vocabulary-choice-btn.vocabulary-wrong {
+  background: linear-gradient(180deg, #f18b85, #e0433d);
+  color: white;
+  border-color: #e0433d;
+  opacity: 1;
+}
+
+/* ABC mode only (see .abc-mode toggle in newExercise(), exercise-core.js):
+   the page's normal font (Arial) renders uppercase I and lowercase l as the
+   same plain vertical stroke -- genuinely unreadable apart, confirmed by
+   rendering both to a canvas and diffing pixels (Arial: ~3800 differing
+   pixels; Verdana: ~31000). Verdana was specifically designed to keep I/l/1
+   visually distinct, so it's scoped to just the ABC letter glyphs rather
+   than changing the whole page's font. */
+.abc-mode .letter-choice-btn,
+.abc-mode .letter-reveal-display {
+  font-family: Verdana, Tahoma, Geneva, sans-serif;
+}
+
+/* Nikud mode: letter and its niqud mark are stacked, separately sized rows
+   instead of one combined/font-shaped glyph -- see renderNikudChoices() in
+   exercise.js. The mark is deliberately large/bold/colored so it reads as
+   clearly as the letter itself, not as a small diacritic afterthought. */
+.nikud-choice-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  gap: 1px;
+}
+.nikud-choice-btn .nikud-letter {
+  font-size: 30px;
+}
+/* A real standalone קמץ character renders as thin, faint line-strokes in
+   most fonts -- scaling that glyph up (font-size or transform) just makes a
+   bigger *box* around still-thin ink, not a bolder/clearer mark. Instead,
+   the mark's own text is hidden (color/font-size collapsed to nothing) and
+   a plain bold "T" shape (a full-width top bar + a vertical bar centered
+   under its middle, via left:50%/translateX(-50%) so it's centered exactly
+   regardless of size) is drawn on top with ::before/::after -- fully
+   controlled size/thickness/position, independent of font rendering. Real
+   text stays in the DOM (see renderNikudChoices()) for screen readers.
+   Each niqud type gets its own shape class (".nikud-mark-<type>") the same
+   way -- this is the pattern to extend for future niqud types, not text. */
+.nikud-choice-btn .nikud-mark {
+  position: relative;
+  color: transparent;
+  font-size: 0;
+  width: 18px;
+  height: 17px;
+}
+.nikud-mark-kamats::before,
+.nikud-mark-kamats::after {
+  content: '';
+  position: absolute;
+  background: #000;
+  border-radius: 3px;
+}
+.nikud-mark-kamats::before { /* top horizontal bar, spans the full mark width */
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 5px;
+}
+.nikud-mark-kamats::after { /* vertical bar, centered under the horizontal bar's middle -- shorter than the box so it reads as a drop off the horizontal, not an equal-length arm */
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 5px;
+  height: 70%;
+}
+
+/* ק's leg drops below the line further than other letters, colliding with
+   the mark at the normal gap -- see NIKUD_DESCENDER_LETTERS in config.js. */
+.nikud-choice-btn.nikud-descender-letter .nikud-mark {
+  margin-top: 6px;
+}
+
+@media (max-width: 600px) {
+  .letter-sound-btn { width: 54px; height: 54px; font-size: 24px; }
+  .letter-choice-btn { width: 52px; height: 52px; font-size: 26px; }
+  .letter-reveal-display { width: 74px; height: 74px; font-size: 44px; }
+  #lettersAnswerHome { gap: 12px; margin-bottom: 8px; }
+  #letterListenMode, #letterRevealMode { gap: 12px; }
+  .nikud-choice-btn { gap: 1px; }
+  .nikud-choice-btn .nikud-letter { font-size: 24px; }
+  .nikud-choice-btn .nikud-mark { width: 14px; height: 13px; }
+  .nikud-mark-kamats::before { height: 4px; }
+  .nikud-mark-kamats::after { width: 4px; }
+  .nikud-choice-btn.nikud-descender-letter .nikud-mark { margin-top: 4px; }
+}
+
+.feedback {
+  margin-top: 14px;
+  font-size: 20px;
+  font-weight: bold;
+  min-height: 26px;
+}
+
+.correct { color: #2e9e4f; }
+.incorrect { color: #e0433d; }
+
+/* Coins & buy */
+.stats-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 6px 0 16px;
+}
+
+.coins {
+  font-size: 21px;
+  font-weight: bold;
+  color: #b8860b;
+}
+
+.coins.negative {
+  color: #e0433d;
+}
+
+.battle-timer {
+  font-size: 16px;
+  font-weight: bold;
+  color: #2b3a67;
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+.buy-btn {
+  font-size: 12px;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #48c26e, #2e9e4f);
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 3px 0 #1f7638;
+  transition: transform 0.1s ease;
+  margin-top: 10px;
+  white-space: nowrap;
+}
+
+.buy-btn:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #1f7638;
+}
+
+.buy-btn:disabled {
+  background: #b7b7b7;
+  box-shadow: 0 3px 0 #8f8f8f;
+  cursor: not-allowed;
+}
+
+hr {
+  border: none;
+  border-top: 1px dashed #dde3f5;
+  margin: 0 0 18px;
+}
+
+/* Mobile-only home for the buy-soldier button (see placeBuyBtn() in main.js).
+   Empty and invisible above the phone breakpoint, where the button lives in
+   its normal spot (.castle-block.player) instead. */
+.mobile-buy-row {
+  display: none;
+}
+
+@media (max-width: 600px) {
+  /* Level with the check button instead of on its own line below it -- one
+     row is shorter than two, and this is the last bit of height standing
+     between the buy button and the top of the keyboard. */
+  .check-buy-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+
+  .mobile-buy-row {
+    display: flex;
+  }
+
+  /* Sized to match the check button next to it rather than the bigger
+     standalone footprint this had when it was its own full-width row. */
+  .mobile-buy-row .buy-btn {
+    font-size: 14px;
+    padding: 7px 16px;
+    margin-top: 0;
+  }
+
+  /* Everything above this point (title, question, answer, check button,
+     buy button) has to fit above the on-screen keyboard, which can cover
+     close to half a phone screen -- so the desktop's generous spacing gets
+     compressed here to leave the keyboard as much room as possible. */
+  .card { padding: 14px 16px; }
+  .level-info { margin-bottom: 4px; }
+  .top-stats-row { gap: 8px; margin-bottom: 6px; }
+  .mini-stat { font-size: 12px; }
+  h1 { font-size: 17px; padding: 6px 18px; margin-bottom: 10px; }
+  .exercise { font-size: 32px; }
+  .exercise-row { margin-bottom: 8px; gap: 8px; }
+  .simplify-label { font-size: 13px; padding: 3px 10px; }
+  input { font-size: 22px; width: 74px; margin-bottom: 8px; }
+  button.check-btn { padding: 7px 22px; }
+  .feedback { margin-top: 4px; min-height: 20px; font-size: 16px; }
+  .stats-row { margin: 4px 0 10px; }
+  hr { margin: 0 0 10px; }
+
+  /* Vertically centering (the desktop default) leaves blank space above the
+     card whenever its content is shorter than the screen -- wasted space
+     that would otherwise help keep the battlefield clear of the keyboard.
+     Top-aligning instead reclaims all of it. */
+  body {
+    align-items: flex-start;
+    padding-top: 10px;
+    box-sizing: border-box;
+  }
+}
+
+/* Battlefield (now at the bottom) */
+.castle-row {
+  direction: ltr;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.castle-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 90px;
+  flex-shrink: 0;
+}
+
+.castle-label {
+  font-size: 12px;
+  color: #666;
+  margin-top: 6px;
+  font-weight: bold;
+}
+
+.hp-bar-container {
+  width: 68px;
+  height: 10px;
+  background: #e2e2e2;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-top: 6px;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.25);
+}
+
+.hp-bar-fill {
+  height: 100%;
+  background: linear-gradient(180deg, #5cc077, #2e9e4f);
+  transition: width 0.2s linear;
+}
+
+.hp-bar-fill.enemy {
+  background: linear-gradient(180deg, #f1685f, #e0433d);
+}
+
+.hp-text {
+  font-size: 11px;
+  color: #777;
+  margin-top: 3px;
+}
+
+/* The two fixed-width side panels (HP bar + label) were eating most of a
+   phone's width, squeezing the battlefield itself down to a sliver and
+   leaving the castles almost touching. Pulling them out of the flex flow
+   and overlaying them as small HUD badges in the battlefield's top corners
+   instead gives the battlefield -- and the marching soldiers -- nearly the
+   full screen width, same as the spacious desktop layout. */
+@media (max-width: 600px) {
+  /* Sticky, not just moved to the top: focusing the answer input makes real
+     phone browsers auto-scroll the page so the input clears the keyboard,
+     which would otherwise carry the battlefield (sitting above it) right
+     off the top of the screen along with everything else. Sticky keeps it
+     pinned to the viewport through that scroll instead. Needs an opaque
+     background since content now scrolls up underneath it. */
+  .castle-row {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: #f3f6ff;
+    padding-top: 2px;
+  }
+
+  .castle-block {
+    position: absolute;
+    top: 4px;
+    width: auto;
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+    background: rgba(255, 255, 255, 0.85);
+    border-radius: 8px;
+    padding: 3px 6px;
+    z-index: 5;
+  }
+
+  .castle-block.enemy { left: 4px; }
+  .castle-block.player { right: 4px; }
+
+  .castle-label { margin-top: 0; }
+
+  .hp-bar-container { width: 44px; margin-top: 0; }
+
+  .hp-text { margin-top: 0; }
+
+  /* The buy button already moved up to .mobile-buy-row (see placeBuyBtn()
+     in main.js); its now-empty home here shouldn't add stray badge space. */
+  #buyBtnDesktopHome:empty { display: none; }
+}
+
+.battlefield {
+  direction: ltr;
+  position: relative;
+  flex: 1;
+  height: 140px;
+  margin: 0;
+  background-image: url('assets/background/sky-mountains.png');
+  background-size: cover;
+  background-position: center 20%;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 3px solid #5a9440;
+  box-shadow: inset 0 4px 10px rgba(0,0,0,0.15);
+}
+
+/* ---------- Background depth: sprite ground tile + slowly drifting clouds
+   sit behind the castles/soldiers, giving the sky some parallax-style
+   layering for very little cost. ---------- */
+.battlefield-ground {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 34px;
+  background-image: url('assets/background/ground-tile-grass.png');
+  background-size: 128px 34px;
+  background-repeat: repeat-x;
+}
+
+.battlefield-clouds {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 70px;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.cloud {
+  position: absolute;
+  background: rgba(222, 230, 240, 0.96);
+  border-radius: 40px;
+  filter: drop-shadow(0 1px 3px rgba(50, 65, 90, 0.45));
+}
+
+.cloud::before,
+.cloud::after {
+  content: '';
+  position: absolute;
+  background: inherit;
+  border-radius: 50%;
+}
+
+.cloud-1 {
+  top: 10px;
+  width: 70px;
+  height: 26px;
+  animation: driftCloud 70s linear infinite;
+}
+.cloud-1::before { width: 36px; height: 36px; top: -18px; left: 8px; }
+.cloud-1::after  { width: 29px; height: 29px; top: -13px; left: 36px; }
+
+.cloud-2 {
+  top: 28px;
+  width: 52px;
+  height: 21px;
+  animation: driftCloud 95s linear infinite;
+  animation-delay: -30s;
+}
+.cloud-2::before { width: 26px; height: 26px; top: -13px; left: 5px; }
+.cloud-2::after  { width: 21px; height: 21px; top: -10px; left: 26px; }
+
+.cloud-3 {
+  top: 6px;
+  width: 60px;
+  height: 23px;
+  animation: driftCloud 83s linear infinite;
+  animation-delay: -55s;
+}
+.cloud-3::before { width: 31px; height: 31px; top: -16px; left: 6px; }
+.cloud-3::after  { width: 23px; height: 23px; top: -12px; left: 31px; }
+
+@keyframes driftCloud {
+  from { left: -15%; }
+  to   { left: 115%; }
+}
+
+/* ---------- Castle graphic (sits right at the edge of the track) ----------
+   Sprite art: CraftPix "Free Castle 2D Game Assets" (craftpix.net), used
+   under their free-asset commercial license. Both sides use the same castle
+   (folder 1's gate tower); only the flag is recolored blue/red, and the
+   severe-damage stage has its glow stripped to plain crack (offline, see
+   assets/castle/recolor-flag.ps1 and fix-severe.ps1). Each side has 3
+   pre-drawn HP-based damage stages; smoke on top is added here in CSS. */
+.castle-graphic {
+  position: absolute;
+  bottom: 6px;
+  width: 62px;
+  height: 104px;
+}
+
+.castle-graphic.enemy { left: 4px; }
+.castle-graphic.player { right: 4px; }
+
+.castle-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: bottom;
+  filter: drop-shadow(0 3px 2px rgba(0,0,0,0.25));
+}
+
+/* The art's door/window face left; mirror the enemy side (left edge of the
+   battlefield) so its entrance faces inward, toward the player's castle,
+   instead of out past the battlefield's edge. */
+.castle-graphic.enemy .castle-img { transform: scaleX(-1); }
+
+.cg-smoke {
+  position: absolute;
+  top: 6px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(90,90,90,0.75), rgba(90,90,90,0));
+  opacity: 0;
+  pointer-events: none;
+}
+
+.cg-smoke-1 { left: 14px; }
+.cg-smoke-2 { left: 34px; top: 14px; }
+
+.castle-graphic.dmg-severe .cg-smoke {
+  opacity: 1;
+  animation: smokeRise 2.4s ease-out infinite;
+}
+.castle-graphic.dmg-severe .cg-smoke-2 { animation-delay: 1.2s; }
+
+@keyframes smokeRise {
+  0%   { opacity: 0; transform: translateY(0) scale(0.6); }
+  30%  { opacity: 0.8; }
+  100% { opacity: 0; transform: translateY(-30px) scale(1.4); }
+}
+
+
+.soldiers-layer {
+  position: absolute;
+  /* Longhand instead of `inset` -- see the .overlay rule's comment above for why. */
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+}
+
+/* ---------- Soldier figures (sprite-based, see assets/sprites/knight) ---------- */
+.soldier {
+  position: absolute;
+  bottom: -6px;
+  width: 50px;
+  height: 62px;
+  transform: translateX(-50%);
+  transition: left 0.2s linear;
+}
+
+.soldier-figure {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* Sprite frames face right by default; player is mirrored to face left (toward the enemy) */
+.soldier.player .soldier-figure { transform: scaleX(-1); }
+
+/* Dying: opacity fade is computed in JS from the death timer and applied
+   inline every render (see render() in render.js) since soldiersLayer's
+   innerHTML is rebuilt every tick -- the fall/topple itself is just the
+   'dead' sprite frames playing out. */
+.soldier.dying {
+  pointer-events: none;
+}
+
+.soldier.dying .soldier-hp {
+  display: none;
+}
+
+/* Overlay */
+.overlay {
+  /* absolute, not fixed (changed 2026-08-05, round 5 of the Android
+     overlay-positioning bug) -- real device numbers proved position:fixed
+     itself doesn't behave as fixed on the affected phone/browser (its
+     painted position drifted by exactly the page's scroll offset, as if it
+     were actually position:absolute all along). Deliberately embracing
+     that instead of fighting it: absolute is anchored to the document
+     (the initial containing block), same as fixed's *default* reference
+     frame, and since html/body now can never scroll at all (see that
+     rule's comment), "anchored to the document" and "anchored to the
+     viewport" become the same thing in practice -- so this should render
+     identically to a working `fixed` while sidestepping whatever's broken
+     about this device's actual `fixed` implementation. No more JS-computed
+     inline width/height/left/top needed either (removed
+     syncOverlayViewport() from main.js entirely) -- plain top/right/
+     bottom/left:0 with auto width/height now stretches to the same
+     initial-containing-block frame that the rest of the page (.card etc,
+     which has never once been reported mispositioned) already lays out
+     against correctly. */
+  position: absolute;
+  /* top/right/bottom/left instead of the `inset` shorthand -- some phone
+     browsers (seen on a Xiaomi/Android device) silently ignore `inset`,
+     leaving position:fixed with no edges to stretch to, so it collapses to
+     its content size and sits wherever it naturally flows instead of
+     covering the screen. Longhand is the exact same result everywhere else
+     and has been supported forever. */
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  /* Explicit stacking priority (added 2026-08-05, round 6) -- on the same
+     Android phone this whole investigation has been chasing, the topic
+     picker became visible after switching to position:absolute (round 5),
+     but the battlefield behind it was showing through undimmed, painting
+     *above* the overlay's dark backdrop instead of under it, obscuring a
+     couple of the topic buttons. Ordinary stacking rules say a later,
+     positioned sibling like this should already paint on top of an
+     earlier, static one (`.card`) with no z-index needed -- but numbers
+     from this same device have already proven unreliable more than once
+     this investigation (e.g. reporting `left=1178` for a box a screenshot
+     confirmed was actually on-screen), so rather than keep reasoning about
+     *why* the normal rule might not be holding here, just make the
+     ordering explicit and unambiguous instead of implicit. */
+  z-index: 1000;
+  background: rgba(20, 25, 45, 0.65);
+  display: none;
+  align-items: flex-start;
+  justify-content: center;
+  overflow-y: auto;
+  padding: 24px 0;
+}
+
+.overlay.show {
+  display: flex;
+}
+
+.overlay-card {
+  background: white;
+  border-radius: 18px;
+  padding: 34px 46px;
+  text-align: center;
+  box-shadow: 0 14px 40px rgba(0,0,0,0.3);
+  /* Unconditional (not just a narrow-screen media query) -- a wide button
+     row (e.g. the topic picker's 7 topic buttons) must never be allowed to
+     force .overlay-card wider than the screen. A `max-width:600px` media
+     query used to gate this, but it turned out not to reliably match on at
+     least two real Android phones (confirmed independently of any local
+     testing tool), leaving the card unconstrained and the whole overlay
+     mispositioned/cut off -- unconditional is simpler and can't have that
+     failure mode, and costs nothing on desktop. */
+  max-width: 90vw;
+  box-sizing: border-box;
+}
+
+.overlay-title {
+  font-size: 30px;
+  font-weight: bold;
+  margin-bottom: 18px;
+}
+
+.overlay-title.win { color: #2e9e4f; }
+.overlay-title.lose { color: #e0433d; }
+
+.restart-btn {
+  font-size: 18px;
+  padding: 10px 26px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #6685ff, #4a6cf7);
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 3px 0 #3349b0;
+}
+
+.overlay-text {
+  font-size: 14px;
+  color: #666;
+  max-width: 280px;
+  margin: 0 0 22px;
+}
+
+.difficulty-pickers-row {
+  display: flex;
+  justify-content: center;
+  gap: 36px;
+  margin: 0 0 22px;
+}
+
+.difficulty-picker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.diff-arrow-btn {
+  font-size: 16px;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #6685ff, #4a6cf7);
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 3px 0 #3349b0;
+  transition: transform 0.1s ease;
+}
+
+.diff-arrow-btn:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #3349b0;
+}
+
+.diff-arrow-btn:disabled {
+  background: #b7b7b7;
+  box-shadow: 0 3px 0 #8f8f8f;
+  cursor: not-allowed;
+}
+
+.diff-label {
+  font-size: 19px;
+  font-weight: bold;
+  color: #2b3a67;
+  min-width: 110px;
+  text-align: center;
+}
+
+.diff-title {
+  font-size: 13px;
+  font-weight: bold;
+  color: #888;
+  letter-spacing: 0.5px;
+}
+
+.exdiff-description {
+  font-size: 13px;
+  color: #666;
+  max-width: 340px;
+  line-height: 1.5;
+  margin: 6px auto 18px;
+}
+
+.weak-pool-option {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #444;
+  margin: 0 0 18px;
+  cursor: pointer;
+}
+
+.weak-pool-option input {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.postgame-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.home-btn {
+  font-size: 18px;
+  padding: 10px 26px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #ffb347, #ff8c1a);
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 3px 0 #cc6f00;
+}
+
+.home-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #cc6f00;
+}
+
+.link-row {
+  display: flex;
+  justify-content: center;
+  margin: 16px 0 8px;
+}
+
+.share-link-fallback-input {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.copy-link-btn {
+  font-size: 13px;
+  padding: 9px 14px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #ffb347, #ff8c1a);
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 3px 0 #cc6f00;
+  white-space: nowrap;
+}
+
+.copy-link-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #cc6f00;
+}
+
+.copy-feedback {
+  font-size: 12px;
+  color: #2e9e4f;
+  min-height: 16px;
+  margin: 0 0 4px;
+}
+
+.vocabulary-file-row {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.vocabulary-file-label {
+  font-size: 14px;
+  padding: 8px 20px;
+  cursor: pointer;
+}
+
+/* Visually hidden but still focusable/clickable via its <label for=""> --
+   same off-screen-not-display:none convention as #shareLinkFallbackInput,
+   so keyboard/screen-reader users interacting with the label still reach a
+   real file input. */
+.vocabulary-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  opacity: 0;
+}
+
+.vocabulary-words-textarea {
+  width: 100%;
+  max-width: 260px;
+  height: 160px;
+  font-size: 15px;
+  font-family: inherit;
+  padding: 10px;
+  border: 2px solid #ccc;
+  border-radius: 10px;
+  resize: vertical;
+  box-sizing: border-box;
+  margin-bottom: 8px;
+}
+
+.vocabulary-words-textarea:focus {
+  outline: none;
+  border-color: #4a6cf7;
+}
+
+.vocabulary-parse-feedback {
+  font-size: 13px;
+  color: #4a3fd1;
+  min-height: 18px;
+  margin: 0 0 12px;
+}
+
+.surrender-row {
+  margin-top: 14px;
+  text-align: center;
+}
+
+.surrender-btn {
+  font-size: 12px;
+  padding: 6px 14px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #d9d9d9, #b7b7b7);
+  color: #555;
+  cursor: pointer;
+  box-shadow: 0 3px 0 #8f8f8f;
+  transition: transform 0.1s ease;
+}
+
+.surrender-btn:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 #8f8f8f;
+}
+
+.overlay-battle-time {
+  font-size: 13px;
+  color: #777;
+  margin: -6px 0 18px;
+}
+
+.overlay-score {
+  font-size: 22px;
+  font-weight: bold;
+  color: #b8860b;
+  margin: -6px 0 18px;
+}
+
+/* Session totals on the win/lose screen -- unlike .top-stats-row during
+   gameplay, these are meant to stand out (bigger, centered), since there's
+   no coins counter competing for attention here anymore. */
+.final-stats-row {
+  display: flex;
+  justify-content: center;
+  gap: 22px;
+  margin: 0 0 18px;
+}
+
+.final-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.final-stat span:first-child {
+  font-size: 26px;
+  font-weight: bold;
+}
+
+.final-stat-label {
+  font-size: 12px;
+  color: #777;
+}
+
+.final-stat-correct span:first-child { color: #2e9e4f; }
+.final-stat-wrong span:first-child { color: #e0433d; }
+.final-stat-swap span:first-child { color: #4a6cf7; }
+
+/* Floating +/- coin popups: positioned in JS (fixed, viewport coords) next
+   to whatever triggered them (the answer input or the swap button), then
+   rise and fade on their own. Isolated LTR so the RTL page never flips the
+   sign, same trick used for the coins display. */
+.floating-text {
+  position: fixed;
+  font-size: 22px;
+  font-weight: bold;
+  pointer-events: none;
+  z-index: 20;
+  white-space: nowrap;
+  direction: ltr;
+  unicode-bidi: isolate;
+  animation: floatUp 1s ease-out forwards;
+}
+
+.floating-text.positive { color: #2e9e4f; }
+.floating-text.negative { color: #e0433d; }
+
+@keyframes floatUp {
+  0%   { transform: translate(-50%, 0); opacity: 1; }
+  100% { transform: translate(-50%, -40px); opacity: 0; }
+}
+
+/* Per-soldier HP bar */
+.soldier-hp {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 22px;
+  height: 5px;
+  background: #333;
+  border: 1px solid rgba(0,0,0,0.4);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.soldier-hp-fill {
+  height: 100%;
+  background: #4caf50;
+  transition: width 0.15s linear;
+}

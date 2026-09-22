@@ -1,0 +1,84 @@
+English letter-name pronunciation recordings used by the "abc" exercise mode.
+
+All files are native-speaker (US English) recordings sourced from Wikimedia
+Commons / Wiktionary (the audio embedded in each letter's pronunciation
+section, e.g. https://en.wiktionary.org/wiki/Z), originally named
+En-us-<letter>.ogg and renamed here to just <letter>.ogg.
+
+Public domain (no attribution required):
+  a.ogg
+  Author: unattributed upload, credited to Wikimedia Commons user "Xnux"
+  i.ogg
+  Speaker: Geoff Sebastian
+
+CC BY-SA 3.0 (attribution + share-alike required):
+License: https://creativecommons.org/licenses/by-sa/3.0/
+
+  b.ogg  c.ogg  d.ogg  f.ogg  g.ogg  h.ogg  l.ogg  m.ogg  o.ogg  q.ogg
+  s.ogg  t.ogg  u.ogg  v.ogg  w.ogg  x.ogg  y.ogg
+  Speaker: Twocs (Wikimedia Commons)
+
+  e.ogg  r.ogg
+  Speaker: Logictheo (Wikimedia Commons)
+
+  j.ogg  p.ogg  z.ogg
+  Speaker: Dvortygirl (Wikimedia Commons)
+
+  k.ogg
+  Speaker: Neskaya (Wikimedia Commons)
+
+CC0 / Public domain (no attribution required):
+
+  n.ogg
+  Speaker: Userofwikiofusa, from a Lingua Libre alphabet-reading set
+  (2026-07-30: replaced the original Dvortygirl n.ogg, which had audible
+  background noise and was hard to distinguish from "m" -- source file:
+  https://commons.wikimedia.org/wiki/File:LL-Q1860_(eng)-Userofwikiofusa_(CaulkyAlphabet)-N.wav,
+  originally a quiet .wav (~8dB of headroom). A Web Audio gain-node boost
+  was tried first but caused intermittent silence -- new AudioContext.
+  resume() is async and playback could start before it finished, especially
+  right after a fresh page load, so the sound sometimes played through a
+  not-yet-running context. Fixed by baking a +7.7dB gain into the file
+  itself with ffmpeg (`-af volume=7.7dB`) while converting to .ogg/libvorbis,
+  landing its peak around -1.4dB (matching m.ogg's peak, no clipping) --
+  n.ogg now plays through the same plain <audio> element as every other
+  letter, no boost logic in JS.)
+
+Original file pages (for provenance): each recording's Commons file page is
+linked from the corresponding letter's entry at https://en.wiktionary.org/wiki/<letter>
+(e.g. https://commons.wikimedia.org/wiki/File:En-us-z.ogg for z.ogg).
+
+Loudness pass (2026-08-05): the user reported some clips had a noticeable
+quiet/dead patch at the start. All 26 originals were backed up to
+_raw-audio-src/_pre-loudness-backup-abc-2026-08-05/ before touching
+anything, same silence-padding diagnosis and fix as the earlier nikud/
+letters passes (see feedback_hebrew_letter_audio.md memory) -- most of the
+padding was leading silence before the spoken letter name starts (some had
+trailing silence too), not a peak-level problem, so a manual silencedetect-
+driven edge-only trim (never the unsafe `silenceremove` filter) plus a
+calibrated `-af volume=XdB` gain baked into the file. Two refinements versus
+the earlier passes:
+  - A single fixed silencedetect threshold wasn't enough here -- these
+    Commons recordings vary in background noise floor per speaker, so a
+    few clips (g, j, k, z) never registered true digital silence at the
+    safe -45dB threshold even though they clearly had a quiet lead-in a
+    human would call padding. Fixed with a per-edge fallback: try -45dB
+    first (safest, matches the letters-topic lesson about not clipping
+    real quiet consonants), then -40dB, -35dB, -30dB in turn, using
+    whichever threshold is the first to find a silence period actually
+    touching that edge.
+  - Target peak was set to -1.0dB, not the -0.4dB used for nikud/letters'
+    lossless WAV clips -- ogg/vorbis is lossy on both the trim step and the
+    boost step here, and reconstruction ripple can overshoot the nominal
+    peak past 0dBFS even when the pre-encode PCM looked fine (caught via
+    `astats`'s true-peak reading on a first attempt at -0.4dB: c.ogg came
+    back at +0.05dBFS, genuine clipping that volumedetect's own peak
+    reading didn't show). -1.0dB leaves enough headroom to absorb that.
+Net effect: most clips lost 0.1-0.7s of dead air (e.g. b.ogg: 1.77s -> 1.12s)
+and got noticeably louder (up to +14dB on the quietest, e.g. z.ogg), with
+zero clipping (verified via `astats` true-peak on all 26 post-pass, every
+one landed between -0.5 and -1.6dBFS). k.ogg's lead-in only shrank by
+~30ms despite looking like ~0.25s of padding at a looser threshold -- its
+noise floor sits high enough that a confident, safe cut wasn't possible
+without risking real content; worth another pass if it's still reported as
+noticeably quiet-fronted after this.

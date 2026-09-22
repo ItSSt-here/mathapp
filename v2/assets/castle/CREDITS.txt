@@ -1,0 +1,24 @@
+Castle art source: CraftPix.net - "Free Castle 2D Game Assets"
+https://craftpix.net/freebies/free-castle-2d-game-assets/
+License: https://craftpix.net/file-licenses/ (free for personal & commercial use)
+
+Both player/ and enemy/ use "Castle 1" (folder "1", Asset 21/22/23) from the
+pack - a classic knight-style gate tower. The two folders are pixel-identical
+except the flag, which was recolored offline: blue for player, red for enemy.
+See recolor-flag.ps1 (hue-selective recolor: only green flag pixels are
+shifted, everything else copied unchanged).
+
+3-severe.png was also run through fix-severe.ps1: the pack's built-in
+orange/yellow "energy leak" glow around the crack read as a blood drip
+(it's shaped like a downward trickle, not an upward flame) even though its
+raw color was pure orange/yellow, not red. Those pixels are now recolored to
+match the crack's existing near-black void, leaving a plain structural crack.
+Smoke for the severe stage is drawn separately in CSS (.cg-smoke in
+style.css) instead of being baked into the art.
+
+The art's door faces left; since the enemy castle sits at the battlefield's
+left edge, it's mirrored via CSS (.castle-graphic.enemy .castle-img) so its
+entrance faces inward, toward the player's castle, instead of off-field.
+
+Damage stages swapped by HP in js/render.js (castleImageStage):
+1-intact.png, 2-damaged.png, 3-severe.png

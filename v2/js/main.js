@@ -1,0 +1,965 @@
+// ---------- Difficulty pickers, game start/end, and event wiring ----------
+function updateDifficultyLabel() {
+  document.getElementById('diffLabel').textContent = DIFFICULTIES[difficultyIndex];
+  document.getElementById('diffDownBtn').disabled = difficultyIndex === 0;
+  document.getElementById('diffUpBtn').disabled = difficultyIndex === DIFFICULTIES.length - 1;
+}
+
+function changeDifficulty(delta) {
+  const next = difficultyIndex + delta;
+  if (next < 0 || next >= DIFFICULTIES.length) return;
+  difficultyIndex = next;
+  updateDifficultyLabel();
+}
+
+function updateExerciseDifficultyLabel() {
+  document.getElementById('exDiffLabel').textContent = EXERCISE_DIFFICULTIES[exerciseDifficultyIndex];
+  document.getElementById('exDiffDownBtn').disabled = exerciseDifficultyIndex === 0;
+  document.getElementById('exDiffUpBtn').disabled = exerciseDifficultyIndex === getExerciseLevelCount() - 1;
+  const descriptions = EXERCISE_LEVEL_DESCRIPTIONS[gameMode];
+  document.getElementById('exDiffDescription').textContent =
+    descriptions ? descriptions[exerciseDifficultyIndex] : 'תיאור לנושא זה יתווסף בהמשך.';
+}
+
+function changeExerciseDifficulty(delta) {
+  const next = exerciseDifficultyIndex + delta;
+  if (next < 0 || next >= getExerciseLevelCount()) return;
+  exerciseDifficultyIndex = next;
+  updateExerciseDifficultyLabel();
+}
+
+const MODE_LABELS = { fractions: 'מבוא לשברים', comparefractions: 'השוואת שברים', addfractions: 'חיבור שברים', subtractfractions: 'חיסור שברים', mixednumbers: 'מספרים מעורבים', addfractionsadvanced: 'חיבור שברים מתקדם', letters: 'אותיות', abc: 'ABC', nikud: 'ניקוד', vocabulary: 'אוצר מילים', division: 'מבוא לחילוק', grammar: 'דקדוק', decimalstyped: 'כתיבה כעשרוני', decimalnumberline: 'ציר מספרים' };
+
+function formatLevelInfo() {
+  const modeLabel = MODE_LABELS[gameMode] || 'כפל';
+  return `נושא: ${modeLabel} | מהירות: ${DIFFICULTIES[difficultyIndex]} | קושי תרגילים: ${EXERCISE_DIFFICULTIES[exerciseDifficultyIndex]}`;
+}
+
+// Parent-facing progress log, viewed separately via stats.html (not linked
+// from anywhere in this app's own UI) -- see logRoundStats() below for what
+// gets written. STATS_LOG_KEY must stay byte-identical to the key stats.html
+// reads, since that file intentionally doesn't load any of this app's JS.
+const STATS_LOG_KEY = 'mathapp_v2_stats_log';
+
+// One entry per finished round (win, loss, or surrender -- anything that
+// reaches endGame()). Deliberately just the same summary numbers already
+// shown on the win/lose overlay, not per-answer detail. Kept as a flat array
+// in localStorage rather than anything fancier -- it only has to survive
+// long enough for a parent to glance at stats.html, and localStorage is
+// plenty for that.
+function logRoundStats(playerWon, surrendered) {
+  const entry = {
+    date: new Date().toISOString(),
+    topic: MODE_LABELS[gameMode] || 'כפל',
+    speed: DIFFICULTIES[difficultyIndex],
+    level: EXERCISE_DIFFICULTIES[exerciseDifficultyIndex],
+    correct: correctCount,
+    wrong: wrongCount,
+    swap: swapCount,
+    won: playerWon,
+    // Only meaningful on a win (the leftover coin balance, capped at
+    // MAX_COINS -- see markCorrect() in exercise-core.js); null on a loss
+    // rather than 0, so stats.html can tell "lost, no score" apart from an
+    // actual 0-point win.
+    score: playerWon ? playerMoney : null,
+    // Lets stats.html tell "lost the battle" apart from "gave up" -- both
+    // still read as a loss in-game (endGame()'s own overlay deliberately
+    // doesn't distinguish them, only the parent-facing log does). Absent/
+    // false on every entry logged before this field existed, which is the
+    // right fallback: an old entry's true cause can't be recovered, and
+    // "lost" is the more common of the two anyway.
+    surrendered: !!surrendered,
+    durationMs: battleElapsedMs,
+  };
+  const log = JSON.parse(localStorage.getItem(STATS_LOG_KEY) || '[]');
+  log.push(entry);
+  localStorage.setItem(STATS_LOG_KEY, JSON.stringify(log));
+}
+
+// ---------- Teacher link: URL config parsing + share-link generation ----------
+// Shared by every "topic didn't resolve" branch in parseUrlParams() below --
+// a hub link (?group=fractions or ?group=decimals) with no resolved topic
+// yet lands on that group's own subtopic screen instead of the full mode
+// list; anything else (including an unrecognized group value) falls back to
+// 'mode'. Sets the module-level arrivedGroup (config.js) so
+// showInitialOverlay()/applyLinkModeUI() know which group's overlay/back-
+// button this resolved to.
+function resolveGroupFallback(params) {
+  const group = params.get(URL_PARAM_GROUP);
+  if (TOPIC_GROUPS[group]) {
+    arrivedGroup = group;
+    return 'subtopic';
+  }
+  return 'mode';
+}
+// Returns which screen to land on -- see arrivedStage's comment in
+// config.js for what each stage means and how it was decided.
+function parseUrlParams() {
+  const params = new URLSearchParams(location.search);
+  const topic = params.get(URL_PARAM_TOPIC);
+  if (!VALID_TOPICS.includes(topic)) {
+    // A hub link with no resolved topic yet -- only checked once topic
+    // itself fails to resolve, so a link carrying both a valid topic and a
+    // group param still prefers the topic (skips straight past the hub,
+    // same as it already skips modeOverlay).
+    return resolveGroupFallback(params);
+  }
+  // Vocabulary's own word list rides along as one more param on this same
+  // link (see URL_PARAM_WORDS in config.js) rather than needing a separate
+  // storage/lookup system -- but a link can't actually be built without a
+  // loaded list (vocabularyContinueBtn below requires 2+ words), so a
+  // vocabulary link with too few real pairs is either malformed or
+  // hand-edited; treat it the same as an unrecognized topic rather than
+  // risk newExercise() crashing on an empty list later.
+  if (topic === 'vocabulary') {
+    const { pairs } = parseVocabularyWordList(params.get(URL_PARAM_WORDS) || '');
+    if (pairs.length < 2) return resolveGroupFallback(params);
+    vocabularyWordList = pairs;
+    saveVocabularyWordListToStorage(pairs); // this device's fallback for a future bare-URL open
+  }
+  // Same reasoning as the vocabulary branch just above -- grammar's word
+  // list rides the same URL_PARAM_WORDS param (topic already tells the two
+  // apart), and a link can't be built without at least 2 loaded pairs either
+  // (see grammarContinueBtn below).
+  if (topic === 'grammar') {
+    const { pairs } = parseGrammarWordList(params.get(URL_PARAM_WORDS) || '');
+    if (pairs.length < 2) return resolveGroupFallback(params);
+    grammarWordList = pairs;
+    saveGrammarWordListToStorage(pairs); // this device's fallback for a future bare-URL open
+  }
+  gameMode = topic;
+
+  const difficultyNum = Number(params.get(URL_PARAM_DIFFICULTY));
+  const hasDifficulty = Number.isInteger(difficultyNum) && difficultyNum >= 1;
+  // Clamped rather than rejected: an older link generated before a topic's
+  // level count shrank (see EXERCISE_TOPIC_LEVEL_COUNTS in config.js) should
+  // still work instead of dumping the student back at the mode-select
+  // screen -- and for every topic shrunk so far, the removed levels were
+  // exact duplicates of a lower one anyway, so clamping reproduces
+  // identical gameplay to what the link originally pointed at.
+  exerciseDifficultyIndex = hasDifficulty ? Math.min(difficultyNum, getExerciseLevelCount()) - 1 : 0;
+  // Defaults to on (matching weakPoolCheckbox's own default) for a link that
+  // predates this feature, same as any other absent param on an old link.
+  const reviewParam = params.get(URL_PARAM_REVIEW);
+  weakPoolReviewEnabled = reviewParam === null ? true : reviewParam === '1';
+  if (!hasDifficulty) return 'difficulty';
+
+  const speedNum = Number(params.get(URL_PARAM_SPEED));
+  const hasSpeed = Number.isInteger(speedNum) && speedNum >= 1 && speedNum <= DIFFICULTIES.length;
+  if (!hasSpeed) return 'difficulty';
+  difficultyIndex = speedNum - 1;
+  return 'speed';
+}
+
+// 'subtopic' has no fixed overlay here -- which one depends on arrivedGroup
+// (set by resolveGroupFallback() above), resolved in showInitialOverlay().
+const ARRIVED_STAGE_OVERLAY = { mode: 'modeOverlay', difficulty: 'exDifficultyOverlay', speed: 'startOverlay' };
+
+function showInitialOverlay() {
+  arrivedStage = parseUrlParams();
+  document.getElementById('weakPoolCheckbox').checked = weakPoolReviewEnabled;
+  const overlayId = arrivedStage === 'subtopic' ? TOPIC_GROUPS[arrivedGroup].overlayId : ARRIVED_STAGE_OVERLAY[arrivedStage];
+  document.getElementById(overlayId).classList.add('show');
+}
+
+function applyLinkModeUI() {
+  // Hide the escape hatch back to any screen whose choice got locked in by
+  // the link the student arrived on -- 'difficulty'/'speed' both lock the
+  // topic (hide the difficulty screen's "back to topics" button), 'speed'
+  // additionally locks the difficulty level (hide the speed screen's "back
+  // to difficulty" button too), and 'subtopic' locks whichever hub group
+  // (arrivedGroup) the link pointed at one level up (hide that group's own
+  // subtopic-hub "back to full topic list" button) without yet locking
+  // which of that group's sub-topics.
+  const topicLocked = arrivedStage === 'difficulty' || arrivedStage === 'speed';
+  document.getElementById('backToModeBtn').style.display = topicLocked ? 'none' : '';
+  for (const [groupName, group] of Object.entries(TOPIC_GROUPS)) {
+    const hideBackBtn = arrivedStage === 'subtopic' && arrivedGroup === groupName;
+    document.getElementById(group.backBtnId).style.display = hideBackBtn ? 'none' : '';
+  }
+  document.getElementById('backToLinkBtn').style.display = arrivedStage === 'speed' ? 'none' : '';
+  document.getElementById('reconfigureBtn').style.display = arrivedStage === 'mode' ? '' : 'none';
+}
+
+// stage controls how much of the current selection gets baked into the
+// link: 'mode' includes nothing (topic not chosen yet), 'subtopic' includes
+// just which hub group's screen this is (group -- a TOPIC_GROUPS key --
+// since gameMode itself isn't reliably set yet at this stage; each hub's
+// own "העתק קישור" button passes its own group directly rather than trying
+// to infer it), 'difficulty' includes topic+difficulty (the difficulty
+// screen's own "suggested starting level" for whoever opens it), 'speed'
+// includes topic+difficulty+speed (the speed screen's own "suggested
+// starting speed"). See arrivedStage in config.js for how parseUrlParams()
+// turns these back into a landing screen.
+function buildShareLink(stage, group) {
+  const params = new URLSearchParams();
+  if (stage === 'subtopic') {
+    params.set(URL_PARAM_GROUP, group);
+  }
+  if (stage === 'difficulty' || stage === 'speed') {
+    params.set(URL_PARAM_TOPIC, gameMode);
+    params.set(URL_PARAM_DIFFICULTY, String(exerciseDifficultyIndex + 1));
+    params.set(URL_PARAM_REVIEW, weakPoolReviewEnabled ? '1' : '0');
+    if (gameMode === 'vocabulary') {
+      params.set(URL_PARAM_WORDS, serializeVocabularyWordList(vocabularyWordList));
+    }
+    if (gameMode === 'grammar') {
+      params.set(URL_PARAM_WORDS, serializeGrammarWordList(grammarWordList));
+    }
+  }
+  if (stage === 'speed') {
+    params.set(URL_PARAM_SPEED, String(difficultyIndex + 1));
+  }
+  const query = params.toString();
+  // location.origin is the literal string "null" when the page is opened
+  // directly as a file:// URL (no local server) -- protocol+host stays
+  // correct in that case (host is just empty) so building from those
+  // instead keeps the link usable while testing locally that way too.
+  return `${location.protocol}//${location.host}${location.pathname}${query ? '?' + query : ''}`;
+}
+
+// feedbackEl gets a transient "הועתק!" confirmation. The legacy
+// execCommand('copy') fallback (for file:// pages, where
+// navigator.clipboard is unavailable) needs a real input to select from --
+// shareLinkFallbackInput is a single shared, visually-hidden input kept
+// just for that, since the link itself is never shown to the user anymore.
+function copyShareLink(link, feedbackEl) {
+  const showCopied = () => {
+    feedbackEl.textContent = 'הועתק!';
+    setTimeout(() => { feedbackEl.textContent = ''; }, 2000);
+  };
+  const legacyCopy = () => {
+    const fallback = document.getElementById('shareLinkFallbackInput');
+    fallback.value = link;
+    fallback.select();
+    document.execCommand('copy');
+    showCopied();
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(link).then(showCopied).catch(legacyCopy);
+  } else {
+    legacyCopy();
+  }
+}
+
+// surrendered is only meaningful when !playerWon (surrenderBtn's handler is
+// the only caller that ever passes it) -- purely a pass-through to
+// logRoundStats() for the parent-facing log; deliberately doesn't change
+// anything about the overlay itself (title/color stay the same "💥 הפסדת"
+// either way) since the player doesn't need or want that distinction, only
+// a parent checking stats.html later does.
+function endGame(playerWon, surrendered) {
+  gameOver = true;
+  clearInterval(intervalId);
+  clearInterval(animIntervalId);
+  const overlay = document.getElementById('overlay');
+  const title = document.getElementById('overlayTitle');
+  title.textContent = playerWon ? '🏆 ניצחת!' : '💥 הפסדת';
+  title.className = playerWon ? 'overlay-title win' : 'overlay-title lose';
+  document.getElementById('overlayLevelInfo').textContent = formatLevelInfo();
+  document.getElementById('overlayBattleTime').textContent = `משך הקרב: ${formatDuration(battleElapsedMs)}`;
+  const scoreEl = document.getElementById('overlayScore');
+  scoreEl.style.display = playerWon ? '' : 'none';
+  if (playerWon) scoreEl.textContent = `נקודות: ${playerMoney}`;
+  // correctCount/wrongCount/swapCount are frozen now that gameOver is true,
+  // so a one-time copy into the overlay's own elements is enough -- no need
+  // for these to live-update the way .top-stats-row does during play.
+  document.getElementById('overlayCorrectCount').textContent = correctCount;
+  document.getElementById('overlayWrongCount').textContent = wrongCount;
+  document.getElementById('overlaySwapCount').textContent = swapCount;
+  logRoundStats(playerWon, surrendered);
+  overlay.classList.add('show');
+}
+
+function startGame() {
+  playerMoney = 0;
+  // Weak pool never carries over between rounds -- see its state comment in
+  // config.js for why (shared-device mistake bleed-through).
+  weakPool = [];
+  activePoolEntry = null;
+  currentExerciseSnapshot = null;
+  currentQuestionHadMistake = false;
+  playerCastleHP = CASTLE_MAX_HP;
+  computerCastleHP = CASTLE_MAX_HP;
+  soldiers = [];
+  gameOver = false;
+  enemySpawnTimer = 0;
+  battleElapsedMs = 0;
+  correctCount = 0;
+  wrongCount = 0;
+  swapCount = 0;
+  document.getElementById('overlay').classList.remove('show');
+  document.getElementById('levelInfo').textContent = formatLevelInfo();
+  recalcSiegeThresholds();
+
+  if (swapTimeoutId) clearTimeout(swapTimeoutId);
+  document.getElementById('checkBtn').disabled = false;
+  document.getElementById('answer').disabled = false;
+  document.getElementById('answer2').disabled = false;
+  document.getElementById('answer3').disabled = false;
+  document.getElementById('swapBtn').disabled = false;
+  document.getElementById('vocabularyTypedInput').disabled = false;
+  document.getElementById('grammarTypedInput').disabled = false;
+  document.getElementById('decimalTypedInput').disabled = false;
+
+  updateCoinsDisplay();
+  updateStatsCountersDisplay();
+  render();
+  newExercise();
+  if (intervalId) clearInterval(intervalId);
+  intervalId = setInterval(tick, TICK_MS);
+  if (animIntervalId) clearInterval(animIntervalId);
+  animIntervalId = setInterval(animTick, ANIM_TICK_MS);
+}
+
+// ---------- Mobile layout: buy-soldier button placement ----------
+// On a phone the on-screen keyboard covers roughly the bottom half of the
+// viewport while typing an answer, so the desktop placement of "buy soldier"
+// (down by the player's castle) ends up hidden behind it exactly when the
+// player has coins to spend. Below the breakpoint, the same button element
+// is moved up next to the exercise controls instead of duplicated, so there
+// is still exactly one enabled/disabled state to keep in sync.
+function placeBuyBtn() {
+  const buyBtn = document.getElementById('buyBtn');
+  const isMobile = window.matchMedia('(max-width: 600px)').matches;
+  const target = document.getElementById(isMobile ? 'mobileBuyRow' : 'buyBtnDesktopHome');
+  target.appendChild(buyBtn);
+}
+
+// On a phone, the on-screen keyboard covers the *bottom* of the screen, but
+// nothing focuses/scrolls to keep the battlefield visible the way it does
+// for the answer input -- so if the battlefield stays in its normal spot
+// (below the exercise controls) it just gets hidden behind the keyboard
+// while the player is typing. Moving it to the very top of the card avoids
+// that regardless of how tall the keyboard is, at the cost of the title and
+// exercise controls sitting below it instead of above.
+//
+// A CSS `order` class toggle instead of a DOM move (used to be
+// `.prepend()`/`.after()`) -- see the .card/.castle-row-top comments in
+// style.css for why: an early DOM mutation was a flagged-but-untested
+// suspect for the Android overlay-positioning bug.
+function placeBattlefield() {
+  const isMobile = window.matchMedia('(max-width: 600px)').matches;
+  document.getElementById('castleRow').classList.toggle('castle-row-top', isMobile);
+}
+
+// ---------- Events ----------
+document.getElementById('checkBtn').addEventListener('click', checkAnswer);
+// Two-blank exercises (currentAnswer is a {numerator, denominator} object):
+// Enter only ever moves forward (like Tab) or submits -- it never moves
+// backward, and it does nothing at all while the box you're currently in is
+// empty. That second part is deliberate, not just a nicety: a future
+// exercise type needs one of these two boxes to be a legitimate blank
+// answer, and if Enter could still fire while that box is empty, an
+// absent-minded double Enter-press could submit a half-considered answer.
+// Making Enter a no-op on an empty box closes that off -- the *only* way to
+// leave a box blank on purpose is an explicit ArrowUp/ArrowDown move (or a
+// click/tap), never a stray Enter, so Enter alone can never submit a box
+// that was left empty by accident. Going back to fix a forgotten box is an
+// arrow-key (or mouse) action only; Enter never does it, so a student can
+// never be trained to expect Enter to send them backward.
+// ArrowUp/ArrowDown move directly between the two boxes (they're stacked
+// numerator-over-denominator in one .frac-block, so Up/Down matches what's
+// on screen) -- fires unconditionally, regardless of cursor position. Unlike
+// ArrowLeft/Right, a single-line text input has no native meaning for
+// Up/Down at all (confirmed empirically -- pressing it doesn't even move the
+// cursor to an edge first), so there's no in-box behavior to protect by
+// gating on cursor position; gating here would only make the jump silently
+// fail whenever the cursor wasn't already at the exact edge, e.g. after
+// clicking into the middle of a two-digit value to fix it.
+document.getElementById('answer').addEventListener('keydown', (e) => {
+  const answer2 = document.getElementById('answer2');
+  const isTwoBlank = typeof currentAnswer === 'object';
+  // Mixed numbers levels 1 and 3, addfractionsadvanced level 1, and the
+  // addfractions level 3 scaffold all put #answer side by side with its
+  // partner box (not stacked) -- see isHorizontalTwoBoxLevel() in
+  // exercise-core.js. Every other two-blank exercise (including
+  // addfractions/subtractfractions/fractions' own reduction levels) stacks
+  // its two boxes, so it stays in this Up/Down group.
+  const isStackedTwoBlank = isTwoBlank && !isHorizontalTwoBoxLevel();
+  if (e.key === 'ArrowDown' && isStackedTwoBlank) {
+    e.preventDefault();
+    answer2.focus();
+    return;
+  }
+  // Same levels as above: #answer renders to the left of its partner box in
+  // this equation (.exercise/.frac-eq force direction:ltr regardless of the
+  // page's own RTL, see style.css), so ArrowRight is "toward the partner"
+  // here -- only once the cursor's at the box's right edge (or the box is
+  // empty), so normal in-box cursor movement isn't hijacked. Lands on
+  // #answer2 either way -- level 1's only fraction box (mixed numbers or
+  // addfractionsadvanced), mixed-numbers level 3's numerator (top of its own
+  // stack), or the scaffold's result-numerator box.
+  if (e.key === 'ArrowRight' && isHorizontalTwoBoxLevel()) {
+    const atEnd = e.target.value === '' ||
+      (e.target.selectionStart === e.target.value.length && e.target.selectionEnd === e.target.value.length);
+    if (atEnd) {
+      e.preventDefault();
+      answer2.focus();
+    }
+    return;
+  }
+  if (e.key !== 'Enter') return;
+  if (e.target.value.trim() === '') return; // no-op on an empty box -- never advances or submits
+  // Decimals' fraction-name level always has a third required box
+  // (#decimalTypedInput) beyond #answer2 -- #answer's own Enter never
+  // submits there, only ever advances toward #answer2 (which then advances
+  // to #decimalTypedInput itself, see its own handler below).
+  if (isDecimalFractionNameLevel()) {
+    answer2.focus();
+    return;
+  }
+  if (isTwoBlank && answer2.value.trim() === '') {
+    answer2.focus();
+    return;
+  }
+  checkAnswer();
+});
+// Vocabulary level 4 (typed answer): same "Enter submits, empty box is a
+// no-op" behavior as #answer's Enter handling above, just without any of
+// the two-blank/digit-filtering logic that doesn't apply to a free-text
+// English word.
+document.getElementById('vocabularyTypedInput').addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter') return;
+  if (e.target.value.trim() === '') return;
+  checkAnswer();
+});
+// Same "Enter submits, empty box is a no-op" behavior as vocabularyTypedInput
+// just above -- grammar is typed-only too.
+document.getElementById('grammarTypedInput').addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter') return;
+  if (e.target.value.trim() === '') return;
+  checkAnswer();
+});
+// Same "Enter submits, empty box is a no-op" behavior as the two typed
+// inputs just above -- decimals is typed-only too, just with digits/
+// separators only (see the 'input' listener below) instead of free text.
+document.getElementById('decimalTypedInput').addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter') return;
+  if (e.target.value.trim() === '') return;
+  checkAnswer();
+});
+// Restricts typed characters to digits and the two accepted decimal
+// separators ('.'/',', both normalized to '.' at check time -- see
+// normalizeDecimalTypedAnswer(), exercise-decimals.js) -- same filtering
+// idea as #answer's own digit-only listener just below, just widened by two
+// characters for this topic's own answer shape.
+document.getElementById('decimalTypedInput').addEventListener('input', (e) => {
+  e.target.value = e.target.value.replace(/[^0-9.,]/g, '');
+});
+document.getElementById('answer').addEventListener('input', (e) => {
+  e.target.value = e.target.value.replace(/[^0-9]/g, '');
+});
+// Mixed numbers levels 1 and 3 only: the whole-number box is a legitimate
+// blank there (it asserts 0, see checkMixedNumberToMixedAnswer()/
+// checkMixedNumberReducedAnswer() in exercise-mixednumbers.js) -- this is a
+// purely visual affordance showing it was left blank on purpose, never a
+// validity gate. Toggled on blur/focus rather than on every keystroke since
+// it should only appear once the player has actually moved on from the box.
+// Gated on isWholeBoxAnswerLevel() (not just gameMode, and not just "is an
+// object" -- mixed-numbers level 3's answer is also an object) because
+// mixed-numbers level 2 reuses this same #answer element for a box that's
+// *always* required -- an empty box there is just unanswered, not a
+// deliberate omission, so it must never get the "this was left blank on
+// purpose" styling.
+document.getElementById('answer').addEventListener('blur', (e) => {
+  if (isWholeBoxAnswerLevel() && e.target.value.trim() === '') {
+    e.target.classList.add('answer-left-blank');
+  }
+});
+document.getElementById('answer').addEventListener('focus', (e) => {
+  e.target.classList.remove('answer-left-blank');
+});
+document.getElementById('answer2').addEventListener('keydown', (e) => {
+  const answerInput = document.getElementById('answer');
+  const isTwoBlank = typeof currentAnswer === 'object';
+  const isStackedTwoBlank = isTwoBlank && !isHorizontalTwoBoxLevel();
+  if (e.key === 'ArrowUp' && isStackedTwoBlank) {
+    e.preventDefault();
+    answerInput.focus();
+    return;
+  }
+  if (e.key === 'ArrowLeft' && isHorizontalTwoBoxLevel()) {
+    const atStart = e.target.value === '' ||
+      (e.target.selectionStart === 0 && e.target.selectionEnd === 0);
+    if (atStart) {
+      e.preventDefault();
+      answerInput.focus();
+    }
+    return;
+  }
+  // Mixed-numbers level 3 and addfractionsadvanced level 2 only: #answer2
+  // (numerator) has a third box stacked directly below it (#answer3,
+  // denominator) that no other level has -- #answer3's own keydown listener
+  // (exercise-mixednumbers.js) handles the reverse direction (ArrowUp back
+  // to #answer2), so this is the one place the shared #answer2 handler needs
+  // to know #answer3 exists at all. Kept as a single guarded branch here
+  // rather than a second listener on #answer2, which would double-handle
+  // every keydown (both would fire on the same event) -- see
+  // wireMixedNumberLevel3Answer3Nav() in exercise-mixednumbers.js for why
+  // #answer3 itself didn't need this.
+  if (isThreeBoxAnswerLevel()) {
+    const answer3 = document.getElementById('answer3');
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      answer3.focus();
+      return;
+    }
+    if (e.key === 'Enter' && e.target.value.trim() !== '' && answer3.value.trim() === '') {
+      answer3.focus();
+      return;
+    }
+  }
+  if (e.key !== 'Enter') return;
+  if (e.target.value.trim() === '') return; // no-op on an empty box -- never advances or submits
+  // Decimals' fraction-name level: #answer2 (denominator) is the *middle*
+  // of three required boxes here, not the last -- Enter always advances to
+  // #decimalTypedInput instead of submitting (its own keydown handler,
+  // already shared by every other decimals level, submits from there once
+  // it's filled).
+  if (isDecimalFractionNameLevel()) {
+    document.getElementById('decimalTypedInput').focus();
+    return;
+  }
+  checkAnswer();
+});
+document.getElementById('answer2').addEventListener('input', (e) => {
+  e.target.value = e.target.value.replace(/[^0-9]/g, '');
+});
+// Multiple-choice topics (letters/abc/nikud's #letterChoices and
+// #letterSoundChoices, comparefractions' #compareChoices) get the same
+// "move between answer widgets with arrow keys, no mouse required" treatment
+// as the two-blank numeric boxes above. Attached once to each container
+// (event delegation via keydown bubbling) rather than re-wired every render,
+// since the container element itself persists across newExercise() calls --
+// only its button children get recreated.
+// Direction matters here in a way it didn't for the numeric boxes: this page
+// is dir="rtl", and #letterChoices/#letterSoundChoices inherit that (first
+// DOM button renders rightmost, confirmed by checking actual button
+// positions) while #compareChoices forces direction:ltr (its '<'/'>' glyphs
+// would otherwise render mirrored -- see the CSS). So ArrowRight/ArrowLeft
+// have to map to opposite DOM-sibling directions depending on the
+// container's own direction, or the arrows would visibly move the wrong way
+// in one of the two cases.
+function wireChoiceArrowNav(containerId) {
+  const container = document.getElementById(containerId);
+  container.addEventListener('keydown', (e) => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    const buttons = Array.from(container.querySelectorAll('button:not(:disabled)'));
+    const currentIndex = buttons.indexOf(document.activeElement);
+    if (currentIndex === -1) return; // focus isn't on one of this container's buttons
+    e.preventDefault();
+    const isRtl = getComputedStyle(container).direction === 'rtl';
+    const movingToNextSibling = (e.key === 'ArrowRight') !== isRtl;
+    const nextIndex = (currentIndex + (movingToNextSibling ? 1 : -1) + buttons.length) % buttons.length;
+    buttons[nextIndex].focus();
+  });
+}
+wireChoiceArrowNav('letterChoices');
+wireChoiceArrowNav('letterSoundChoices');
+wireChoiceArrowNav('compareChoices');
+wireChoiceArrowNav('vocabularyChoices');
+// Vertical bridges between a choice row and the single button next to it
+// (the sound-play button above #letterChoices in listen mode, checkBtn below
+// #letterSoundChoices in reverse mode). Both remember exactly which button
+// in the row was focused when the player left it, and return there --
+// deliberately *not* "return to whichever button is currently
+// selected/correct," since those are different things: a player can arrow
+// through several candidates to preview/reconsider them without
+// re-confirming each one, and ArrowUp should undo the ArrowDown move, not
+// silently teleport them back to an older selection. The remembered button
+// is revalidated (still in the DOM, still enabled) before reuse, since a new
+// exercise (fresh buttons) or an elimination (disabled) can invalidate it
+// between visits -- falls back to the row's first available button then.
+function focusRowRemembering(row, getLastFocused) {
+  const last = getLastFocused();
+  const target = (last && last.isConnected && !last.disabled) ? last : row.querySelector('button:not(:disabled)');
+  if (target) target.focus();
+}
+
+// Listen mode (letters L1, abc L1-3, nikud): letterSoundBtn sits above
+// #letterChoices, so ArrowDown from it enters the row and ArrowUp from the
+// row leaves it -- opposite order from the reverse-mode bridge below, where
+// checkBtn sits below its row instead.
+let letterChoicesLastFocused = null;
+document.getElementById('letterSoundBtn').addEventListener('keydown', (e) => {
+  if (e.key !== 'ArrowDown') return;
+  e.preventDefault();
+  focusRowRemembering(document.getElementById('letterChoices'), () => letterChoicesLastFocused);
+});
+document.getElementById('letterChoices').addEventListener('keydown', (e) => {
+  if (e.key !== 'ArrowUp') return;
+  e.preventDefault();
+  letterChoicesLastFocused = e.target;
+  document.getElementById('letterSoundBtn').focus();
+});
+
+// Same bridge, vocabulary listen mode (level 3): vocabularySoundBtn sits
+// above #vocabularyChoices, same "sound button above, ArrowDown enters the
+// row, ArrowUp leaves it" shape as letterSoundBtn's bridge above. Harmless
+// to leave wired unconditionally outside listen mode -- the button is
+// hidden then, so it's never reachable to trigger it.
+let vocabularyChoicesLastFocused = null;
+document.getElementById('vocabularySoundBtn').addEventListener('keydown', (e) => {
+  if (e.key !== 'ArrowDown') return;
+  e.preventDefault();
+  focusRowRemembering(document.getElementById('vocabularyChoices'), () => vocabularyChoicesLastFocused);
+});
+document.getElementById('vocabularyChoices').addEventListener('keydown', (e) => {
+  if (e.key !== 'ArrowUp' || document.getElementById('vocabularySoundBtn').style.display === 'none') return;
+  e.preventDefault();
+  vocabularyChoicesLastFocused = e.target;
+  document.getElementById('vocabularySoundBtn').focus();
+});
+
+// Reverse mode (letters L2, abc L4): checkBtn is a genuinely separate
+// "confirm" step only here -- letterChoices/compareChoices submit
+// immediately on a button click and hide checkBtn entirely (see
+// newExercise() in exercise-core.js), so this bridge doesn't apply to them.
+// #letterSoundChoices sits above checkBtn, so ArrowDown leaves the row and
+// ArrowUp enters it -- opposite order from the listen-mode bridge above.
+// checkBtn is shared with the numeric exercises too (always visible there),
+// so ArrowUp is scoped to reverse mode specifically, or pressing it during a
+// numeric exercise would try to jump into a hidden row; checkBtn.disabled
+// (true until a sound option is actually selected, see
+// selectLetterReverseOption() in exercise-letters.js) is what stops
+// ArrowDown from focusing an unconfirmable checkBtn before that.
+let letterSoundChoicesLastFocused = null;
+document.getElementById('letterSoundChoices').addEventListener('keydown', (e) => {
+  if (e.key !== 'ArrowDown') return;
+  const checkBtn = document.getElementById('checkBtn');
+  if (checkBtn.disabled) return;
+  e.preventDefault();
+  letterSoundChoicesLastFocused = e.target;
+  checkBtn.focus();
+});
+document.getElementById('checkBtn').addEventListener('keydown', (e) => {
+  if (e.key !== 'ArrowUp' || !isLetterReverseMode()) return;
+  e.preventDefault();
+  focusRowRemembering(document.getElementById('letterSoundChoices'), () => letterSoundChoicesLastFocused);
+});
+document.getElementById('buyBtn').addEventListener('click', () => {
+  buySoldier();
+  document.getElementById('answer').focus();
+});
+// Global "buy soldier" hotkey -- the only document-level keydown listener in
+// the app, since every other key binding so far is scoped to a specific
+// focused element. Deliberately not scoped to any particular element (works
+// no matter what currently has focus, including mid-typing in
+// #answer/#answer2) since buying is a resource-spend action independent of
+// whatever's currently being answered.
+// Originally ח (first letter of חייל)/physical J, but that collided with
+// vocabulary/grammar's free-text typed-answer inputs: unlike the numeric
+// #answer boxes (whose own digit-only filter silently strips a stray ח/J
+// either way), #vocabularyTypedInput/#grammarTypedInput accept arbitrary
+// English words -- a word containing 'j' both typed the letter into the
+// answer *and* bought a soldier. Switched to F2 instead of scoping the
+// hotkey per-topic (rejected: same key should mean the same thing in every
+// topic, no exceptions the student has to relearn) -- F2 is a non-printable
+// key, so unlike any letter it structurally can never insert a character
+// into a focused text field, whatever word is being typed. Unlike a letter
+// key, a function key's e.key/e.code agree regardless of active keyboard
+// layout (layout only remaps printable characters) -- both are checked
+// anyway (same belt-and-suspenders as the old ח/J check) since e.code came
+// back empty for a synthetic F2 keypress during testing.
+// Routes through the real button via .click() instead of calling
+// buySoldier() directly so it automatically inherits every existing
+// safeguard for free: the button's own disabled state (managed by
+// updateCoinsDisplay()), buySoldier()'s own gameOver/insufficient-funds
+// guard, and the click handler's refocus-to-#answer -- which itself already
+// silently no-ops during letters/comparefractions exercises, since #answer
+// sits inside the hidden #answerHome there, so this never yanks focus away
+// from a letter-choice button mid-navigation.
+// Guarded to only fire mid-battle (no overlay open) -- added once the
+// vocabulary word-list textarea showed that firing while some setup screen
+// is open shouldn't spend money and yank focus back to #answer. Every
+// menu/setup screen shows some .overlay.show; only the live battle screen
+// never does.
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'F2' && e.code !== 'F2') return;
+  if (document.querySelector('.overlay.show')) return;
+  document.getElementById('buyBtn').click();
+});
+document.getElementById('swapBtn').addEventListener('click', changeQuestion);
+document.getElementById('letterSoundBtn').addEventListener('click', () => {
+  if (currentLetterAnswer) playCurrentTopicSound(currentLetterAnswer);
+});
+document.getElementById('vocabularySoundBtn').addEventListener('click', () => {
+  speakVocabularyWord(currentVocabularySpokenWord);
+});
+document.getElementById('surrenderBtn').addEventListener('click', () => {
+  if (gameOver) return;
+  endGame(false, true);
+});
+document.getElementById('restartBtn').addEventListener('click', () => {
+  document.getElementById('overlay').classList.remove('show');
+  startGame();
+});
+document.getElementById('changeDifficultyBtn').addEventListener('click', () => {
+  document.getElementById('overlay').classList.remove('show');
+  document.getElementById('startOverlay').classList.add('show');
+});
+document.getElementById('reconfigureBtn').addEventListener('click', () => {
+  document.getElementById('overlay').classList.remove('show');
+  document.getElementById('modeOverlay').classList.add('show');
+});
+// Each mode button just sets gameMode to its own topic string and advances
+// to the difficulty picker -- looped over a table instead of one near-
+// identical listener per button, so a future topic is a one-line entry here.
+// The fraction-family and decimals-family topics live on their own subtopic
+// hub screens instead of this flat list (see TOPIC_GROUPS below).
+const MODE_BUTTON_TOPICS = {
+  modeMultiplyBtn: 'multiplication',
+  modeDivisionBtn: 'division',
+  modeLettersBtn: 'letters',
+  modeAbcBtn: 'abc',
+  modeNikudBtn: 'nikud',
+};
+// Shared by both the flat mode-select buttons above and every subtopic
+// hub's buttons below -- committing to a real topic always means the same
+// thing regardless of which screen it was picked from.
+function selectTopicAndContinue(topic) {
+  gameMode = topic;
+  // The previously-picked level can be out of range for the new topic
+  // (e.g. coming from multiplication's 5 levels into letters' 2) --
+  // clamp down instead of leaving it pointing past what this topic offers.
+  exerciseDifficultyIndex = Math.min(exerciseDifficultyIndex, getExerciseLevelCount() - 1);
+  updateExerciseDifficultyLabel();
+  document.getElementById('exDifficultyOverlay').classList.add('show');
+}
+for (const [btnId, topic] of Object.entries(MODE_BUTTON_TOPICS)) {
+  document.getElementById(btnId).addEventListener('click', () => {
+    document.getElementById('modeOverlay').classList.remove('show');
+    selectTopicAndContinue(topic);
+  });
+}
+// A "hub" is a mode-select button that opens a second overlay listing that
+// family's real topics, instead of setting gameMode itself -- generalizes
+// FRACTIONS_GROUP_TOPICS/DECIMALS_GROUP_TOPICS (config.js) into everything
+// the UI/URL-sharing layer needs per hub: which overlay it opens, and which
+// button on that overlay goes back to the full topic list. Adding a third
+// hub in the future means one more entry here (plus its own overlay markup
+// in index.html) rather than touching every function below individually.
+const TOPIC_GROUPS = {
+  fractions: { topics: FRACTIONS_GROUP_TOPICS, overlayId: 'fractionsSubtopicOverlay', backBtnId: 'backToModeFromSubtopicBtn' },
+  decimals: { topics: DECIMALS_GROUP_TOPICS, overlayId: 'decimalsSubtopicOverlay', backBtnId: 'backToModeFromDecimalsSubtopicBtn' },
+};
+document.getElementById('modeFractionsHubBtn').addEventListener('click', () => {
+  document.getElementById('modeOverlay').classList.remove('show');
+  document.getElementById(TOPIC_GROUPS.fractions.overlayId).classList.add('show');
+});
+const FRACTIONS_SUBTOPIC_BUTTONS = {
+  modeFractionsBtn: 'fractions',
+  modeCompareFractionsBtn: 'comparefractions',
+  modeAddFractionsBtn: 'addfractions',
+  modeSubtractFractionsBtn: 'subtractfractions',
+  modeMixedNumbersBtn: 'mixednumbers',
+  modeAddFractionsAdvancedBtn: 'addfractionsadvanced',
+};
+for (const [btnId, topic] of Object.entries(FRACTIONS_SUBTOPIC_BUTTONS)) {
+  document.getElementById(btnId).addEventListener('click', () => {
+    document.getElementById(TOPIC_GROUPS.fractions.overlayId).classList.remove('show');
+    selectTopicAndContinue(topic);
+  });
+}
+document.getElementById(TOPIC_GROUPS.fractions.backBtnId).addEventListener('click', () => {
+  document.getElementById(TOPIC_GROUPS.fractions.overlayId).classList.remove('show');
+  document.getElementById('modeOverlay').classList.add('show');
+});
+// Decimals hub, added 2026-09-10 when the single 'decimals' topic split
+// into 'decimalstyped'/'decimalnumberline' -- same shape as the fractions
+// hub just above, one hub button + a two-entry subtopic overlay.
+document.getElementById('modeDecimalsHubBtn').addEventListener('click', () => {
+  document.getElementById('modeOverlay').classList.remove('show');
+  document.getElementById(TOPIC_GROUPS.decimals.overlayId).classList.add('show');
+});
+const DECIMALS_SUBTOPIC_BUTTONS = {
+  modeDecimalsTypedBtn: 'decimalstyped',
+  modeDecimalsNumberLineBtn: 'decimalnumberline',
+};
+for (const [btnId, topic] of Object.entries(DECIMALS_SUBTOPIC_BUTTONS)) {
+  document.getElementById(btnId).addEventListener('click', () => {
+    document.getElementById(TOPIC_GROUPS.decimals.overlayId).classList.remove('show');
+    selectTopicAndContinue(topic);
+  });
+}
+document.getElementById(TOPIC_GROUPS.decimals.backBtnId).addEventListener('click', () => {
+  document.getElementById(TOPIC_GROUPS.decimals.overlayId).classList.remove('show');
+  document.getElementById('modeOverlay').classList.add('show');
+});
+document.getElementById('modeVocabularyBtn').addEventListener('click', () => {
+  document.getElementById('modeOverlay').classList.remove('show');
+  // Pre-fills from this device's last-saved list rather than skipping ahead
+  // with it -- the same bare URL that leads here is used both by a student
+  // who just wants to resume and a teacher authoring something new, and only
+  // a visible/editable starting point serves both. See
+  // [[project_vocabulary_topic_plan]].
+  document.getElementById('vocabularyWordsInput').value = loadVocabularyWordListFromStorage();
+  document.getElementById('vocabularyParseFeedback').textContent = '';
+  document.getElementById('vocabularyWordsOverlay').classList.add('show');
+});
+document.getElementById('backToModeFromVocabularyBtn').addEventListener('click', () => {
+  document.getElementById('vocabularyWordsOverlay').classList.remove('show');
+  document.getElementById('modeOverlay').classList.add('show');
+});
+// Loads a .txt file's contents into the textarea rather than parsing it
+// directly -- keeps a single commit step (the "טען רשימה" button below) for
+// both typed/pasted and file-loaded text, so there's one parse code path and
+// the teacher can still glance over/fix the content before it's loaded.
+document.getElementById('vocabularyFileInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  e.target.value = ''; // reset now so picking the same file again still fires 'change'
+  if (!file) return;
+  const feedback = document.getElementById('vocabularyParseFeedback');
+  const reader = new FileReader();
+  reader.onload = () => {
+    document.getElementById('vocabularyWordsInput').value = reader.result;
+    feedback.textContent = 'הקובץ נטען לתיבה -- בדקו ולחצו "טען רשימה".';
+  };
+  reader.onerror = () => {
+    feedback.textContent = 'שגיאה בקריאת הקובץ.';
+  };
+  reader.readAsText(file, 'UTF-8');
+});
+// Parses the textarea, shows a count/error feedback message, and stores the
+// result into vocabularyWordList -- shared by both "טען רשימה" (preview the
+// parse without leaving this screen) and "המשך" (parse fresh and continue),
+// so there's one parse+feedback code path regardless of which button
+// triggered it. Returns the parsed pairs, or null if there weren't at least
+// 2 (the minimum for a real multiple-choice question).
+function loadVocabularyWordsFromTextarea() {
+  const feedback = document.getElementById('vocabularyParseFeedback');
+  const { pairs, errorCount } = parseVocabularyWordList(document.getElementById('vocabularyWordsInput').value);
+  if (pairs.length === 0) {
+    feedback.textContent = 'לא נמצאה אף מילה תקינה. ודאו שכל שורה בפורמט מילה;תרגום.';
+    return null;
+  }
+  if (pairs.length < 2) {
+    feedback.textContent = 'צריך לפחות 2 מילים כדי לתרגל.';
+    return null;
+  }
+  vocabularyWordList = pairs;
+  saveVocabularyWordListToStorage(pairs); // this device's fallback for a future bare-URL open
+  feedback.textContent = errorCount > 0
+    ? `נטענו ${pairs.length} מילים (${errorCount} שורות לא תקינות דולגו).`
+    : `נטענו ${pairs.length} מילים בהצלחה.`;
+  return pairs;
+}
+document.getElementById('vocabularyLoadBtn').addEventListener('click', () => {
+  loadVocabularyWordsFromTextarea();
+});
+document.getElementById('vocabularyContinueBtn').addEventListener('click', () => {
+  if (!loadVocabularyWordsFromTextarea()) return;
+  document.getElementById('vocabularyWordsOverlay').classList.remove('show');
+  selectTopicAndContinue('vocabulary');
+});
+// Grammar's own word-list screen -- same pre-fill/parse/continue flow as
+// vocabulary's block just above, just its own storage key and word shape
+// (V1/V2 pairs instead of english/hebrew). See [[project_vocabulary_topic_plan]].
+document.getElementById('modeGrammarBtn').addEventListener('click', () => {
+  document.getElementById('modeOverlay').classList.remove('show');
+  document.getElementById('grammarWordsInput').value = loadGrammarWordListFromStorage();
+  document.getElementById('grammarParseFeedback').textContent = '';
+  document.getElementById('grammarWordsOverlay').classList.add('show');
+});
+document.getElementById('backToModeFromGrammarBtn').addEventListener('click', () => {
+  document.getElementById('grammarWordsOverlay').classList.remove('show');
+  document.getElementById('modeOverlay').classList.add('show');
+});
+document.getElementById('grammarFileInput').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  e.target.value = ''; // reset now so picking the same file again still fires 'change'
+  if (!file) return;
+  const feedback = document.getElementById('grammarParseFeedback');
+  const reader = new FileReader();
+  reader.onload = () => {
+    document.getElementById('grammarWordsInput').value = reader.result;
+    feedback.textContent = 'הקובץ נטען לתיבה -- בדקו ולחצו "טען רשימה".';
+  };
+  reader.onerror = () => {
+    feedback.textContent = 'שגיאה בקריאת הקובץ.';
+  };
+  reader.readAsText(file, 'UTF-8');
+});
+function loadGrammarWordsFromTextarea() {
+  const feedback = document.getElementById('grammarParseFeedback');
+  const { pairs, errorCount } = parseGrammarWordList(document.getElementById('grammarWordsInput').value);
+  if (pairs.length === 0) {
+    feedback.textContent = 'לא נמצא אף זוג תקין. ודאו שכל שורה בפורמט V1;V2.';
+    return null;
+  }
+  if (pairs.length < 2) {
+    feedback.textContent = 'צריך לפחות 2 זוגות כדי לתרגל.';
+    return null;
+  }
+  grammarWordList = pairs;
+  saveGrammarWordListToStorage(pairs); // this device's fallback for a future bare-URL open
+  feedback.textContent = errorCount > 0
+    ? `נטענו ${pairs.length} זוגות (${errorCount} שורות לא תקינות דולגו).`
+    : `נטענו ${pairs.length} זוגות בהצלחה.`;
+  return pairs;
+}
+document.getElementById('grammarLoadBtn').addEventListener('click', () => {
+  loadGrammarWordsFromTextarea();
+});
+document.getElementById('grammarContinueBtn').addEventListener('click', () => {
+  if (!loadGrammarWordsFromTextarea()) return;
+  document.getElementById('grammarWordsOverlay').classList.remove('show');
+  selectTopicAndContinue('grammar');
+});
+// Returns to whichever screen this topic was actually picked from, so a
+// student refining a sub-topic choice (fractions or decimals) doesn't get
+// bounced all the way out to the full topic list.
+document.getElementById('backToModeBtn').addEventListener('click', () => {
+  document.getElementById('exDifficultyOverlay').classList.remove('show');
+  let backOverlayId = 'modeOverlay';
+  for (const group of Object.values(TOPIC_GROUPS)) {
+    if (group.topics.includes(gameMode)) { backOverlayId = group.overlayId; break; }
+  }
+  document.getElementById(backOverlayId).classList.add('show');
+});
+document.getElementById('exDiffContinueBtn').addEventListener('click', () => {
+  document.getElementById('exDifficultyOverlay').classList.remove('show');
+  document.getElementById('startOverlay').classList.add('show');
+});
+document.getElementById('backToLinkBtn').addEventListener('click', () => {
+  document.getElementById('startOverlay').classList.remove('show');
+  document.getElementById('exDifficultyOverlay').classList.add('show');
+});
+document.getElementById('copyLinkModeBtn').addEventListener('click', () => {
+  copyShareLink(buildShareLink('mode'), document.getElementById('copyFeedbackMode'));
+});
+document.getElementById('copyLinkSubtopicBtn').addEventListener('click', () => {
+  copyShareLink(buildShareLink('subtopic', 'fractions'), document.getElementById('copyFeedbackSubtopic'));
+});
+document.getElementById('copyLinkDecimalsSubtopicBtn').addEventListener('click', () => {
+  copyShareLink(buildShareLink('subtopic', 'decimals'), document.getElementById('copyFeedbackDecimalsSubtopic'));
+});
+document.getElementById('copyLinkDifficultyBtn').addEventListener('click', () => {
+  copyShareLink(buildShareLink('difficulty'), document.getElementById('copyFeedbackDifficulty'));
+});
+document.getElementById('copyLinkSpeedBtn').addEventListener('click', () => {
+  copyShareLink(buildShareLink('speed'), document.getElementById('copyFeedbackSpeed'));
+});
+document.getElementById('startBtn').addEventListener('click', () => {
+  document.getElementById('startOverlay').classList.remove('show');
+  startGame();
+});
+document.getElementById('diffUpBtn').addEventListener('click', () => changeDifficulty(1));
+document.getElementById('diffDownBtn').addEventListener('click', () => changeDifficulty(-1));
+document.getElementById('exDiffUpBtn').addEventListener('click', () => changeExerciseDifficulty(1));
+document.getElementById('exDiffDownBtn').addEventListener('click', () => changeExerciseDifficulty(-1));
+document.getElementById('weakPoolCheckbox').addEventListener('change', (e) => {
+  weakPoolReviewEnabled = e.target.checked;
+});
+window.addEventListener('resize', recalcSiegeThresholds);
+window.addEventListener('resize', placeBuyBtn);
+window.addEventListener('resize', placeBattlefield);
+showInitialOverlay();
+applyLinkModeUI();
+updateDifficultyLabel();
+updateExerciseDifficultyLabel();
+placeBuyBtn();
+placeBattlefield();
+preloadSoldierSprites();
+preloadCastleSprites();
