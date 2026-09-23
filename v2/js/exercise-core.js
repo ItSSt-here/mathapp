@@ -981,7 +981,14 @@ function updateCoinsDisplay() {
   // doesn't get its minus sign flipped by the page's RTL bidi handling.
   coinsEl.innerHTML = `מטבעות: <span style="direction:ltr;unicode-bidi:isolate">${playerMoney}</span>`;
   coinsEl.className = playerMoney < 0 ? 'coins negative' : 'coins';
-  document.getElementById('buyBtn').disabled = playerMoney < SOLDIER_COST || gameOver || isStudyMode();
+  const buyBtn = document.getElementById('buyBtn');
+  const armySize = livingSoldierCount('player');
+  buyBtn.disabled = playerMoney < SOLDIER_COST || gameOver || isStudyMode() || armySize >= MAX_SOLDIERS_PER_SIDE;
+  // Army count shown on the button itself, so a disabled button at the cap
+  // explains itself (it's not about coins). Only touched when it changes,
+  // since this runs on every render.
+  const label = `קנה חייל (${SOLDIER_COST})<br><small>חיילים: ${armySize}/${MAX_SOLDIERS_PER_SIDE}</small>`;
+  if (buyBtn.innerHTML !== label) buyBtn.innerHTML = label;
 }
 
 // Updates the small in-play counters (.top-stats-row). The same

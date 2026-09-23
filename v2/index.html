@@ -13,7 +13,7 @@
      fetch of everything together instead of relying on cache timing to
      line up. No build step in this project, so this is manual -- there's
      nothing to automate it. -->
-<link rel="stylesheet" href="style.css?v=202609101430">
+<link rel="stylesheet" href="style.css?v=202609231700">
 </head>
 <body>
 
@@ -255,16 +255,9 @@
     </div>
 
     <div class="battlefield" id="battlefield">
-      <div class="battlefield-clouds">
-        <div class="cloud cloud-1"></div>
-        <div class="cloud cloud-2"></div>
-        <div class="cloud cloud-3"></div>
-      </div>
-
-      <!-- Tilted top-down board (see [[project_2d_board_v2]] in memory): this
-           is the only element that actually rotates -- perspective lives on
-           .battlefield above it, everything that must stay upright/flat
-           (castles, soldiers) counter-rotates back in its own CSS rule. -->
+      <!-- Flat 3/4-view board (see the board section in config.js): castles
+           and soldiers are positioned in board units by render.js; mouse
+           selection/orders are handled in commands.js. -->
       <div class="battlefield-plane" id="battlefieldPlane">
         <div class="battlefield-ground"></div>
 
@@ -499,26 +492,27 @@
      (see preloadSoldierSprites() in render.js). -->
 <div id="spritePreload" style="position:fixed; left:-9999px; top:-9999px; width:1px; height:1px; overflow:hidden;" aria-hidden="true"></div>
 
-<script src="js/config.js?v=202609151306"></script>
-<script src="js/helpers.js?v=202609101430"></script>
-<script src="js/exercise-core.js?v=202609151306"></script>
-<script src="js/exercise-division.js?v=202609101430"></script>
-<script src="js/exercise-fractions.js?v=202609151257"></script>
-<script src="js/exercise-fraction-arithmetic.js?v=202609101430"></script>
-<script src="js/exercise-addfractions.js?v=202609101430"></script>
-<script src="js/exercise-subtractfractions.js?v=202609101430"></script>
-<script src="js/exercise-mixednumbers.js?v=202609101430"></script>
-<script src="js/exercise-addfractionsadvanced.js?v=202609101430"></script>
-<script src="js/exercise-letters.js?v=202609101430"></script>
-<script src="js/exercise-abc.js?v=202609101430"></script>
-<script src="js/exercise-nikud.js?v=202609101430"></script>
-<script src="js/exercise-compare.js?v=202609101430"></script>
-<script src="js/exercise-vocabulary.js?v=202609101430"></script>
-<script src="js/exercise-grammar.js?v=202609101430"></script>
-<script src="js/exercise-decimals.js?v=202609101430"></script>
-<script src="js/combat.js?v=202609101430"></script>
-<script src="js/render.js?v=202609101430"></script>
-<script src="js/main.js?v=202609101430"></script>
+<script src="js/config.js?v=202609231700"></script>
+<script src="js/helpers.js?v=202609231700"></script>
+<script src="js/exercise-core.js?v=202609231700"></script>
+<script src="js/exercise-division.js?v=202609231700"></script>
+<script src="js/exercise-fractions.js?v=202609231700"></script>
+<script src="js/exercise-fraction-arithmetic.js?v=202609231700"></script>
+<script src="js/exercise-addfractions.js?v=202609231700"></script>
+<script src="js/exercise-subtractfractions.js?v=202609231700"></script>
+<script src="js/exercise-mixednumbers.js?v=202609231700"></script>
+<script src="js/exercise-addfractionsadvanced.js?v=202609231700"></script>
+<script src="js/exercise-letters.js?v=202609231700"></script>
+<script src="js/exercise-abc.js?v=202609231700"></script>
+<script src="js/exercise-nikud.js?v=202609231700"></script>
+<script src="js/exercise-compare.js?v=202609231700"></script>
+<script src="js/exercise-vocabulary.js?v=202609231700"></script>
+<script src="js/exercise-grammar.js?v=202609231700"></script>
+<script src="js/exercise-decimals.js?v=202609231700"></script>
+<script src="js/combat.js?v=202609231700"></script>
+<script src="js/render.js?v=202609231700"></script>
+<script src="js/commands.js?v=202609231700"></script>
+<script src="js/main.js?v=202609231700"></script>
 
 </body>
 </html>

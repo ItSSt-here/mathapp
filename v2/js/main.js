@@ -290,7 +290,10 @@ function startGame() {
   swapCount = 0;
   document.getElementById('overlay').classList.remove('show');
   document.getElementById('levelInfo').textContent = formatLevelInfo();
-  recalcSiegeThresholds();
+  selectedIds.clear();
+  hideSelectionBox();
+  placeCastles();
+  setupEnemyForces();
 
   if (swapTimeoutId) clearTimeout(swapTimeoutId);
   document.getElementById('checkBtn').disabled = false;
@@ -952,7 +955,6 @@ document.getElementById('exDiffDownBtn').addEventListener('click', () => changeE
 document.getElementById('weakPoolCheckbox').addEventListener('change', (e) => {
   weakPoolReviewEnabled = e.target.checked;
 });
-window.addEventListener('resize', recalcSiegeThresholds);
 window.addEventListener('resize', placeBuyBtn);
 window.addEventListener('resize', placeBattlefield);
 showInitialOverlay();

@@ -35,7 +35,7 @@ function preloadCastleSprites() {
 // brief flicker right after spawning, stopping, or engaging.
 function preloadSoldierSprites() {
   const container = document.getElementById('spritePreload');
-  const sideClassForColor = { blue: 'player', red: 'enemy' };
+  const sideClassForColor = { blue: 'player face-left', red: 'enemy' };
 
   for (const color of ['blue', 'red']) {
     for (const folder of Object.values(POSE_TO_SPRITE_FOLDER)) {
@@ -118,9 +118,13 @@ function renderSoldiers() {
     }
 
     const sideClass = s.side === 'player' ? 'player' : 'enemy';
-    refs.wrap.className = `soldier ${sideClass} ${s.pose}`;
-    refs.wrap.style.left = `${s.x}%`;
-    refs.wrap.style.top = `${s.y}%`;
+    refs.wrap.className = `soldier ${sideClass} ${s.pose}`
+      + (s.faceLeft ? ' face-left' : '')
+      + (selectedIds.has(s.id) ? ' selected' : '');
+    refs.wrap.style.left = `${s.x / WORLD_W * 100}%`;
+    refs.wrap.style.top = `${s.y / WORLD_H * 100}%`;
+    // Feet further down the board = closer to the viewer = drawn on top.
+    refs.wrap.style.zIndex = Math.round(s.y * 10);
 
     // The fade-out is recomputed from the death timer on every render rather
     // than played as a CSS animation, since it needs to survive this element
@@ -154,34 +158,16 @@ function renderSoldiers() {
   }
 }
 
-// Measures the castle graphic and battlefield in the real, laid-out DOM so
-// soldiers always stop right at the castle's outer wall (leaving its
-// artwork fully visible) instead of marching on top of it -- this adapts
-// automatically to the actual rendered size instead of a guessed percentage.
-// The same measurement gives us the spawn points: right at each castle's
-// own outer wall, so a new soldier appears to step out of it.
-function recalcSiegeThresholds() {
-  const battlefieldWidth = document.getElementById('battlefield').getBoundingClientRect().width;
-  const castleWidth = document.getElementById('playerCastleGraphic').getBoundingClientRect().width;
-  if (battlefieldWidth <= 0 || castleWidth <= 0) return;
-
-  const soldierHalfWidth = 35; // soldier is 70px wide (style.css .soldier), centered on its x position
-  const castleInset = 2;
-  const bufferPercent = ((castleWidth + castleInset + soldierHalfWidth) / battlefieldWidth) * 100
-    + SOLDIER_SPEED; // extra margin so a soldier's one-step overshoot never lands inside the castle
-  const wallPercent = ((castleWidth + castleInset) / battlefieldWidth) * 100;
-
-  PLAYER_SIEGE_X = bufferPercent;
-  COMPUTER_SIEGE_X = 100 - bufferPercent;
-
-  PLAYER_SPAWN_X = 100 - wallPercent;
-  COMPUTER_SPAWN_X = wallPercent;
-
-  // Derive speed from the march distance just computed above (see
-  // MARCH_SECONDS in config.js) so crossing it always takes the same real
-  // time regardless of how many percentage points that happens to be on
-  // this device's battlefield.
-  const marchDistance = PLAYER_SPAWN_X - PLAYER_SIEGE_X;
-  const ticksToMarch = (MARCH_SECONDS * 1000) / TICK_MS;
-  SOLDIER_SPEED = marchDistance / ticksToMarch;
+// Puts each castle graphic's base-center on its board position from
+// config.js (PLAYER_CASTLE_POS/COMPUTER_CASTLE_POS), so the art and the
+// siege logic (CASTLE_REACH, combat.js) share one source of truth.
+function placeCastles() {
+  const place = (id, pos) => {
+    const el = document.getElementById(id);
+    el.style.left = `${pos.x / WORLD_W * 100}%`;
+    el.style.top = `${pos.y / WORLD_H * 100}%`;
+    el.style.zIndex = Math.round(pos.y * 10);
+  };
+  place('playerCastleGraphic', PLAYER_CASTLE_POS);
+  place('enemyCastleGraphic', COMPUTER_CASTLE_POS);
 }

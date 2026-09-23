@@ -5,16 +5,10 @@ const SOLDIER_HP = 30;
 const STRIKE_MIN_DMG = 4;
 const STRIKE_MAX_DMG = 6;
 const STRIKE_INTERVAL_MS = 1000; // soldiers strike once per second once in range
-// 2D board (see [[project_2d_board_v2]] in memory): opponent-pairing uses a
-// straight-line (x,y) radius, not a pure x gap. This was briefly widened to
-// 10 to compensate for an earlier version where soldiers were pinned to a
-// static lane for life and could otherwise glide past an opponent in a
-// different lane forever -- but now that tick() (combat.js) actively steers
-// every soldier toward its nearest living opponent in both x and y, that
-// gap always closes on its own, so a small "true contact" radius close to
-// the original pre-2D-board value (3) is correct again and looks far more
-// believable than fighting from well across the board.
-const ENGAGE_RANGE = 5;          // % straight-line distance to start fighting
+// All distances below are in board units (see WORLD_W/WORLD_H further down).
+// Melee only starts at real contact distance -- aggro (AGGRO_RANGE) is what
+// makes a soldier walk up to an enemy in the first place.
+const ENGAGE_RANGE = 4;
 const TICK_MS = 250;
 const CORRECT_REWARD = 10;
 const WRONG_PENALTY = 5;
@@ -65,48 +59,58 @@ const POSE_TO_SPRITE_FOLDER = { walking: 'walk', idle: 'idle', attacking: 'attac
 // Castle art: 3 pre-drawn HP-based damage stages per side (assets/castle/<side>/).
 const CASTLE_DAMAGE_STAGES = ['1-intact', '2-damaged', '3-severe'];
 
-// Spawn points sit right at each side's own castle wall, so a new soldier
-// appears to step out of its castle before marching off. Recalculated from
-// the castle graphic's real measured width (see recalcSiegeThresholds in render.js).
-let PLAYER_SPAWN_X = 96;
-let COMPUTER_SPAWN_X = 4;
+// ---------- The board (see [[project_2d_board_v2]] in memory) ----------
+// A flat "3/4 view" board like Warcraft 2 / StarCraft: no camera tilt, the
+// angled look comes from the art itself. Positions live in fixed board
+// units, WORLD_W x WORLD_H, and .battlefield has the same aspect ratio in CSS
+// (style.css), so one unit is the same on-screen length along both axes --
+// straight-line distances (aggro, melee, castle reach) and diagonal movement
+// mean the same thing in every direction. Castles and soldiers are sized in
+// % of the board too, so the whole picture just scales with the window and
+// nothing has to be measured at runtime. A soldier's (x, y) is where its
+// FEET stand, so sorting by y gives correct front/back overlap for free.
+const WORLD_W = 100;
+const WORLD_H = 40;
+const Y_MOVE_MIN = 7;   // keeps a soldier's head on the board at the top edge
+const Y_MOVE_MAX = WORLD_H - 1;
 
-// The board's new second axis ("lane" -- see spawnSoldier() in combat.js): a
-// soldier's y is drawn once at spawn and never changes, so this first pass
-// stays a straight left/right march per soldier, just spread across a 2D
-// board instead of one shared line. Kept well inside 0-100 (not full range)
-// so no one spawns hugging the very top/bottom edge of the tilted board.
-const Y_SPAWN_MIN = 15;
-const Y_SPAWN_MAX = 85;
-// The center row -- used as the implied "castle position" a soldier heads
-// toward on y when no living opponent exists yet to walk toward directly
-// (see tick()'s movement block in combat.js).
-const SOLDIER_Y_CENTER = 50;
-// Soldiers are kept off the very top/bottom edge of the tilted board while
-// moving freely in 2D (see tick() in combat.js) -- narrower than the full
-// 0-100 range so no one visually walks off the edge of the board.
-const Y_MOVE_MIN = 5;
-const Y_MOVE_MAX = 95;
+// Castle base-center points (the bottom middle of each tower's artwork).
+// A soldier within CASTLE_REACH of the enemy castle's point can besiege it.
+const PLAYER_CASTLE_POS = { x: 93, y: 27 };
+const COMPUTER_CASTLE_POS = { x: 7, y: 27 };
+const CASTLE_REACH = 7;
 
-// Siege thresholds: soldiers stop and attack once they cross these. They
-// are recalculated from the castle graphic's real measured width (see
-// recalcSiegeThresholds in render.js) so a soldier always stops right at the
-// castle's outer wall instead of marching on top of it and covering the artwork.
-let PLAYER_SIEGE_X = 10;         // player soldier at/below this damages the enemy castle
-let COMPUTER_SIEGE_X = 90;       // computer soldier at/above this damages the player castle
+// Player soldiers appear in a loose cluster in front of their own castle
+// and just stand there until given an order (see commands.js).
+const PLAYER_RALLY = { x: 84, y: 27 };
+const RALLY_JITTER = 5;
 
-// The castle graphic is a fixed pixel width on every device, but the
-// battlefield's pixel width varies a lot (a phone's is much narrower than a
-// desktop's) -- so that same castle eats a much bigger *percentage* of a
-// phone's track than a desktop's. If soldier speed were a fixed percentage
-// per tick, that alone would make the march from spawn to siege noticeably
-// faster on a phone than on a desktop: same settings, different game. So
-// instead, recalcSiegeThresholds() derives SOLDIER_SPEED from the actual
-// measured march distance so it always takes MARCH_SECONDS to cross,
-// regardless of device. The value here is just a placeholder until the
-// first recalc runs.
-const MARCH_SECONDS = 42;
-let SOLDIER_SPEED = 0.5; // % of track per tick
+// A soldier walks toward any enemy this close (even mid-order -- it resumes
+// the order once that fight is over), and soldiers standing closer than
+// SEPARATION_DIST get nudged apart so a group never collapses into one sprite.
+const AGGRO_RANGE = 14;
+const SEPARATION_DIST = 2.5;
+
+// Enemy AI (see tickEnemyAI() in combat.js):
+// - Guards: exist from the first second, stand at fixed posts in front of
+//   the enemy castle, chase intruders but never beyond GUARD_LEASH from
+//   their post, and are never replaced once killed.
+// - Raiders: new enemy soldiers (DIFFICULTY_SPAWN_INTERVALS_MS below) gather
+//   at ENEMY_RALLY until a randomly sized squad (ENEMY_SQUAD_MIN-MAX) is
+//   complete, then all march on the player's castle together.
+const ENEMY_GUARD_POSTS = [{ x: 18, y: 15 }, { x: 20, y: 26 }, { x: 18, y: 36 }];
+const GUARD_LEASH = 22;
+const ENEMY_RALLY = { x: 12, y: 35 };
+const ENEMY_SQUAD_MIN = 1;
+const ENEMY_SQUAD_MAX = 3;
+
+// Most living soldiers either side may have on the board at once (corpses
+// don't count). Stops "buy 1000 soldiers" play; the enemy's guards count
+// toward its cap, and it simply skips a spawn while at the cap.
+const MAX_SOLDIERS_PER_SIDE = 12;
+
+// Board units per tick. ~0.6 crosses the board in about half a minute.
+const SOLDIER_SPEED = 0.6;
 
 // How often the computer spawns a soldier, per difficulty (index matches
 // DIFFICULTIES below): לימוד - ללא אויב, לאט מאוד, לאט, בינוני, מהר, מהר מאוד.
@@ -116,10 +120,6 @@ let SOLDIER_SPEED = 0.5; // % of track per tick
 // by buySoldier()/updateCoinsDisplay() to also block buying soldiers, since a
 // side with no enemy to fight has no need for its own army either).
 const DIFFICULTY_SPAWN_INTERVALS_MS = [null, 40000, 30000, 20000, 15000, 10000];
-
-// Every second of marching, a soldier has this chance to pause for that second
-const HALT_CHANCE = 0.15;
-const HALT_CHECK_INTERVAL_MS = 1000;
 
 // Difficulty is picked on the home screen and carried over into every
 // subsequent game (including instant "play again") until the player
@@ -922,6 +922,8 @@ let gameOver = false;
 let intervalId = null;
 let animIntervalId = null;
 let enemySpawnTimer = 0;
+let enemySquadSize = ENEMY_SQUAD_MIN; // size the currently-gathering raider squad must reach before it attacks
+let selectedIds = new Set();          // ids of the player's currently selected soldiers (see commands.js)
 let swapTimeoutId = null;
 let battleElapsedMs = 0;
 
