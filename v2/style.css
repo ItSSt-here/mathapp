@@ -2049,6 +2049,24 @@ hr {
   margin-top: 10px;
 }
 .pvp-countdown:empty { display: none; }
+.pvp-pause-banner {
+  display: none;
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  background: rgba(20, 20, 40, 0.88);
+  color: #fff;
+  font-size: 16px;
+  font-weight: bold;
+  padding: 10px 18px;
+  border-radius: 12px;
+  text-align: center;
+  white-space: nowrap;
+}
+.pvp-pause-banner.show { display: flex; align-items: center; gap: 12px; }
+.pvp-pause-banner .restart-btn { font-size: 15px; padding: 6px 14px; }
 .pvp-lobby-card.side-player   .overlay-title { color: #2f8fff; }
 .pvp-lobby-card.side-computer .overlay-title { color: #ff3b30; }
 @media (max-width: 600px) {

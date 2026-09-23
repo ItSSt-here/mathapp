@@ -93,8 +93,16 @@ function ownLivingSoldier(side, id) {
   return soldiers.find(s => s.id === id && s.side === side && !s.dying);
 }
 
-// Everything the local player does to the battle goes through here.
+// Everything the local player does to the battle goes through here. In PvP
+// (sync.js) the guest sends it to the host's browser, and the host applies
+// its own after the same delay the guest's commands suffer. Surrender is
+// the exception -- it's decided on the spot, even if the host is gone.
 function issueCommand(cmd) {
+  if (matchMode === 'pvp' && cmd.type !== 'surrender') {
+    if (isPvpHost()) setTimeout(() => applyCommand(localSide, cmd), hostCommandDelayMs());
+    else roomSession.sendCommand(cmd);
+    return;
+  }
   applyCommand(localSide, cmd);
 }
 
@@ -144,8 +152,13 @@ function applyCommand(side, cmd) {
 }
 
 // The battle is decided (a castle fell, or a side surrendered). This
-// browser shows a win or a loss depending on which team it plays.
+// browser shows a win or a loss depending on which team it plays -- in PvP
+// once the result is recorded in the room, so both screens agree (sync.js).
 function finishMatch(winnerSide, surrendered) {
+  if (matchMode === 'pvp') {
+    reportPvpResult(winnerSide, surrendered, false);
+    return;
+  }
   endGame(winnerSide === localSide, surrendered);
 }
 

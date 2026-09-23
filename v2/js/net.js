@@ -22,9 +22,13 @@
 //       player/   {topic, level, review, soldierCost, correctReward,
 //                  mineBonus, wrongPenalty, swapAllowed, swapCost}   (blue)
 //       computer/ { ...same... }                                      (red)
+//       host      'player' | 'computer' -- whose browser runs the battle
 //     seats/<side>/ {uid, online, ready}  -- the lobby (joinRoom() below)
 //     startAt          server timestamp, written once when both are ready;
 //                      both browsers start the match PVP_COUNTDOWN_MS after it
+//     cmds/<side>/<pushId>  {c: command JSON, t: sent at}  guest -> host
+//     state            the whole battle as a JSON string     host -> guest
+//     result           {winner, surrendered, forfeit}        written once
 
 const FIREBASE_SDK_VERSION = '12.19.0';
 const FIREBASE_CONFIG = {
@@ -87,14 +91,16 @@ function newRoomId() {
   return Array.from(bytes, b => alphabet[b % alphabet.length]).join('');
 }
 
-// Teacher: stores the match settings as a new room, returns its id.
+// Teacher: stores the match settings as a new room, returns its id. Also
+// draws which team's browser will host the battle (config.host, see
+// sync.js) -- at random, so neither color is always the one without lag.
 async function createRoom(config) {
   const db = await connectFirebase();
   const roomId = newRoomId();
   await db.ref(`rooms/${roomId}`).set({
     createdAt: firebase.database.ServerValue.TIMESTAMP,
     createdBy: firebase.auth().currentUser.uid,
-    config
+    config: { ...config, host: Math.random() < 0.5 ? 'player' : 'computer' }
   });
   return roomId;
 }
@@ -124,9 +130,9 @@ function serverNow() {
 }
 
 // Joins `team`'s seat in the room and keeps it (re-claimed after every
-// reconnect). onRoom(room) is called with the whole room snapshot on every
-// change. Resolves to an object with setReady()/requestStart(); rejects with
-// code 'SEAT_TAKEN' if someone else is online in that seat.
+// reconnect). onRoom({seats, startAt}) is called on every change to either.
+// Resolves to this browser's handle on the room (lobby + match channels);
+// rejects with code 'SEAT_TAKEN' if someone else is online in that seat.
 async function joinRoom(roomId, team, onRoom) {
   const db = await connectFirebase();
   const uid = firebase.auth().currentUser.uid;
@@ -158,11 +164,44 @@ async function joinRoom(roomId, team, onRoom) {
     claim().catch(err => console.error('re-claiming seat failed', err));
   });
 
-  roomRef.on('value', snap => onRoom(snap.val()));
+  // Only the small lobby nodes are watched here -- not the whole room, whose
+  // `state` changes 4 times a second during the match.
+  const room = { seats: null, startAt: null };
+  roomRef.child('seats').on('value', snap => { room.seats = snap.val() || {}; onRoom(room); });
+  roomRef.child('startAt').on('value', snap => { room.startAt = snap.val(); onRoom(room); });
 
   return {
     uid,
     setReady: ready => seatRef.update({ ready }),
+
+    // ---------- During the match (see sync.js) ----------
+    // Guest -> host: every command is pushed as its own child. Push keys
+    // sort in creation order, so the host can resume after the last one it
+    // handled (afterKey) when it reloads mid-match. The command travels as
+    // a JSON string with the (server-clock) moment it was sent, which the
+    // host uses to measure the guest's lag.
+    sendCommand: cmd => roomRef.child(`cmds/${team}`).push({ c: JSON.stringify(cmd), t: serverNow() }),
+    listenCommands: (side, afterKey, onCmd) => {
+      let q = roomRef.child(`cmds/${side}`).orderByKey();
+      if (afterKey) q = q.startAfter(afterKey);
+      q.on('child_added', snap => {
+        const v = snap.val();
+        onCmd(snap.key, JSON.parse(v.c), v.t);
+      });
+    },
+    // Host -> guest: the whole battle as one JSON string (encodeState(),
+    // sync.js), overwritten every tick.
+    publishState: json => roomRef.child('state').set(json).catch(err => console.error('publishing state failed', err)),
+    fetchState: async () => (await roomRef.child('state').get()).val(),
+    listenState: onState => roomRef.child('state').on('value', snap => { if (snap.exists()) onState(snap.val()); }),
+    // The outcome, written exactly once by whichever browser decides it
+    // (same no-local-apply transaction as requestStart, so nobody ends the
+    // game on a result the server didn't keep).
+    writeResult: result => roomRef.child('result')
+      .transaction(cur => (cur == null ? result : undefined), null, false)
+      .catch(err => console.error('writing the result failed', err)),
+    fetchResult: async () => (await roomRef.child('result').get()).val(),
+    listenResult: onResult => roomRef.child('result').on('value', snap => { if (snap.exists()) onResult(snap.val()); }),
     // Both are ready: fix the start moment. Both browsers may try at once,
     // so it's a transaction that only writes while startAt is still empty.
     // applyLocally=false matters: a plain set() shows up in this browser's

@@ -268,7 +268,8 @@ function endGame(playerWon, surrendered) {
   clearInterval(animIntervalId);
   const overlay = document.getElementById('overlay');
   const title = document.getElementById('overlayTitle');
-  title.textContent = playerWon ? '🏆 ניצחת!' : '💥 הפסדת';
+  // Winning with surrendered set only happens in PvP: the other student gave up.
+  title.textContent = playerWon ? (surrendered ? '🏆 ניצחת! (היריב נכנע)' : '🏆 ניצחת!') : '💥 הפסדת';
   title.className = playerWon ? 'overlay-title win' : 'overlay-title lose';
   document.getElementById('overlayLevelInfo').textContent = formatLevelInfo();
   document.getElementById('overlayBattleTime').textContent = `משך הקרב: ${formatDuration(battleElapsedMs)}`;

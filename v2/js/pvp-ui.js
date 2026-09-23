@@ -179,10 +179,8 @@ let matchConfig = null; // the room's {player, computer} settings once loaded
 let roomSession = null; // joinRoom()'s handle while in a room
 let pvpCountdownTimer = null;
 let pvpStarted = false;
+let pvpRejoining = false;
 const PVP_COUNTDOWN_MS = 3000;
-// A room whose start was longer ago than this is a match already under
-// way (e.g. the page was refreshed mid-game) -- rejoining one comes later.
-const PVP_LATE_JOIN_MS = 10000;
 
 async function openPvpLobby(params) {
   const team = URL_SIDE_TO_TEAM[params.get(URL_PARAM_SIDE)];
@@ -239,8 +237,11 @@ async function openPvpLobby(params) {
 // Every change in the room (either student connecting, leaving, getting
 // ready, or the start moment being set) redraws the lobby from scratch.
 function onRoomUpdate(room) {
-  if (!room || pvpStarted) return;
   const seats = room.seats || {};
+  if (pvpStarted) {
+    updatePvpPresence(seats); // sync.js: pause while the opponent is away
+    return;
+  }
   for (const team of ['player', 'computer']) {
     const seat = seats[team];
     const mine = team === localSide;
@@ -259,16 +260,29 @@ function onRoomUpdate(room) {
 
   const bothReady = ['player', 'computer'].every(t => seats[t] && seats[t].online && seats[t].ready);
   if (room.startAt) {
-    if (serverNow() - room.startAt > PVP_LATE_JOIN_MS) {
-      document.getElementById('pvpLobbyTitle').textContent = 'המשחק כבר התחיל';
-      document.getElementById('pvpLobbyInfo').textContent = 'אי אפשר עדיין להצטרף באמצע משחק.';
-      readyBtn.style.display = 'none';
-      return;
-    }
-    startPvpCountdown(room.startAt + PVP_COUNTDOWN_MS);
+    const startMs = room.startAt + PVP_COUNTDOWN_MS;
+    if (serverNow() < startMs) startPvpCountdown(startMs);
+    else rejoinPvpMatch(); // opened (or refreshed) after the match began
   } else if (bothReady) {
     roomSession.requestStart();
   }
+}
+
+// Back into a match already under way: a finished one just shows that;
+// otherwise the guest starts drawing the host's states again, and the host
+// picks the battle up from its last published state.
+async function rejoinPvpMatch() {
+  if (pvpRejoining) return;
+  pvpRejoining = true;
+  document.getElementById('pvpReadyBtn').style.display = 'none';
+  document.getElementById('pvpLobbyTitle').textContent = 'חוזר למשחק...';
+  if (await roomSession.fetchResult()) {
+    document.getElementById('pvpLobbyTitle').textContent = 'המשחק הזה כבר הסתיים';
+    document.getElementById('pvpLobbyInfo').textContent = 'לשחק שוב? בקשו מהמורה משחק חדש.';
+    for (const t of ['player', 'computer']) document.getElementById(`pvpSeat-${t}`).textContent = '';
+    return;
+  }
+  beginPvpMatch(isPvpHost() ? await roomSession.fetchState() : null);
 }
 
 // Counts down to the shared start moment (server clock), then starts.
@@ -280,9 +294,7 @@ function startPvpCountdown(startServerMs) {
     const left = startServerMs - serverNow();
     if (left <= 0) {
       clearInterval(pvpCountdownTimer);
-      pvpStarted = true;
-      document.getElementById('pvpLobbyOverlay').classList.remove('show');
-      startGame();
+      beginPvpMatch(null); // sync.js
       return;
     }
     el.textContent = String(Math.ceil(left / 1000));

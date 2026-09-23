@@ -396,7 +396,8 @@ function separateSoldiers(living) {
 }
 
 function tick() {
-  if (gameOver) return;
+  // matchPaused: a PvP opponent dropped out, the battle waits (sync.js).
+  if (gameOver || matchPaused) return;
 
   battleElapsedMs += TICK_MS;
   if (matchMode === 'computer') tickEnemyAI();
@@ -477,6 +478,7 @@ function tick() {
   }
 
   render();
+  if (isPvpHost()) publishPvpState(); // the guest's browser draws this (sync.js)
 
   if (computerCastleHP <= 0) {
     finishMatch('player');

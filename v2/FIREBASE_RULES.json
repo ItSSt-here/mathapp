@@ -18,6 +18,22 @@
         "startAt": {
           ".write": "auth != null && !data.exists() && data.parent().child('seats/player/ready').val() === true && data.parent().child('seats/computer/ready').val() === true",
           ".validate": "newData.isNumber() && newData.val() > now - 10000 && newData.val() < now + 10000"
+        },
+        "cmds": {
+          "$side": {
+            "$cmd": {
+              ".write": "auth != null && !data.exists() && root.child('rooms').child($room).child('seats').child($side).child('uid').val() === auth.uid",
+              ".validate": "newData.child('c').isString() && newData.child('c').val().length < 4000 && newData.child('t').isNumber()"
+            }
+          }
+        },
+        "state": {
+          ".write": "auth != null && root.child('rooms').child($room).child('seats').child(root.child('rooms').child($room).child('config/host').val()).child('uid').val() === auth.uid",
+          ".validate": "newData.isString() && newData.val().length < 100000"
+        },
+        "result": {
+          ".write": "auth != null && !data.exists() && (root.child('rooms').child($room).child('seats/player/uid').val() === auth.uid || root.child('rooms').child($room).child('seats/computer/uid').val() === auth.uid)",
+          ".validate": "newData.child('winner').val() === 'player' || newData.child('winner').val() === 'computer'"
         }
       }
     }
