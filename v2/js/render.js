@@ -105,16 +105,30 @@ function render() {
 // A neutral mine has a dark entrance and no flag; an owned one lights up,
 // flies a flag in its owner's color and sits on a colored patch of ground.
 // While a side is capturing it, a ring above it fills in that side's color.
+// Fog of war: all of that shows only while the player currently sees the
+// mine (a mine they hold always counts as seen -- it gives sight, see
+// MINE_SIGHT). Otherwise it looks like a plain mine, whoever holds it.
+function mineVisibleState(m, sight) {
+  const seen = m.owner === 'player' || isSeenByPlayer(m.x, m.y - 3, sight);
+  return {
+    seen,
+    owner: seen ? m.owner : null,
+    captureSide: seen ? m.captureSide : null
+  };
+}
+
 function renderMines() {
+  const sight = playerSightCircles();
   for (const m of mines) {
     const el = document.getElementById(`mine${m.id}`);
     if (!el) continue;
+    const v = mineVisibleState(m, sight);
     const cls = 'mine'
-      + (m.owner ? ` owner-${m.owner}` : '')
-      + (m.captureSide ? ` capturing capturing-${m.captureSide}` : '');
+      + (v.owner ? ` owner-${v.owner}` : '')
+      + (v.captureSide ? ` capturing capturing-${v.captureSide}` : '');
     if (el.className !== cls) el.className = cls;
     const img = el.firstChild;
-    const src = `assets/buildings/mine-${m.owner ? 'active' : 'inactive'}.png`;
+    const src = `assets/buildings/mine-${v.owner ? 'active' : 'inactive'}.png`;
     if (!img.src.endsWith(src)) img.src = src;
     el.style.setProperty('--capture', (m.captureMs / MINE_CAPTURE_MS).toFixed(3));
   }
@@ -161,12 +175,15 @@ function renderMinimap() {
   }
   ctx.drawImage(minimapFogCanvas, 0, 0);
 
-  // Gold mines: gold squares, bordered in the owner's color (white if neutral).
+  // Gold mines: gold squares, bordered in the owner's color, white if seen
+  // and neutral, gray if not currently seen (owner unknown -- fog of war).
   for (const m of mines) {
+    const v = mineVisibleState(m, sight);
     ctx.fillStyle = '#f2c230';
     ctx.fillRect(m.x * sx - 3.5, (m.y - 3) * sx - 3.5, 7, 7);
-    ctx.strokeStyle = m.owner === 'player' ? MINIMAP_COLORS.player
-      : (m.owner === 'computer' ? MINIMAP_COLORS.enemy : '#ffffff');
+    ctx.strokeStyle = !v.seen ? '#8a8a8a'
+      : (v.owner === 'player' ? MINIMAP_COLORS.player
+        : (v.owner === 'computer' ? MINIMAP_COLORS.enemy : '#ffffff'));
     ctx.lineWidth = 2;
     ctx.strokeRect(m.x * sx - 3.5, (m.y - 3) * sx - 3.5, 7, 7);
   }
@@ -205,6 +222,9 @@ function renderMinimap() {
 // falls back into fog the moment nobody's near it.
 function playerSightCircles() {
   const circles = [{ x: PLAYER_CASTLE_POS.x, y: PLAYER_CASTLE_POS.y, r: CASTLE_SIGHT }];
+  for (const m of mines) {
+    if (m.owner === 'player') circles.push({ x: m.x, y: m.y - 3, r: MINE_SIGHT });
+  }
   for (const s of soldiers) {
     if (s.side === 'player' && !s.dying) circles.push({ x: s.x, y: s.y, r: SOLDIER_SIGHT });
   }

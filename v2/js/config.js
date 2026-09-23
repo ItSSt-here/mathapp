@@ -164,13 +164,13 @@ const SCENERY = [
   // top edge
   { art: 'tree', x: 6, y: 7 }, { art: 'tree', x: 21, y: 5 }, { art: 'tree', x: 36, y: 7 },
   { art: 'tree', x: 49, y: 5 }, { art: 'tree', x: 63, y: 8 }, { art: 'tree', x: 80, y: 6 },
-  { art: 'tree', x: 97, y: 8 }, { art: 'tree', x: 114, y: 5 }, { art: 'tree', x: 131, y: 7 },
+  { art: 'tree', x: 114, y: 5 }, { art: 'tree', x: 131, y: 7 },
   { art: 'tree', x: 148, y: 6 }, { art: 'tree', x: 163, y: 8 }, { art: 'tree', x: 179, y: 5 },
   { art: 'tree', x: 194, y: 7 },
   // bottom edge
   { art: 'tree', x: 10, y: 101 }, { art: 'tree', x: 27, y: 102 }, { art: 'tree', x: 42, y: 101 },
-  { art: 'tree', x: 71, y: 102 }, { art: 'tree', x: 88, y: 101 }, { art: 'tree', x: 105, y: 101 },
-  { art: 'tree', x: 122, y: 102 }, { art: 'tree', x: 139, y: 102 }, { art: 'tree', x: 159, y: 101 },
+  { art: 'tree', x: 78, y: 102 }, { art: 'tree', x: 88, y: 101 }, { art: 'tree', x: 105, y: 101 },
+  { art: 'tree', x: 122, y: 102 }, { art: 'tree', x: 150, y: 102 }, { art: 'tree', x: 159, y: 101 },
   { art: 'tree', x: 176, y: 102 }, { art: 'tree', x: 192, y: 101 },
   // small groves in the open areas above and below the road
   { art: 'tree', x: 58, y: 30 }, { art: 'tree', x: 64, y: 33 }, { art: 'tree', x: 140, y: 29 },
@@ -204,12 +204,17 @@ const ENEMY_SQUAD_MAX = 3;
 // around the mine, attack anyone of either side who comes within
 // MINE_GUARD_LEASH of their post, and are never replaced once killed.
 const MINE_SITES = [
-  { x: 100, y: 22, guards: 3 },
-  { x: 62, y: 88, guards: 2 },
-  { x: 138, y: 88, guards: 2 }
+  { x: 100, y: 16, guards: 3 },
+  { x: 62, y: 93, guards: 2 },
+  { x: 138, y: 93, guards: 2 }
 ];
 const MINE_GUARD_OFFSETS = [{ x: -6, y: 4 }, { x: 6, y: 4 }, { x: 0, y: 7 }];
 const MINE_GUARD_LEASH = 12;
+// A mine the player holds lets them see around it, like their castle does
+// (playerSightCircles(), render.js). Any other mine shows its owner, flag
+// and capture ring only while the player currently sees it -- under fog it
+// just looks like a plain mine (renderMines()).
+const MINE_SIGHT = 18;
 const MINE_RANGE = 8;
 const MINE_CAPTURE_MS = 3000;
 const MINE_BONUS = 3;
