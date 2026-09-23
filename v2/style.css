@@ -1269,6 +1269,10 @@ hr {
      config.js) -- normal scrollbars pan it, as do the number-pad arrows and
      the minimap (commands.js). */
   overflow: auto;
+  /* Seals the board's own depth sorting (castles/scenery/soldiers use
+     z-index = y*10, fog 50000, selection box 100000) inside the board, so
+     none of it can rise above the minimap sitting over it. */
+  isolation: isolate;
   border: 3px solid #5a9440;
   box-shadow: inset 0 4px 10px rgba(0,0,0,0.15);
   user-select: none;
