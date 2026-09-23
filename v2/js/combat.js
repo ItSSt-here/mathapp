@@ -74,7 +74,7 @@ function buySoldier() {
   playerMoney -= SOLDIER_COST;
   updateCoinsDisplay();
   spawnSoldier('player', 'player',
-    PLAYER_RALLY.x + jitter(RALLY_JITTER), PLAYER_RALLY.y + jitter(RALLY_JITTER * 1.6));
+    PLAYER_RALLY.x + jitter(RALLY_JITTER.x), PLAYER_RALLY.y + jitter(RALLY_JITTER.y));
 }
 
 // Enemy spawning + squad logic: new raiders gather at their own spot near

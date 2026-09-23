@@ -71,10 +71,10 @@ const SOLDIER_ANIMS = {
 const DEATH_HOLD_FRAME = 9;
 const DEATH_SINK_MS = 500;
 
-// Castle art: Tiny Swords' castle per team color (assets/buildings, see its
+// Castle art: Tiny Swords' tower per team color (assets/buildings, see its
 // CREDITS.txt). Damage is shown with animated fires on top (render.js):
 // one fire at or below CASTLE_FIRE_1_PCT of max HP, three at or below
-// CASTLE_FIRE_2_PCT, and the ruined castle image once HP reaches 0.
+// CASTLE_FIRE_2_PCT, and the ruined tower image once HP reaches 0.
 const CASTLE_FIRE_1_PCT = 50;
 const CASTLE_FIRE_2_PCT = 15;
 
@@ -100,22 +100,26 @@ const Y_MOVE_MIN = 7;   // keeps a soldier's head on the board at the top edge
 const Y_MOVE_MAX = WORLD_H - 1;
 
 // Castle base-center points (the bottom middle of each castle's artwork,
-// where its gate meets the ground). The castle is drawn at the same pixel
-// scale as the soldiers (320px art vs their 192px frames = 18.3 units wide).
+// where it meets the ground). Each side's "castle" is Tiny Swords' round
+// tower, drawn 1.3x the soldiers' pixel scale so it reads as the main
+// building (128px art -> 9.5 units wide, see .castle-graphic in style.css).
 // Its ground footprint -- used for "is a soldier close enough to besiege
 // it" -- is a box CASTLE_HALF_W to each side of that point and CASTLE_DEPTH
 // deep going up the board from it; a soldier within CASTLE_REACH of that box
 // can besiege (castleDistance() in combat.js).
-const PLAYER_CASTLE_POS = { x: WORLD_W - 12, y: 26 };
-const COMPUTER_CASTLE_POS = { x: 12, y: 26 };
-const CASTLE_HALF_W = 8.4;
-const CASTLE_DEPTH = 6;
+const PLAYER_CASTLE_POS = { x: WORLD_W - 8, y: 26 };
+const COMPUTER_CASTLE_POS = { x: 8, y: 26 };
+const CASTLE_HALF_W = 4.2;
+const CASTLE_DEPTH = 5;
 const CASTLE_REACH = 3;
 
-// Player soldiers appear in a loose cluster in front of their own castle
-// and just stand there until given an order (see commands.js).
-const PLAYER_RALLY = { x: WORLD_W - 28, y: 27 };
-const RALLY_JITTER = 5;
+// Player soldiers appear in a small cluster right at their own tower's gate
+// (always a little below the tower's base line, so they're drawn in front
+// of it rather than hidden behind it) and just stand there until given an
+// order (see commands.js). RALLY_JITTER is the random spread around that
+// point, in board units.
+const PLAYER_RALLY = { x: WORLD_W - 10, y: 29.5 };
+const RALLY_JITTER = { x: 3, y: 2.5 };
 
 // A soldier walks toward any enemy this close (even mid-order -- it resumes
 // the order once that fight is over), and soldiers standing closer than
@@ -130,7 +134,7 @@ const SEPARATION_DIST = 2.5;
 // - Raiders: new enemy soldiers (DIFFICULTY_SPAWN_INTERVALS_MS below) gather
 //   at ENEMY_RALLY until a randomly sized squad (ENEMY_SQUAD_MIN-MAX) is
 //   complete, then all march on the player's castle together.
-const ENEMY_GUARD_POSTS = [{ x: 28, y: 14 }, { x: 30, y: 25 }, { x: 28, y: 35 }];
+const ENEMY_GUARD_POSTS = [{ x: 22, y: 14 }, { x: 24, y: 25 }, { x: 22, y: 35 }];
 const GUARD_LEASH = 22;
 const ENEMY_RALLY = { x: 14, y: 35 };
 

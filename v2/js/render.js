@@ -1,8 +1,8 @@
 // ---------- Rendering: castles, soldiers, and battlefield geometry ----------
 // Team-colored castle while standing, the shared ruin once HP hits 0.
 function castleImageSrc(side, hp) {
-  if (hp <= 0) return 'assets/buildings/castle-destroyed.png';
-  return `assets/buildings/castle-${side === 'player' ? 'blue' : 'red'}.png`;
+  if (hp <= 0) return 'assets/buildings/tower-destroyed.png';
+  return `assets/buildings/tower-${side === 'player' ? 'blue' : 'red'}.png`;
 }
 
 // How many of a castle's fires are burning (see CASTLE_FIRE_*_PCT, config.js).
@@ -30,8 +30,8 @@ function renderCastle(graphicId, imgId, side, hp) {
 // warms up soldier frames, so the first fire or the ruin never flickers in.
 function preloadCastleSprites() {
   const container = document.getElementById('spritePreload');
-  for (const src of ['assets/buildings/castle-blue.png', 'assets/buildings/castle-red.png',
-                     'assets/buildings/castle-destroyed.png', 'assets/effects/fire.png']) {
+  for (const src of ['assets/buildings/tower-blue.png', 'assets/buildings/tower-red.png',
+                     'assets/buildings/tower-destroyed.png', 'assets/effects/fire.png']) {
     const img = document.createElement('img');
     img.src = src;
     container.appendChild(img);
