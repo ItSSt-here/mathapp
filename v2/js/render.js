@@ -120,6 +120,7 @@ function renderSoldiers() {
     const sideClass = s.side === 'player' ? 'player' : 'enemy';
     refs.wrap.className = `soldier ${sideClass} ${s.pose}`;
     refs.wrap.style.left = `${s.x}%`;
+    refs.wrap.style.top = `${s.y}%`;
 
     // The fade-out is recomputed from the death timer on every render rather
     // than played as a CSS animation, since it needs to survive this element
@@ -164,7 +165,7 @@ function recalcSiegeThresholds() {
   const castleWidth = document.getElementById('playerCastleGraphic').getBoundingClientRect().width;
   if (battlefieldWidth <= 0 || castleWidth <= 0) return;
 
-  const soldierHalfWidth = 25; // soldier is 50px wide, centered on its x position
+  const soldierHalfWidth = 35; // soldier is 70px wide (style.css .soldier), centered on its x position
   const castleInset = 2;
   const bufferPercent = ((castleWidth + castleInset + soldierHalfWidth) / battlefieldWidth) * 100
     + SOLDIER_SPEED; // extra margin so a soldier's one-step overshoot never lands inside the castle

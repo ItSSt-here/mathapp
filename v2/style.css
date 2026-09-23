@@ -1262,7 +1262,7 @@ hr {
   direction: ltr;
   position: relative;
   flex: 1;
-  height: 140px;
+  height: 260px;
   margin: 0;
   background-image: url('assets/background/sky-mountains.png');
   background-size: cover;
@@ -1271,20 +1271,43 @@ hr {
   overflow: hidden;
   border: 3px solid #5a9440;
   box-shadow: inset 0 4px 10px rgba(0,0,0,0.15);
+  /* Depth for .battlefield-plane's tilt below -- perspective has to live on
+     the transformed element's *parent*, not the element itself. */
+  perspective: 900px;
 }
 
-/* ---------- Background depth: sprite ground tile + slowly drifting clouds
-   sit behind the castles/soldiers, giving the sky some parallax-style
-   layering for very little cost. ---------- */
-.battlefield-ground {
+/* ---------- The 2D board (see [[project_2d_board_v2]] in memory) ----------
+   Everything that plays out ON the board (ground, castles, soldiers) lives
+   in here and gets tilted back with rotateX, like looking down at a chess
+   board from one edge rather than dead side-on. --board-tilt is read by
+   .castle-graphic/.soldier below to counter-rotate themselves back upright
+   ("billboarding") -- a custom property inherits down the DOM for free, so
+   both share one source of truth for the angle. transform-origin sits at the
+   bottom edge (closest to the viewer) so that edge stays put and the far
+   edge recedes/shrinks into the screen, taller than 100% + shifted up so the
+   foreshortened result still fills the whole viewport with no gap at top. */
+.battlefield-plane {
+  --board-tilt: 55deg;
   position: absolute;
-  bottom: 0;
   left: 0;
   right: 0;
-  height: 34px;
-  background-image: url('assets/background/ground-tile-grass.png');
-  background-size: 128px 34px;
-  background-repeat: repeat-x;
+  top: -55%;
+  height: 180%;
+  transform-style: preserve-3d;
+  transform-origin: 50% 100%;
+  transform: rotateX(var(--board-tilt));
+}
+
+/* Fills the whole tilted plane (not just a baseline strip anymore) with a
+   plain checkerboard -- a deliberate placeholder (see [[project_2d_board_v2]])
+   standing in for real top-down board art later. Chosen over stretching the
+   existing side-view grass-strip art, which was drawn for the old flat
+   camera and would look like repeated dirt cross-sections from above. */
+.battlefield-ground {
+  position: absolute;
+  inset: 0;
+  background-image: repeating-conic-gradient(#7cb84f 0% 25%, #6ea844 0% 50%);
+  background-size: 40px 40px;
 }
 
 .battlefield-clouds {
@@ -1355,9 +1378,16 @@ hr {
    pre-drawn HP-based damage stages; smoke on top is added here in CSS. */
 .castle-graphic {
   position: absolute;
-  bottom: 6px;
+  top: 50%;
   width: 62px;
   height: 104px;
+  /* Billboard (see .battlefield-plane's comment above): counter-rotate by
+     the board's own tilt so the castle stays upright/flat facing the camera
+     instead of tipping back with the ground. translateY(-50%) first (i.e.
+     rightmost/innermost) centers it on the plane vertically in flat,
+     pre-rotation space -- same trick as the usual 2D centering idiom, just
+     evaluated before the billboard rotation is applied on top of it. */
+  transform: rotateX(calc(-1 * var(--board-tilt))) translateY(-50%);
 }
 
 .castle-graphic.enemy { left: 4px; }
@@ -1411,16 +1441,35 @@ hr {
   right: 0;
   bottom: 0;
   left: 0;
+  /* Without this, .soldiers-layer (itself untransformed) falls back to the
+     default transform-style:flat, which flattens each .soldier's own
+     billboard counter-rotation into *this* element's 2D plane before that
+     already-foreshortened result gets projected again through
+     .battlefield-plane's rotateX -- a double foreshortening that squashed
+     soldiers far more than castles (castles sit as .battlefield-plane's
+     direct children, so they only ever go through one rotation). This keeps
+     soldiers in the same true 3D context as their ancestor so the billboard
+     math only cancels the tilt once. See [[project_2d_board_v2]] in memory. */
+  transform-style: preserve-3d;
 }
 
 /* ---------- Soldier figures (sprite-based, see assets/sprites/knight) ---------- */
 .soldier {
   position: absolute;
-  bottom: -6px;
-  width: 50px;
-  height: 62px;
-  transform: translateX(-50%);
-  transition: left 0.2s linear;
+  /* Enlarged ~1.4x from the original 50x62 (2026-09-23) -- at the old size
+     the two teams' colors were hard to tell apart on the tilted board. A
+     first attempt at 1.8x (90x112) actually rendered *taller and wider than
+     the castle tower itself*, which looked scale-broken -- this stays
+     comfortably under the castle's rendered size while still being a clear
+     jump up. Keep render.js's soldierHalfWidth (recalcSiegeThresholds()) in
+     sync with half this width if it changes again. */
+  width: 70px;
+  height: 87px;
+  /* Billboard, same trick/order as .castle-graphic above: translate first
+     (flat space, centers the sprite on its x/y point) then counter-rotate
+     the board's tilt so the sprite itself stays upright facing the camera. */
+  transform: rotateX(calc(-1 * var(--board-tilt))) translate(-50%, -50%);
+  transition: left 0.2s linear, top 0.2s linear;
 }
 
 .soldier-figure {
@@ -1828,7 +1877,14 @@ hr {
 /* Per-soldier HP bar */
 .soldier-hp {
   position: absolute;
-  top: -10px;
+  /* The source art (see assets/sprites/knight/CREDITS.txt) has a lot of
+     built-in headroom -- the figure itself only starts ~16% down its own
+     square frame, and object-fit:contain letterboxes that square into
+     .soldier's taller box on top of that -- so the actual head sits ~20px
+     below .soldier's own top edge at the current 70x87 size. This was
+     tuned for that: ~8px above the real head, not the box. Re-check this
+     if .soldier's size changes again (see its own sizing comment). */
+  top: 12px;
   left: 50%;
   transform: translateX(-50%);
   width: 22px;

@@ -260,21 +260,28 @@
         <div class="cloud cloud-2"></div>
         <div class="cloud cloud-3"></div>
       </div>
-      <div class="battlefield-ground"></div>
 
-      <div class="castle-graphic enemy" id="enemyCastleGraphic">
-        <img class="castle-img" id="enemyCastleImg" alt="">
-        <div class="cg-smoke cg-smoke-1"></div>
-        <div class="cg-smoke cg-smoke-2"></div>
+      <!-- Tilted top-down board (see [[project_2d_board_v2]] in memory): this
+           is the only element that actually rotates -- perspective lives on
+           .battlefield above it, everything that must stay upright/flat
+           (castles, soldiers) counter-rotates back in its own CSS rule. -->
+      <div class="battlefield-plane" id="battlefieldPlane">
+        <div class="battlefield-ground"></div>
+
+        <div class="castle-graphic enemy" id="enemyCastleGraphic">
+          <img class="castle-img" id="enemyCastleImg" alt="">
+          <div class="cg-smoke cg-smoke-1"></div>
+          <div class="cg-smoke cg-smoke-2"></div>
+        </div>
+
+        <div class="castle-graphic player" id="playerCastleGraphic">
+          <img class="castle-img" id="playerCastleImg" alt="">
+          <div class="cg-smoke cg-smoke-1"></div>
+          <div class="cg-smoke cg-smoke-2"></div>
+        </div>
+
+        <div class="soldiers-layer" id="soldiersLayer"></div>
       </div>
-
-      <div class="castle-graphic player" id="playerCastleGraphic">
-        <img class="castle-img" id="playerCastleImg" alt="">
-        <div class="cg-smoke cg-smoke-1"></div>
-        <div class="cg-smoke cg-smoke-2"></div>
-      </div>
-
-      <div class="soldiers-layer" id="soldiersLayer"></div>
     </div>
 
     <div class="castle-block player">

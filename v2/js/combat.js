@@ -25,15 +25,30 @@ function spawnSoldier(side) {
     id: soldierId++,
     side,
     x: spawnX,
+    y: randInt(Y_SPAWN_MIN, Y_SPAWN_MAX),
     hp: SOLDIER_HP,
     atkCooldown: 0,
     haltTimer: HALT_CHECK_INTERVAL_MS,
     halted: false,
     attacking: false,
+    facingDeg: side === 'player' ? 180 : 0, // see tick()'s movement block
     pose: 'walking',
     animPose: 'walking',
     frameIndex: 0
   });
+}
+
+// Nearest living opponent to `s` among `opponents`, by straight-line (x,y)
+// distance, regardless of range -- used to steer movement (see tick()
+// below), as opposed to opponentOf's range-gated pairing used for melee.
+function nearestOpponent(s, opponents) {
+  let closest = null;
+  let closestDist = Infinity;
+  for (const o of opponents) {
+    const d = Math.hypot(s.x - o.x, s.y - o.y);
+    if (d < closestDist) { closestDist = d; closest = o; }
+  }
+  return closest;
 }
 
 function buySoldier() {
@@ -72,7 +87,7 @@ function tick() {
     let closest = null;
     let closestDist = Infinity;
     for (const e of enemies) {
-      const dist = Math.abs(p.x - e.x);
+      const dist = Math.hypot(p.x - e.x, p.y - e.y);
       if (dist < closestDist) {
         closestDist = dist;
         closest = e;
@@ -150,11 +165,25 @@ function tick() {
       }
 
       if (!s.halted) {
-        if (s.side === 'player') {
-          s.x = Math.max(0, s.x - SOLDIER_SPEED);
-        } else {
-          s.x = Math.min(100, s.x + SOLDIER_SPEED);
-        }
+        // 2D board (see [[project_2d_board_v2]] in memory): head straight
+        // for the nearest living opponent anywhere on the board, or -- if
+        // none exist yet -- toward the enemy castle's general position
+        // (its x edge, center row). Direction is snapped to the nearest of
+        // 8 compass steps (45 deg apart) rather than a free angle, both to
+        // keep movement grid-like/predictable and so a future 8-directional
+        // sprite (facingDeg) has a fixed set of angles to key off of.
+        const opponents = s.side === 'player' ? enemies : players;
+        const target = nearestOpponent(s, opponents);
+        const targetX = target ? target.x : (s.side === 'player' ? 0 : 100);
+        const targetY = target ? target.y : SOLDIER_Y_CENTER;
+
+        const angle = Math.atan2(targetY - s.y, targetX - s.x);
+        const step = Math.PI / 4;
+        const snapped = Math.round(angle / step) * step;
+        s.facingDeg = ((Math.round(snapped * 180 / Math.PI) % 360) + 360) % 360;
+
+        s.x = Math.max(0, Math.min(100, s.x + Math.cos(snapped) * SOLDIER_SPEED));
+        s.y = Math.max(Y_MOVE_MIN, Math.min(Y_MOVE_MAX, s.y + Math.sin(snapped) * SOLDIER_SPEED));
       }
     }
   }

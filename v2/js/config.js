@@ -5,7 +5,16 @@ const SOLDIER_HP = 30;
 const STRIKE_MIN_DMG = 4;
 const STRIKE_MAX_DMG = 6;
 const STRIKE_INTERVAL_MS = 1000; // soldiers strike once per second once in range
-const ENGAGE_RANGE = 3;          // % distance to start fighting
+// 2D board (see [[project_2d_board_v2]] in memory): opponent-pairing uses a
+// straight-line (x,y) radius, not a pure x gap. This was briefly widened to
+// 10 to compensate for an earlier version where soldiers were pinned to a
+// static lane for life and could otherwise glide past an opponent in a
+// different lane forever -- but now that tick() (combat.js) actively steers
+// every soldier toward its nearest living opponent in both x and y, that
+// gap always closes on its own, so a small "true contact" radius close to
+// the original pre-2D-board value (3) is correct again and looks far more
+// believable than fighting from well across the board.
+const ENGAGE_RANGE = 5;          // % straight-line distance to start fighting
 const TICK_MS = 250;
 const CORRECT_REWARD = 10;
 const WRONG_PENALTY = 5;
@@ -35,13 +44,21 @@ const WEAK_POOL_SWAP_COUNTDOWN = 2;
 const WEAK_POOL_DRAW_CHANCE = 0.5;
 const WEAK_POOL_MAX_SIZE = 4;
 
-// Soldier sprite animation: each pose has 10 frames (assets/sprites/knight/<color>/<pose>/1..10.png).
+// Soldier sprite animation: each pose has 25 frames
+// (assets/sprites/knight/<color>/<pose>/1..25.png) -- see
+// [[project_2d_board_v2]] in memory for where this AutoSprite "Knight" CC0
+// pack (25-frame walk/idle/run sheets, sliced+recolored offline) came from
+// and its known gaps. Neither 'attack' nor 'dead' has real unique source
+// art: 'attack' reuses the 'run' frames (closer energy to "striking" than
+// idle or walk), 'dead' reuses 'idle' (calmest option to freeze on while the
+// death fade-out, computed separately in render.js, plays). Swap these once
+// real attack/death art exists.
 // Advanced on its own faster interval (see animTick() in combat.js) rather
 // than the TICK_MS combat/movement loop -- some poses have a couple of
 // near-identical "settle" frames, and at TICK_MS's pace those would stretch
 // out long enough to look like the soldier sliding without moving its legs.
 // 'dying' plays once and holds its last frame instead of looping.
-const SPRITE_FRAME_COUNT = 10;
+const SPRITE_FRAME_COUNT = 25;
 const ANIM_TICK_MS = 90;
 const POSE_TO_SPRITE_FOLDER = { walking: 'walk', idle: 'idle', attacking: 'attack', dying: 'dead' };
 
@@ -53,6 +70,23 @@ const CASTLE_DAMAGE_STAGES = ['1-intact', '2-damaged', '3-severe'];
 // the castle graphic's real measured width (see recalcSiegeThresholds in render.js).
 let PLAYER_SPAWN_X = 96;
 let COMPUTER_SPAWN_X = 4;
+
+// The board's new second axis ("lane" -- see spawnSoldier() in combat.js): a
+// soldier's y is drawn once at spawn and never changes, so this first pass
+// stays a straight left/right march per soldier, just spread across a 2D
+// board instead of one shared line. Kept well inside 0-100 (not full range)
+// so no one spawns hugging the very top/bottom edge of the tilted board.
+const Y_SPAWN_MIN = 15;
+const Y_SPAWN_MAX = 85;
+// The center row -- used as the implied "castle position" a soldier heads
+// toward on y when no living opponent exists yet to walk toward directly
+// (see tick()'s movement block in combat.js).
+const SOLDIER_Y_CENTER = 50;
+// Soldiers are kept off the very top/bottom edge of the tilted board while
+// moving freely in 2D (see tick() in combat.js) -- narrower than the full
+// 0-100 range so no one visually walks off the edge of the board.
+const Y_MOVE_MIN = 5;
+const Y_MOVE_MAX = 95;
 
 // Siege thresholds: soldiers stop and attack once they cross these. They
 // are recalculated from the castle graphic's real measured width (see
