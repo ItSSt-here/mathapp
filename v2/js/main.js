@@ -292,7 +292,8 @@ function startGame() {
   document.getElementById('levelInfo').textContent = formatLevelInfo();
   selectedIds.clear();
   hideSelectionBox();
-  placeCastles();
+  placeBoard();
+  document.getElementById('battlefield').scrollLeft = 1e9; // start at the player's own castle (right end)
   setupEnemyForces();
 
   if (swapTimeoutId) clearTimeout(swapTimeoutId);

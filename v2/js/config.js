@@ -62,27 +62,33 @@ const CASTLE_DAMAGE_STAGES = ['1-intact', '2-damaged', '3-severe'];
 // ---------- The board (see [[project_2d_board_v2]] in memory) ----------
 // A flat "3/4 view" board like Warcraft 2 / StarCraft: no camera tilt, the
 // angled look comes from the art itself. Positions live in fixed board
-// units, WORLD_W x WORLD_H, and .battlefield has the same aspect ratio in CSS
-// (style.css), so one unit is the same on-screen length along both axes --
+// units, WORLD_W x WORLD_H, and the board element gets that same aspect
+// ratio (placeBoard() in render.js), so one unit is the same on-screen
+// length along both axes --
 // straight-line distances (aggro, melee, castle reach) and diagonal movement
 // mean the same thing in every direction. Castles and soldiers are sized in
 // % of the board too, so the whole picture just scales with the window and
 // nothing has to be measured at runtime. A soldier's (x, y) is where its
 // FEET stand, so sorting by y gives correct front/back overlap for free.
-const WORLD_W = 100;
+// The board is wider than the screen: VIEW_W units are visible at a time
+// and the rest is reached by scrolling left/right (scrollbar under the
+// board, or the number-pad arrows -- see commands.js). placeBoard()
+// (render.js) sizes the board from these, so they're the only source.
+const WORLD_W = 200;
 const WORLD_H = 40;
+const VIEW_W = 100;
 const Y_MOVE_MIN = 7;   // keeps a soldier's head on the board at the top edge
 const Y_MOVE_MAX = WORLD_H - 1;
 
 // Castle base-center points (the bottom middle of each tower's artwork).
 // A soldier within CASTLE_REACH of the enemy castle's point can besiege it.
-const PLAYER_CASTLE_POS = { x: 93, y: 27 };
+const PLAYER_CASTLE_POS = { x: WORLD_W - 7, y: 27 };
 const COMPUTER_CASTLE_POS = { x: 7, y: 27 };
 const CASTLE_REACH = 7;
 
 // Player soldiers appear in a loose cluster in front of their own castle
 // and just stand there until given an order (see commands.js).
-const PLAYER_RALLY = { x: 84, y: 27 };
+const PLAYER_RALLY = { x: WORLD_W - 16, y: 27 };
 const RALLY_JITTER = 5;
 
 // A soldier walks toward any enemy this close (even mid-order -- it resumes
@@ -104,13 +110,22 @@ const ENEMY_RALLY = { x: 12, y: 35 };
 const ENEMY_SQUAD_MIN = 1;
 const ENEMY_SQUAD_MAX = 3;
 
+// Fog of war (renderFog() in render.js): the board is dimmed everywhere
+// except within sight of the player's castle and living soldiers, and enemy
+// soldiers are only drawn inside that sight. Nothing is remembered -- a spot
+// goes back into fog as soon as nobody sees it anymore. Sight is well past
+// AGGRO_RANGE so an enemy is always seen before soldiers run at it.
+const SOLDIER_SIGHT = 20;
+const CASTLE_SIGHT = 26;
+const FOG_COLOR = 'rgba(12, 18, 32, 0.62)';
+
 // Most living soldiers either side may have on the board at once (corpses
 // don't count). Stops "buy 1000 soldiers" play; the enemy's guards count
 // toward its cap, and it simply skips a spawn while at the cap.
 const MAX_SOLDIERS_PER_SIDE = 12;
 
-// Board units per tick. ~0.6 crosses the board in about half a minute.
-const SOLDIER_SPEED = 0.6;
+// Board units per tick. 0.8 crosses the whole 200-unit board in about a minute.
+const SOLDIER_SPEED = 0.8;
 
 // How often the computer spawns a soldier, per difficulty (index matches
 // DIFFICULTIES below): לימוד - ללא אויב, לאט מאוד, לאט, בינוני, מהר, מהר מאוד.

@@ -190,6 +190,9 @@ function onBoardRightClick(e) {
 }
 
 function onBoardMouseDown(e) {
+  // A press on the horizontal scrollbar targets .battlefield itself (the
+  // board plane is its only child) -- leave that entirely to the browser.
+  if (e.target === e.currentTarget) return;
   // Keeps keyboard focus in the answer box (clicking a non-focusable div
   // would otherwise blur it, and the student would have to click back
   // before typing the next answer) and stops the drag from selecting text.
@@ -202,3 +205,45 @@ function onBoardMouseDown(e) {
 
 document.getElementById('battlefield').addEventListener('mousedown', onBoardMouseDown);
 document.getElementById('battlefield').addEventListener('contextmenu', onBoardRightClick);
+
+// ---------- Keyboard map scrolling: number-pad arrows ----------
+// The number-pad 4/6 keys scroll the board left/right, while the regular
+// arrow keys keep doing what they always did inside the exercise. Only with
+// NumLock OFF: then those keys report e.key 'ArrowLeft'/'ArrowRight' but
+// e.code 'Numpad4'/'Numpad6', which is how they're told apart from the
+// regular arrows. With NumLock ON they're plain digits and are left alone,
+// since kids type answers on the number pad.
+// Scrolls smoothly for as long as the key is held (not in keyboard-repeat
+// jumps). Listens in the capture phase and stops the event there, so the
+// exercise's own arrow-key handlers (main.js) never see these keys at all.
+const KEY_SCROLL_PX_PER_SEC = 700;
+const NUMPAD_SCROLL_DIR = { Numpad4: -1, Numpad6: 1 };
+const heldScrollKeys = new Set();
+let keyScrollLastTime = null;
+
+function keyScrollFrame(now) {
+  if (!heldScrollKeys.size) { keyScrollLastTime = null; return; }
+  const dt = keyScrollLastTime == null ? 16 : now - keyScrollLastTime;
+  keyScrollLastTime = now;
+  let dir = 0;
+  for (const code of heldScrollKeys) dir += NUMPAD_SCROLL_DIR[code];
+  document.getElementById('battlefield').scrollLeft += dir * KEY_SCROLL_PX_PER_SEC * dt / 1000;
+  requestAnimationFrame(keyScrollFrame);
+}
+
+window.addEventListener('keydown', (e) => {
+  if (!(e.code in NUMPAD_SCROLL_DIR)) return;
+  if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return; // NumLock on: a digit
+  e.preventDefault();
+  e.stopPropagation();
+  if (!isBattleInteractive()) return;
+  if (!heldScrollKeys.size) requestAnimationFrame(keyScrollFrame);
+  heldScrollKeys.add(e.code);
+}, true);
+
+window.addEventListener('keyup', (e) => {
+  heldScrollKeys.delete(e.code);
+}, true);
+
+// A key released while the window was in the background never sends keyup.
+window.addEventListener('blur', () => heldScrollKeys.clear());

@@ -1262,12 +1262,15 @@ hr {
   direction: ltr;
   position: relative;
   flex: 1;
-  /* Must match WORLD_W / WORLD_H in config.js -- that's what keeps one board
-     unit the same on-screen length horizontally and vertically. */
-  aspect-ratio: 100 / 40;
+  min-width: 0;
   margin: 0;
   border-radius: 14px;
-  overflow: hidden;
+  /* The board inside is wider than this window onto it (WORLD_W vs VIEW_W,
+     config.js) -- a normal horizontal scrollbar pans it. Height is just the
+     board's own (placeBoard() gives it the world's aspect ratio) plus the
+     scrollbar, so nothing is hidden under the scrollbar. */
+  overflow-x: auto;
+  overflow-y: hidden;
   border: 3px solid #5a9440;
   box-shadow: inset 0 4px 10px rgba(0,0,0,0.15);
   user-select: none;
@@ -1278,8 +1281,11 @@ hr {
    left to the art. Castles, soldiers, the selection box and move markers
    all position themselves in % of this element (render.js / commands.js). */
 .battlefield-plane {
-  position: absolute;
-  inset: 0;
+  position: relative;
+  /* width, aspect-ratio and --world-w are set by placeBoard() (render.js).
+     Children size themselves in board units with
+     calc(100% * <units> / var(--world-w)). */
+  --world-w: 200;
 }
 
 /* Plain checkerboard -- a deliberate placeholder for real board art later. */
@@ -1288,6 +1294,18 @@ hr {
   inset: 0;
   background-image: repeating-conic-gradient(#7cb84f 0% 25%, #6ea844 0% 50%);
   background-size: 40px 40px;
+}
+
+/* Fog of war (renderFog() in render.js): above every castle/soldier (their
+   z-index is y*10, at most ~400) but below the selection box and move
+   markers, which are the player's own UI and should never be fogged. */
+.fog-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 50000;
 }
 
 /* Left-drag selection rectangle (commands.js). */
@@ -1303,7 +1321,7 @@ hr {
 /* Right-click destination marker (commands.js): a ring that shrinks away. */
 .move-marker {
   position: absolute;
-  width: 3%;
+  width: calc(100% * 3 / var(--world-w)); /* 3 board units */
   aspect-ratio: 2 / 1;
   border: 2px solid #3cff5a;
   border-radius: 50%;
@@ -1330,7 +1348,7 @@ hr {
   position: absolute;
   /* left/top are set by placeCastles() (render.js) to the castle's base-
      center point; the translate hangs the artwork up from that point. */
-  width: 9.4%;
+  width: calc(100% * 9.4 / var(--world-w)); /* 9.4 board units */
   aspect-ratio: 326 / 555; /* the tower art's own proportions */
   transform: translate(-50%, -100%);
   pointer-events: none;
@@ -1396,7 +1414,7 @@ hr {
      with it. The visible knight is only about half the frame's height --
      keep commands.js's SOLDIER_HIT_* clickable-area constants roughly
      matching the visible figure if this size changes. */
-  width: 11%;
+  width: calc(100% * 11 / var(--world-w)); /* 11 board units */
   aspect-ratio: 1;
   /* left/top (render.js) are the soldier's FEET, which sit ~73% down the
      source frame -- hang the frame from that point. */

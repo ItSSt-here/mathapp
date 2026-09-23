@@ -78,7 +78,64 @@ function render() {
   document.getElementById('battleTimer').textContent = formatDuration(battleElapsedMs);
 
   renderSoldiers();
+  renderFog();
   updateCoinsDisplay();
+}
+
+// ---------- Fog of war (see SOLDIER_SIGHT etc. in config.js) ----------
+// What the player can currently see: circles around their castle and every
+// living soldier of theirs. Recomputed from scratch each time, so a place
+// falls back into fog the moment nobody's near it.
+function playerSightCircles() {
+  const circles = [{ x: PLAYER_CASTLE_POS.x, y: PLAYER_CASTLE_POS.y, r: CASTLE_SIGHT }];
+  for (const s of soldiers) {
+    if (s.side === 'player' && !s.dying) circles.push({ x: s.x, y: s.y, r: SOLDIER_SIGHT });
+  }
+  return circles;
+}
+
+function isSeenByPlayer(x, y, circles) {
+  return circles.some(c => Math.hypot(x - c.x, y - c.y) <= c.r);
+}
+
+// A <canvas> laid over the whole board: filled with fog, then each sight
+// circle is "erased" out of it with a soft-edged gradient. Canvas rather
+// than DOM elements because erasing overlapping holes out of one layer is
+// exactly what canvas's 'destination-out' mode does, and it's cheap to
+// redraw every frame. Kept at the board's real pixel size (x devicePixelRatio
+// for a sharp edge), resized whenever the board's size changes.
+function renderFog() {
+  const canvas = document.getElementById('fogCanvas');
+  const plane = document.getElementById('battlefieldPlane');
+  const dpr = window.devicePixelRatio || 1;
+  const w = Math.round(plane.clientWidth * dpr);
+  const h = Math.round(plane.clientHeight * dpr);
+  if (!w || !h) return;
+  if (canvas.width !== w || canvas.height !== h) {
+    canvas.width = w;
+    canvas.height = h;
+  }
+
+  const ctx = canvas.getContext('2d');
+  const pxPerUnit = w / WORLD_W; // same vertically: the board keeps the world's aspect ratio
+  ctx.globalCompositeOperation = 'source-over';
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = FOG_COLOR;
+  ctx.fillRect(0, 0, w, h);
+
+  ctx.globalCompositeOperation = 'destination-out';
+  for (const c of playerSightCircles()) {
+    const cx = c.x * pxPerUnit;
+    const cy = c.y * pxPerUnit;
+    const r = c.r * pxPerUnit;
+    const g = ctx.createRadialGradient(cx, cy, r * 0.7, cx, cy, r);
+    g.addColorStop(0, 'rgba(0,0,0,1)');
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
 }
 
 // Persistent per-soldier DOM node cache, keyed by soldier id. render() used
@@ -96,6 +153,7 @@ const soldierElements = new Map();
 function renderSoldiers() {
   const soldiersLayer = document.getElementById('soldiersLayer');
   const liveIds = new Set();
+  const sight = playerSightCircles();
 
   for (const s of soldiers) {
     liveIds.add(s.id);
@@ -125,6 +183,10 @@ function renderSoldiers() {
     refs.wrap.style.top = `${s.y / WORLD_H * 100}%`;
     // Feet further down the board = closer to the viewer = drawn on top.
     refs.wrap.style.zIndex = Math.round(s.y * 10);
+    // Fog of war: enemy soldiers (alive or fallen) only show inside the
+    // player's current sight.
+    const hidden = s.side !== 'player' && !isSeenByPlayer(s.x, s.y, sight);
+    refs.wrap.style.visibility = hidden ? 'hidden' : '';
 
     // The fade-out is recomputed from the death timer on every render rather
     // than played as a CSS animation, since it needs to survive this element
@@ -158,10 +220,18 @@ function renderSoldiers() {
   }
 }
 
-// Puts each castle graphic's base-center on its board position from
-// config.js (PLAYER_CASTLE_POS/COMPUTER_CASTLE_POS), so the art and the
-// siege logic (CASTLE_REACH, combat.js) share one source of truth.
-function placeCastles() {
+// Sizes the board from config.js: WORLD_W/VIEW_W screens wide (the rest is
+// scrolled to), with the world's own aspect ratio so a unit is square.
+// --world-w lets style.css size soldiers/castles/markers in board units.
+// Then puts each castle graphic's base-center on its board position
+// (PLAYER_CASTLE_POS/COMPUTER_CASTLE_POS), so the art and the siege logic
+// (CASTLE_REACH, combat.js) share one source of truth.
+function placeBoard() {
+  const plane = document.getElementById('battlefieldPlane');
+  plane.style.width = `${WORLD_W / VIEW_W * 100}%`;
+  plane.style.aspectRatio = `${WORLD_W} / ${WORLD_H}`;
+  plane.style.setProperty('--world-w', WORLD_W);
+
   const place = (id, pos) => {
     const el = document.getElementById(id);
     el.style.left = `${pos.x / WORLD_W * 100}%`;
