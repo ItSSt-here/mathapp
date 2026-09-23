@@ -1,26 +1,40 @@
 // ---------- Rendering: castles, soldiers, and battlefield geometry ----------
-function castleImageStage(hp, maxHp) {
-  const pct = (hp / maxHp) * 100;
-  if (pct <= 15) return CASTLE_DAMAGE_STAGES[2];
-  if (pct <= 50) return CASTLE_DAMAGE_STAGES[1];
-  return CASTLE_DAMAGE_STAGES[0];
+// Team-colored castle while standing, the shared ruin once HP hits 0.
+function castleImageSrc(side, hp) {
+  if (hp <= 0) return 'assets/buildings/castle-destroyed.png';
+  return `assets/buildings/castle-${side === 'player' ? 'blue' : 'red'}.png`;
 }
 
-function castleImageSrc(side, hp, maxHp) {
-  return `assets/castle/${side}/${castleImageStage(hp, maxHp)}.png`;
+// How many of a castle's fires are burning (see CASTLE_FIRE_*_PCT, config.js).
+function castleFireLevel(hp) {
+  const pct = hp / CASTLE_MAX_HP * 100;
+  if (hp <= 0) return 0; // a ruin doesn't burn
+  if (pct <= CASTLE_FIRE_2_PCT) return 2;
+  if (pct <= CASTLE_FIRE_1_PCT) return 1;
+  return 0;
 }
 
-// Warms up both sides' castle damage-stage art the same way preloadSoldierSprites
-// warms up soldier frames, so switching stages mid-battle never stalls on a
-// first paint.
+// Updates one castle graphic's image and fires, touching the DOM only when
+// something actually changed (this runs on every render).
+function renderCastle(graphicId, imgId, side, hp) {
+  const img = document.getElementById(imgId);
+  const src = castleImageSrc(side, hp);
+  if (!img.src.endsWith(src)) img.src = src;
+  const graphic = document.getElementById(graphicId);
+  const level = castleFireLevel(hp);
+  graphic.classList.toggle('fire-1', level >= 1);
+  graphic.classList.toggle('fire-2', level >= 2);
+}
+
+// Warms up the castle, ruin and fire art the same way preloadSoldierSprites
+// warms up soldier frames, so the first fire or the ruin never flickers in.
 function preloadCastleSprites() {
   const container = document.getElementById('spritePreload');
-  for (const side of ['player', 'enemy']) {
-    for (const stage of CASTLE_DAMAGE_STAGES) {
-      const img = document.createElement('img');
-      img.src = `assets/castle/${side}/${stage}.png`;
-      container.appendChild(img);
-    }
+  for (const src of ['assets/buildings/castle-blue.png', 'assets/buildings/castle-red.png',
+                     'assets/buildings/castle-destroyed.png', 'assets/effects/fire.png']) {
+    const img = document.createElement('img');
+    img.src = src;
+    container.appendChild(img);
   }
 }
 
@@ -73,12 +87,8 @@ function render() {
   document.getElementById('playerHpText').textContent = `${playerCastleHP}/${CASTLE_MAX_HP}`;
   document.getElementById('enemyHpText').textContent = `${computerCastleHP}/${CASTLE_MAX_HP}`;
 
-  document.getElementById('playerCastleImg').src = castleImageSrc('player', playerCastleHP, CASTLE_MAX_HP);
-  document.getElementById('enemyCastleImg').src = castleImageSrc('enemy', computerCastleHP, CASTLE_MAX_HP);
-  document.getElementById('playerCastleGraphic').classList.toggle(
-    'dmg-severe', castleImageStage(playerCastleHP, CASTLE_MAX_HP) === CASTLE_DAMAGE_STAGES[2]);
-  document.getElementById('enemyCastleGraphic').classList.toggle(
-    'dmg-severe', castleImageStage(computerCastleHP, CASTLE_MAX_HP) === CASTLE_DAMAGE_STAGES[2]);
+  renderCastle('playerCastleGraphic', 'playerCastleImg', 'player', playerCastleHP);
+  renderCastle('enemyCastleGraphic', 'enemyCastleImg', 'computer', computerCastleHP);
 
   document.getElementById('battleTimer').textContent = formatDuration(battleElapsedMs);
 
@@ -221,19 +231,34 @@ function renderSoldiers() {
 // --world-w lets style.css size soldiers/castles/markers in board units.
 // Then puts each castle graphic's base-center on its board position
 // (PLAYER_CASTLE_POS/COMPUTER_CASTLE_POS), so the art and the siege logic
-// (CASTLE_REACH, combat.js) share one source of truth.
+// (castleDistance(), combat.js) share one source of truth, and lays out the
+// scenery (SCENERY, config.js) once.
 function placeBoard() {
   const plane = document.getElementById('battlefieldPlane');
   plane.style.width = `${WORLD_W / VIEW_W * 100}%`;
   plane.style.aspectRatio = `${WORLD_W} / ${WORLD_H}`;
   plane.style.setProperty('--world-w', WORLD_W);
 
-  const place = (id, pos) => {
-    const el = document.getElementById(id);
+  const placeAt = (el, pos) => {
     el.style.left = `${pos.x / WORLD_W * 100}%`;
     el.style.top = `${pos.y / WORLD_H * 100}%`;
-    el.style.zIndex = Math.round(pos.y * 10);
+    el.style.zIndex = Math.round(pos.y * 10); // same depth sorting as soldiers
   };
-  place('playerCastleGraphic', PLAYER_CASTLE_POS);
-  place('enemyCastleGraphic', COMPUTER_CASTLE_POS);
+  placeAt(document.getElementById('playerCastleGraphic'), PLAYER_CASTLE_POS);
+  placeAt(document.getElementById('enemyCastleGraphic'), COMPUTER_CASTLE_POS);
+
+  const layer = document.getElementById('sceneryLayer');
+  if (layer.childElementCount) return; // scenery never changes; built on the first game only
+  SCENERY.forEach((item, i) => {
+    const art = SCENERY_ART[item.art];
+    const el = document.createElement('div');
+    el.className = `scenery scenery-${item.art}`;
+    el.style.width = `calc(100% * ${art.w} / var(--world-w))`;
+    el.style.backgroundImage = `url('${art.src}')`;
+    el.style.transform = `translate(-50%, -${art.baseY * 100}%)`;
+    // Swaying trees (4-frame row of a sheet): stagger them so they don't sway in unison.
+    if (art.sheetCols) el.style.animationDelay = `${-(i * 0.37) % 1.2}s`;
+    placeAt(el, item);
+    layer.appendChild(el);
+  });
 }

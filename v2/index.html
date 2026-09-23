@@ -13,7 +13,7 @@
      fetch of everything together instead of relying on cache timing to
      line up. No build step in this project, so this is manual -- there's
      nothing to automate it. -->
-<link rel="stylesheet" href="style.css?v=202609232000">
+<link rel="stylesheet" href="style.css?v=202609232100">
 </head>
 <body>
 
@@ -261,16 +261,22 @@
       <div class="battlefield-plane" id="battlefieldPlane">
         <div class="battlefield-ground"></div>
 
+        <!-- Trees, bushes, rocks: filled in once by placeBoard() (render.js). -->
+        <div class="scenery-layer" id="sceneryLayer"></div>
+
+        <!-- Fires appear as the castle loses HP (renderCastle(), render.js). -->
         <div class="castle-graphic enemy" id="enemyCastleGraphic">
           <img class="castle-img" id="enemyCastleImg" alt="">
-          <div class="cg-smoke cg-smoke-1"></div>
-          <div class="cg-smoke cg-smoke-2"></div>
+          <div class="castle-fire castle-fire-1"></div>
+          <div class="castle-fire castle-fire-2"></div>
+          <div class="castle-fire castle-fire-3"></div>
         </div>
 
         <div class="castle-graphic player" id="playerCastleGraphic">
           <img class="castle-img" id="playerCastleImg" alt="">
-          <div class="cg-smoke cg-smoke-1"></div>
-          <div class="cg-smoke cg-smoke-2"></div>
+          <div class="castle-fire castle-fire-1"></div>
+          <div class="castle-fire castle-fire-2"></div>
+          <div class="castle-fire castle-fire-3"></div>
         </div>
 
         <div class="soldiers-layer" id="soldiersLayer"></div>
@@ -495,27 +501,27 @@
      (see preloadSoldierSprites() in render.js). -->
 <div id="spritePreload" style="position:fixed; left:-9999px; top:-9999px; width:1px; height:1px; overflow:hidden;" aria-hidden="true"></div>
 
-<script src="js/config.js?v=202609232000"></script>
-<script src="js/helpers.js?v=202609232000"></script>
-<script src="js/exercise-core.js?v=202609232000"></script>
-<script src="js/exercise-division.js?v=202609232000"></script>
-<script src="js/exercise-fractions.js?v=202609232000"></script>
-<script src="js/exercise-fraction-arithmetic.js?v=202609232000"></script>
-<script src="js/exercise-addfractions.js?v=202609232000"></script>
-<script src="js/exercise-subtractfractions.js?v=202609232000"></script>
-<script src="js/exercise-mixednumbers.js?v=202609232000"></script>
-<script src="js/exercise-addfractionsadvanced.js?v=202609232000"></script>
-<script src="js/exercise-letters.js?v=202609232000"></script>
-<script src="js/exercise-abc.js?v=202609232000"></script>
-<script src="js/exercise-nikud.js?v=202609232000"></script>
-<script src="js/exercise-compare.js?v=202609232000"></script>
-<script src="js/exercise-vocabulary.js?v=202609232000"></script>
-<script src="js/exercise-grammar.js?v=202609232000"></script>
-<script src="js/exercise-decimals.js?v=202609232000"></script>
-<script src="js/combat.js?v=202609232000"></script>
-<script src="js/render.js?v=202609232000"></script>
-<script src="js/commands.js?v=202609232000"></script>
-<script src="js/main.js?v=202609232000"></script>
+<script src="js/config.js?v=202609232100"></script>
+<script src="js/helpers.js?v=202609232100"></script>
+<script src="js/exercise-core.js?v=202609232100"></script>
+<script src="js/exercise-division.js?v=202609232100"></script>
+<script src="js/exercise-fractions.js?v=202609232100"></script>
+<script src="js/exercise-fraction-arithmetic.js?v=202609232100"></script>
+<script src="js/exercise-addfractions.js?v=202609232100"></script>
+<script src="js/exercise-subtractfractions.js?v=202609232100"></script>
+<script src="js/exercise-mixednumbers.js?v=202609232100"></script>
+<script src="js/exercise-addfractionsadvanced.js?v=202609232100"></script>
+<script src="js/exercise-letters.js?v=202609232100"></script>
+<script src="js/exercise-abc.js?v=202609232100"></script>
+<script src="js/exercise-nikud.js?v=202609232100"></script>
+<script src="js/exercise-compare.js?v=202609232100"></script>
+<script src="js/exercise-vocabulary.js?v=202609232100"></script>
+<script src="js/exercise-grammar.js?v=202609232100"></script>
+<script src="js/exercise-decimals.js?v=202609232100"></script>
+<script src="js/combat.js?v=202609232100"></script>
+<script src="js/render.js?v=202609232100"></script>
+<script src="js/commands.js?v=202609232100"></script>
+<script src="js/main.js?v=202609232100"></script>
 
 </body>
 </html>

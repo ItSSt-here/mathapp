@@ -71,8 +71,12 @@ const SOLDIER_ANIMS = {
 const DEATH_HOLD_FRAME = 9;
 const DEATH_SINK_MS = 500;
 
-// Castle art: 3 pre-drawn HP-based damage stages per side (assets/castle/<side>/).
-const CASTLE_DAMAGE_STAGES = ['1-intact', '2-damaged', '3-severe'];
+// Castle art: Tiny Swords' castle per team color (assets/buildings, see its
+// CREDITS.txt). Damage is shown with animated fires on top (render.js):
+// one fire at or below CASTLE_FIRE_1_PCT of max HP, three at or below
+// CASTLE_FIRE_2_PCT, and the ruined castle image once HP reaches 0.
+const CASTLE_FIRE_1_PCT = 50;
+const CASTLE_FIRE_2_PCT = 15;
 
 // ---------- The board (see [[project_2d_board_v2]] in memory) ----------
 // A flat "3/4 view" board like Warcraft 2 / StarCraft: no camera tilt, the
@@ -95,15 +99,22 @@ const VIEW_W = 100;
 const Y_MOVE_MIN = 7;   // keeps a soldier's head on the board at the top edge
 const Y_MOVE_MAX = WORLD_H - 1;
 
-// Castle base-center points (the bottom middle of each tower's artwork).
-// A soldier within CASTLE_REACH of the enemy castle's point can besiege it.
-const PLAYER_CASTLE_POS = { x: WORLD_W - 7, y: 27 };
-const COMPUTER_CASTLE_POS = { x: 7, y: 27 };
-const CASTLE_REACH = 7;
+// Castle base-center points (the bottom middle of each castle's artwork,
+// where its gate meets the ground). The castle is drawn at the same pixel
+// scale as the soldiers (320px art vs their 192px frames = 18.3 units wide).
+// Its ground footprint -- used for "is a soldier close enough to besiege
+// it" -- is a box CASTLE_HALF_W to each side of that point and CASTLE_DEPTH
+// deep going up the board from it; a soldier within CASTLE_REACH of that box
+// can besiege (castleDistance() in combat.js).
+const PLAYER_CASTLE_POS = { x: WORLD_W - 12, y: 26 };
+const COMPUTER_CASTLE_POS = { x: 12, y: 26 };
+const CASTLE_HALF_W = 8.4;
+const CASTLE_DEPTH = 6;
+const CASTLE_REACH = 3;
 
 // Player soldiers appear in a loose cluster in front of their own castle
 // and just stand there until given an order (see commands.js).
-const PLAYER_RALLY = { x: WORLD_W - 16, y: 27 };
+const PLAYER_RALLY = { x: WORLD_W - 28, y: 27 };
 const RALLY_JITTER = 5;
 
 // A soldier walks toward any enemy this close (even mid-order -- it resumes
@@ -119,9 +130,40 @@ const SEPARATION_DIST = 2.5;
 // - Raiders: new enemy soldiers (DIFFICULTY_SPAWN_INTERVALS_MS below) gather
 //   at ENEMY_RALLY until a randomly sized squad (ENEMY_SQUAD_MIN-MAX) is
 //   complete, then all march on the player's castle together.
-const ENEMY_GUARD_POSTS = [{ x: 18, y: 15 }, { x: 20, y: 26 }, { x: 18, y: 36 }];
+const ENEMY_GUARD_POSTS = [{ x: 28, y: 14 }, { x: 30, y: 25 }, { x: 28, y: 35 }];
 const GUARD_LEASH = 22;
-const ENEMY_RALLY = { x: 12, y: 35 };
+const ENEMY_RALLY = { x: 14, y: 35 };
+
+// Scenery (placeBoard() in render.js): purely decorative, soldiers walk
+// past it. Fixed positions so the map looks the same every game; kept clear
+// of the castles. x/y is where each item touches the ground. Trees line the
+// top and bottom edges; small bushes/rocks/mushrooms/a pumpkin dot the middle.
+// `art` keys into SCENERY_ART: image, width in board units, and how far down
+// its own image the ground point sits (measured from the art).
+const SCENERY_ART = {
+  tree:     { src: 'assets/terrain/tree.png', w: 11, baseY: 0.88, sheetCols: 4, sheetRows: 3 },
+  mushroom: { src: 'assets/terrain/deco-01.png', w: 3.67, baseY: 0.66 },
+  rock1:    { src: 'assets/terrain/deco-04.png', w: 3.67, baseY: 0.56 },
+  rock2:    { src: 'assets/terrain/deco-05.png', w: 3.67, baseY: 0.56 },
+  bush1:    { src: 'assets/terrain/deco-07.png', w: 3.67, baseY: 0.66 },
+  bush2:    { src: 'assets/terrain/deco-08.png', w: 3.67, baseY: 0.66 },
+  bush3:    { src: 'assets/terrain/deco-09.png', w: 3.67, baseY: 0.66 },
+  pumpkin:  { src: 'assets/terrain/deco-13.png', w: 3.67, baseY: 0.84 }
+};
+const SCENERY = [
+  // top edge
+  { art: 'tree', x: 36, y: 7 }, { art: 'tree', x: 49, y: 5 }, { art: 'tree', x: 63, y: 8 },
+  { art: 'tree', x: 80, y: 6 }, { art: 'tree', x: 97, y: 8 }, { art: 'tree', x: 114, y: 5 },
+  { art: 'tree', x: 131, y: 7 }, { art: 'tree', x: 148, y: 6 }, { art: 'tree', x: 163, y: 8 },
+  // bottom edge
+  { art: 'tree', x: 42, y: 41 }, { art: 'tree', x: 71, y: 42 }, { art: 'tree', x: 105, y: 41 },
+  { art: 'tree', x: 139, y: 42 }, { art: 'tree', x: 159, y: 41 },
+  // middle
+  { art: 'bush1', x: 55, y: 18 }, { art: 'bush3', x: 88, y: 31 }, { art: 'rock1', x: 120, y: 15 },
+  { art: 'rock2', x: 146, y: 33 }, { art: 'mushroom', x: 72, y: 24 }, { art: 'pumpkin', x: 101, y: 22 },
+  { art: 'bush2', x: 132, y: 26 }, { art: 'mushroom', x: 44, y: 29 }, { art: 'rock2', x: 60, y: 35 },
+  { art: 'bush1', x: 156, y: 17 }
+];
 const ENEMY_SQUAD_MIN = 1;
 const ENEMY_SQUAD_MAX = 3;
 

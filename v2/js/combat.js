@@ -91,7 +91,8 @@ function tickEnemyAI() {
     // At the cap this spawn is simply skipped (not queued for later).
     if (livingSoldierCount('computer') < MAX_SOLDIERS_PER_SIDE) {
       const home = { x: ENEMY_RALLY.x + jitter(4), y: ENEMY_RALLY.y + jitter(3) };
-      spawnSoldier('computer', 'raider', COMPUTER_CASTLE_POS.x + 4, COMPUTER_CASTLE_POS.y + 2, home);
+      // Steps out of the castle gate (the bottom middle of its art).
+      spawnSoldier('computer', 'raider', COMPUTER_CASTLE_POS.x, COMPUTER_CASTLE_POS.y + 2, home);
     }
   }
 
@@ -141,6 +142,15 @@ function stepToward(s, tx, ty) {
   s.moving = true;
 }
 
+// Straight-line distance from soldier s to the nearest point of a castle's
+// ground footprint (see CASTLE_HALF_W/CASTLE_DEPTH in config.js); 0 if the
+// soldier is standing on it.
+function castleDistance(s, castlePos) {
+  const dx = Math.max(0, Math.abs(s.x - castlePos.x) - CASTLE_HALF_W);
+  const dy = Math.max(0, castlePos.y - CASTLE_DEPTH - s.y, s.y - castlePos.y);
+  return Math.hypot(dx, dy);
+}
+
 // Turns to face a target point and picks which of the 3 attack animations
 // (sideways / up / down) fits the direction it's in.
 function faceTarget(s, tx, ty) {
@@ -156,9 +166,12 @@ function faceTarget(s, tx, ty) {
 
 function besiege(s, castlePos) {
   s.attacking = true;
-  // Aim at the castle wall's middle height rather than its base point,
-  // so soldiers in front of it swing sideways instead of "up".
-  faceTarget(s, castlePos.x, castlePos.y - 6);
+  // Face the nearest point of the castle's footprint: soldiers beside it
+  // swing sideways, soldiers below its front wall swing up at it.
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  faceTarget(s,
+    clamp(s.x, castlePos.x - CASTLE_HALF_W, castlePos.x + CASTLE_HALF_W),
+    clamp(s.y, castlePos.y - CASTLE_DEPTH, castlePos.y));
   if (s.atkCooldown <= 0) {
     const dmg = strikeDamage();
     if (s.side === 'player') {
@@ -189,7 +202,7 @@ function updateSoldier(s, opponents) {
   }
 
   const enemyCastle = s.side === 'player' ? COMPUTER_CASTLE_POS : PLAYER_CASTLE_POS;
-  const atEnemyCastle = Math.hypot(s.x - enemyCastle.x, s.y - enemyCastle.y) <= CASTLE_REACH;
+  const atEnemyCastle = castleDistance(s, enemyCastle) <= CASTLE_REACH;
 
   if (s.order) {
     if (s.order.castle) {

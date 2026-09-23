@@ -1,0 +1,6 @@
+Castle art: "Tiny Swords" by Pixel Frog -- https://pixelfrog-assets.itch.io/tiny-swords
+From the pack's "TS_old version_CC0 Licensed" download (Tiny Swords Update 010), CC0 1.0 (public domain).
+  castle-blue.png      <- Factions/Knights/Buildings/Castle/Castle_Blue.png
+  castle-red.png       <- Factions/Knights/Buildings/Castle/Castle_Red.png
+  castle-destroyed.png <- Factions/Knights/Buildings/Castle/Castle_Destroyed.png
+Fire effect (../effects/fire.png) <- Effects/Fire/Fire.png (7 frames of 128x128).

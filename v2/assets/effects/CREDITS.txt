@@ -1,0 +1,3 @@
+Effects art: "Tiny Swords" by Pixel Frog -- https://pixelfrog-assets.itch.io/tiny-swords
+From the pack's "TS_old version_CC0 Licensed" download (Tiny Swords Update 010), CC0 1.0 (public domain).
+  fire.png <- Effects/Fire/Fire.png (7 frames of 128x128, used for castle damage fires)

@@ -1288,12 +1288,43 @@ hr {
   --world-w: 200;
 }
 
-/* Plain checkerboard -- a deliberate placeholder for real board art later. */
+/* Grass: one seamless 64px tile from Tiny Swords' flat-ground tilemap
+   (assets/terrain, see its CREDITS.txt), repeated at the same pixel scale
+   as the soldiers (64px = 11/3 board units, since a 192px soldier frame is
+   11 units). */
 .battlefield-ground {
   position: absolute;
   inset: 0;
-  background-image: repeating-conic-gradient(#7cb84f 0% 25%, #6ea844 0% 50%);
-  background-size: 40px 40px;
+  background-color: #7fae4a;
+  background-image: url('assets/terrain/grass.png');
+  background-size: calc(100% * 11 / 3 / var(--world-w)) auto;
+}
+
+/* Scenery (placeBoard() in render.js): like .soldiers-layer, no z-index or
+   transform here, so each item's own depth z-index competes directly with
+   the castles' and soldiers'. Width/position/transform are set per item. */
+.scenery-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.scenery {
+  position: absolute;
+  aspect-ratio: 1;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+}
+
+/* Trees: first row of a 4x3 sheet of 192px frames is a 4-frame sway. */
+.scenery-tree {
+  background-size: 400% 300%;
+  animation: treeSway 1.2s steps(4, jump-none) infinite;
+}
+
+@keyframes treeSway {
+  from { background-position: 0% 0%; }
+  to   { background-position: 100% 0%; }
 }
 
 /* Fog of war (renderFog() in render.js): above every castle/soldier (their
@@ -1337,20 +1368,17 @@ hr {
   to   { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
 }
 
-/* ---------- Castle graphic (sits right at the edge of the track) ----------
-   Sprite art: CraftPix "Free Castle 2D Game Assets" (craftpix.net), used
-   under their free-asset commercial license. Both sides use the same castle
-   (folder 1's gate tower); only the flag is recolored blue/red, and the
-   severe-damage stage has its glow stripped to plain crack (offline, see
-   assets/castle/recolor-flag.ps1 and fix-severe.ps1). Each side has 3
-   pre-drawn HP-based damage stages; smoke on top is added here in CSS. */
+/* ---------- Castle graphic ----------
+   Tiny Swords castle per team color (assets/buildings, see its CREDITS.txt),
+   at the same pixel scale as the soldiers: 320px art = 18.33 board units.
+   left/top are set by placeBoard() (render.js) to the castle's base-center
+   point -- the bottom of the building, 93% down its image -- and the
+   translate hangs the artwork up from there. */
 .castle-graphic {
   position: absolute;
-  /* left/top are set by placeCastles() (render.js) to the castle's base-
-     center point; the translate hangs the artwork up from that point. */
-  width: calc(100% * 9.4 / var(--world-w)); /* 9.4 board units */
-  aspect-ratio: 326 / 555; /* the tower art's own proportions */
-  transform: translate(-50%, -100%);
+  width: calc(100% * 18.33 / var(--world-w));
+  aspect-ratio: 320 / 256;
+  transform: translate(-50%, -93%);
   pointer-events: none;
 }
 
@@ -1358,40 +1386,31 @@ hr {
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: contain;
-  object-position: bottom;
-  filter: drop-shadow(0 3px 2px rgba(0,0,0,0.25));
 }
 
-/* The art's door/window face left; mirror the enemy side (left edge of the
-   battlefield) so its entrance faces inward, toward the player's castle,
-   instead of out past the battlefield's edge. */
-.castle-graphic.enemy .castle-img { transform: scaleX(-1); }
-
-.cg-smoke {
+/* Damage fires (renderCastle() in render.js toggles .fire-1/.fire-2):
+   one on the left tower first, then two more. Each is a 7-frame 128px
+   sprite sheet animated purely in CSS; left/top is where the flame's base
+   sits on the castle art. */
+.castle-fire {
+  display: none;
   position: absolute;
-  top: 6px;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(90,90,90,0.75), rgba(90,90,90,0));
-  opacity: 0;
-  pointer-events: none;
+  width: 26%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -81%);
+  background: url('assets/effects/fire.png') 0 0 / 700% 100% no-repeat;
+  animation: castleFire 0.7s steps(7, jump-none) infinite;
 }
+.castle-fire-1 { left: 20%; top: 42%; }
+.castle-fire-2 { left: 80%; top: 40%; animation-delay: -0.25s; }
+.castle-fire-3 { left: 52%; top: 58%; animation-delay: -0.5s; }
 
-.cg-smoke-1 { left: 14px; }
-.cg-smoke-2 { left: 34px; top: 14px; }
+.castle-graphic.fire-1 .castle-fire-1,
+.castle-graphic.fire-2 .castle-fire { display: block; }
 
-.castle-graphic.dmg-severe .cg-smoke {
-  opacity: 1;
-  animation: smokeRise 2.4s ease-out infinite;
-}
-.castle-graphic.dmg-severe .cg-smoke-2 { animation-delay: 1.2s; }
-
-@keyframes smokeRise {
-  0%   { opacity: 0; transform: translateY(0) scale(0.6); }
-  30%  { opacity: 0.8; }
-  100% { opacity: 0; transform: translateY(-30px) scale(1.4); }
+@keyframes castleFire {
+  from { background-position: 0% 0; }
+  to   { background-position: 100% 0; }
 }
 
 
