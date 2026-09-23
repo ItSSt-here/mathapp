@@ -48,6 +48,7 @@ const STATS_LOG_KEY = 'mathapp_v2_stats_log';
 // long enough for a parent to glance at stats.html, and localStorage is
 // plenty for that.
 function logRoundStats(playerWon, surrendered) {
+  if (matchMode === 'hotseat') return; // a debug/playtest round, not a real student's
   const entry = {
     date: new Date().toISOString(),
     topic: MODE_LABELS[gameMode] || 'כפל',
@@ -61,7 +62,7 @@ function logRoundStats(playerWon, surrendered) {
     // MAX_COINS -- see markCorrect() in exercise-core.js); null on a loss
     // rather than 0, so stats.html can tell "lost, no score" apart from an
     // actual 0-point win.
-    score: playerWon ? playerMoney : null,
+    score: playerWon ? myMoney() : null,
     // Lets stats.html tell "lost the battle" apart from "gave up" -- both
     // still read as a loss in-game (endGame()'s own overlay deliberately
     // doesn't distinguish them, only the parent-facing log does). Absent/
@@ -156,6 +157,8 @@ function parseUrlParams() {
 const ARRIVED_STAGE_OVERLAY = { mode: 'modeOverlay', difficulty: 'exDifficultyOverlay', speed: 'startOverlay' };
 
 function showInitialOverlay() {
+  // ?hotseat=1: debug/playtest mode, both teams human on one screen (match.js).
+  if (new URLSearchParams(location.search).get('hotseat') === '1') matchMode = 'hotseat';
   arrivedStage = parseUrlParams();
   document.getElementById('weakPoolCheckbox').checked = weakPoolReviewEnabled;
   const overlayId = arrivedStage === 'subtopic' ? TOPIC_GROUPS[arrivedGroup].overlayId : ARRIVED_STAGE_OVERLAY[arrivedStage];
@@ -260,7 +263,7 @@ function endGame(playerWon, surrendered) {
   document.getElementById('overlayBattleTime').textContent = `משך הקרב: ${formatDuration(battleElapsedMs)}`;
   const scoreEl = document.getElementById('overlayScore');
   scoreEl.style.display = playerWon ? '' : 'none';
-  if (playerWon) scoreEl.textContent = `נקודות: ${playerMoney}`;
+  if (playerWon) scoreEl.textContent = `נקודות: ${myMoney()}`;
   // correctCount/wrongCount/swapCount are frozen now that gameOver is true,
   // so a one-time copy into the overlay's own elements is enough -- no need
   // for these to live-update the way .top-stats-row does during play.
@@ -272,7 +275,8 @@ function endGame(playerWon, surrendered) {
 }
 
 function startGame() {
-  playerMoney = 0;
+  setupSides(); // both teams' settings + coins (match.js)
+  localSide = 'player'; // a new game always starts as blue (hot-seat can switch)
   // Weak pool never carries over between rounds -- see its state comment in
   // config.js for why (shared-device mistake bleed-through).
   weakPool = [];
@@ -293,9 +297,11 @@ function startGame() {
   selectedIds.clear();
   hideSelectionBox();
   placeBoard();
-  scrollBoardTo(PLAYER_CASTLE_POS.x, PLAYER_CASTLE_POS.y); // start looking at the player's own castle
+  const home = castlePos(localSide);
+  scrollBoardTo(home.x, home.y); // start looking at your own castle
   setupMines();
   setupEnemyForces();
+  applySideHud();
 
   if (swapTimeoutId) clearTimeout(swapTimeoutId);
   document.getElementById('checkBtn').disabled = false;
@@ -324,10 +330,13 @@ function startGame() {
 // player has coins to spend. Below the breakpoint, the same button element
 // is moved up next to the exercise controls instead of duplicated, so there
 // is still exactly one enabled/disabled state to keep in sync.
+// On desktop it sits under this browser's own team's castle block (blue's
+// on the right, red's on the left -- see localSide, match.js).
 function placeBuyBtn() {
   const buyBtn = document.getElementById('buyBtn');
   const isMobile = window.matchMedia('(max-width: 600px)').matches;
-  const target = document.getElementById(isMobile ? 'mobileBuyRow' : 'buyBtnDesktopHome');
+  const desktopHome = localSide === 'computer' ? 'buyBtnDesktopHomeRed' : 'buyBtnDesktopHome';
+  const target = document.getElementById(isMobile ? 'mobileBuyRow' : desktopHome);
   target.appendChild(buyBtn);
 }
 
@@ -644,7 +653,7 @@ document.getElementById('checkBtn').addEventListener('keydown', (e) => {
   focusRowRemembering(document.getElementById('letterSoundChoices'), () => letterSoundChoicesLastFocused);
 });
 document.getElementById('buyBtn').addEventListener('click', () => {
-  buySoldier();
+  issueCommand({ type: 'buy' });
   document.getElementById('answer').focus();
 });
 // Global "buy soldier" hotkey -- the only document-level keydown listener in
@@ -694,7 +703,11 @@ document.getElementById('vocabularySoundBtn').addEventListener('click', () => {
 });
 document.getElementById('surrenderBtn').addEventListener('click', () => {
   if (gameOver) return;
-  endGame(false, true);
+  issueCommand({ type: 'surrender' });
+});
+document.getElementById('hotseatSwitchBtn').addEventListener('click', () => {
+  switchHotseatSide();
+  document.getElementById('answer').focus();
 });
 document.getElementById('restartBtn').addEventListener('click', () => {
   document.getElementById('overlay').classList.remove('show');

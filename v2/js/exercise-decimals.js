@@ -323,12 +323,7 @@ function changeDecimalFractionNameQuestion() {
   const decimalInput = document.getElementById('decimalTypedInput');
   if (swapBtn.disabled) return;
 
-  playerMoney -= SWAP_QUESTION_COST;
-  swapCount++;
-  recordWeakPoolSwap();
-  updateCoinsDisplay();
-  updateStatsCountersDisplay();
-  showFloatingText(`-${SWAP_QUESTION_COST}`, 'negative', swapBtn);
+  chargeSwap(swapBtn);
 
   swapBtn.disabled = true;
   checkBtn.disabled = true;
@@ -838,12 +833,7 @@ function changeDecimalQuestion() {
   const input = document.getElementById('decimalTypedInput');
   if (swapBtn.disabled) return; // already mid-reveal
 
-  playerMoney -= SWAP_QUESTION_COST;
-  swapCount++;
-  recordWeakPoolSwap();
-  updateCoinsDisplay();
-  updateStatsCountersDisplay();
-  showFloatingText(`-${SWAP_QUESTION_COST}`, 'negative', swapBtn);
+  chargeSwap(swapBtn);
 
   swapBtn.disabled = true;
   checkBtn.disabled = true;

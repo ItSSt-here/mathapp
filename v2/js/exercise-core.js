@@ -737,13 +737,14 @@ function markCorrect(anchorEl) {
   const feedback = document.getElementById('feedback');
   feedback.textContent = 'נכון';
   feedback.className = 'feedback correct';
-  // v2: each gold mine the player holds adds MINE_BONUS to every correct
-  // answer (see MINE_SITES etc. in config.js).
-  const reward = CORRECT_REWARD + MINE_BONUS * mineCount('player');
-  playerMoney = Math.min(MAX_COINS, playerMoney + reward);
+  // v2: each gold mine the team holds adds its mineBonus to every correct
+  // answer (see rewardFor(), match.js). The coins themselves change through
+  // the command funnel (issueCommand(), match.js), like every other action
+  // that touches the battle.
+  const reward = rewardFor(localSide);
+  issueCommand({ type: 'correct' });
   correctCount++;
   recordWeakPoolRecovery();
-  updateCoinsDisplay();
   updateStatsCountersDisplay();
   showFloatingText(`+${reward}`, 'positive', anchorEl);
 }
@@ -752,12 +753,22 @@ function markWrong(anchorEl, message = 'לא נכון, נסה שוב') {
   const feedback = document.getElementById('feedback');
   feedback.textContent = message;
   feedback.className = 'feedback incorrect';
-  playerMoney -= WRONG_PENALTY;
+  issueCommand({ type: 'wrong' });
   wrongCount++;
   recordWeakPoolMistake();
-  updateCoinsDisplay();
   updateStatsCountersDisplay();
-  showFloatingText(`-${WRONG_PENALTY}`, 'negative', anchorEl);
+  showFloatingText(`-${myParams().wrongPenalty}`, 'negative', anchorEl);
+}
+
+// The bookkeeping every topic's "swap question" shares (each topic still
+// reveals its own answer its own way): pay for it, count it, and send the
+// question to the weak pool.
+function chargeSwap(swapBtn) {
+  issueCommand({ type: 'swap' });
+  swapCount++;
+  recordWeakPoolSwap();
+  updateStatsCountersDisplay();
+  showFloatingText(`-${myParams().swapCost}`, 'negative', swapBtn);
 }
 
 function checkAnswer() {
@@ -876,7 +887,9 @@ function checkAnswer() {
 // Reveals the correct answer for a couple of seconds, then swaps in a new
 // question. Always costs coins, even if that pushes the balance negative.
 function changeQuestion() {
-  if (gameOver) return;
+  // The swap button is hidden when the team's settings don't allow swaps
+  // (applySideHud(), match.js) -- guarded here too, the one entry point.
+  if (gameOver || !myParams().swapAllowed) return;
 
   // Vocabulary level 4 has its own typed-answer input rather than the
   // generic #answer/#answer2/#answer3 the rest of this function operates
@@ -911,12 +924,7 @@ function changeQuestion() {
   const answer3 = document.getElementById('answer3');
   if (swapBtn.disabled) return; // already mid-reveal
 
-  playerMoney -= SWAP_QUESTION_COST;
-  swapCount++;
-  recordWeakPoolSwap();
-  updateCoinsDisplay();
-  updateStatsCountersDisplay();
-  showFloatingText(`-${SWAP_QUESTION_COST}`, 'negative', swapBtn);
+  chargeSwap(swapBtn);
 
   swapBtn.disabled = true;
   checkBtn.disabled = true;
@@ -984,20 +992,24 @@ function updateCoinsDisplay() {
   // doesn't get its minus sign flipped by the page's RTL bidi handling.
   // v2: with any gold mines held, also show how much each correct answer is
   // worth now (see markCorrect() above).
-  const mineCountHeld = mineCount('player');
+  // Everything here is this browser's own team (localSide, match.js).
+  if (!sides[localSide]) return; // before the first game
+  const money = myMoney();
+  const cost = myParams().soldierCost;
+  const mineCountHeld = mineCount(localSide);
   const mineNote = mineCountHeld
-    ? ` <span class="mine-bonus-note">⛏ ${mineCountHeld} · +${CORRECT_REWARD + MINE_BONUS * mineCountHeld} לתשובה</span>`
+    ? ` <span class="mine-bonus-note">⛏ ${mineCountHeld} · +${rewardFor(localSide)} לתשובה</span>`
     : '';
-  const coinsHtml = `מטבעות: <span style="direction:ltr;unicode-bidi:isolate">${playerMoney}</span>${mineNote}`;
+  const coinsHtml = `מטבעות: <span style="direction:ltr;unicode-bidi:isolate">${money}</span>${mineNote}`;
   if (coinsEl.innerHTML !== coinsHtml) coinsEl.innerHTML = coinsHtml;
-  coinsEl.className = playerMoney < 0 ? 'coins negative' : 'coins';
+  coinsEl.className = money < 0 ? 'coins negative' : 'coins';
   const buyBtn = document.getElementById('buyBtn');
-  const armySize = livingSoldierCount('player');
-  buyBtn.disabled = playerMoney < SOLDIER_COST || gameOver || isStudyMode() || armySize >= MAX_SOLDIERS_PER_SIDE;
+  const armySize = livingSoldierCount(localSide);
+  buyBtn.disabled = money < cost || gameOver || isStudyMode() || armySize >= MAX_SOLDIERS_PER_SIDE;
   // Army count shown on the button itself, so a disabled button at the cap
   // explains itself (it's not about coins). Only touched when it changes,
   // since this runs on every render.
-  const label = `קנה חייל (${SOLDIER_COST})<br><small>חיילים: ${armySize}/${MAX_SOLDIERS_PER_SIDE}</small>`;
+  const label = `קנה חייל (${cost})<br><small>חיילים: ${armySize}/${MAX_SOLDIERS_PER_SIDE}</small>`;
   if (buyBtn.innerHTML !== label) buyBtn.innerHTML = label;
 }
 

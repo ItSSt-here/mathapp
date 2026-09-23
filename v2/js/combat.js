@@ -55,10 +55,11 @@ function spawnSoldier(side, role, x, y, home, leash) {
 }
 
 // Called by startGame(): the enemy's fixed guards exist from the first
-// second -- but not in the no-enemy study mode (see isStudyMode()).
+// second -- but not in the no-enemy study mode (see isStudyMode()), and not
+// when red is a human team (see matchMode, match.js).
 function setupEnemyForces() {
   enemySquadSize = randInt(ENEMY_SQUAD_MIN, ENEMY_SQUAD_MAX);
-  if (isStudyMode()) return;
+  if (matchMode !== 'computer' || isStudyMode()) return;
   for (const post of ENEMY_GUARD_POSTS) {
     spawnSoldier('computer', 'guard', post.x, post.y, post, GUARD_LEASH);
   }
@@ -68,13 +69,15 @@ function livingSoldierCount(side) {
   return soldiers.filter(s => s.side === side && !s.dying).length;
 }
 
-function buySoldier() {
-  if (gameOver || playerMoney < SOLDIER_COST || isStudyMode()) return;
-  if (livingSoldierCount('player') >= MAX_SOLDIERS_PER_SIDE) return;
-  playerMoney -= SOLDIER_COST;
-  updateCoinsDisplay();
-  spawnSoldier('player', 'player',
-    PLAYER_RALLY.x + jitter(RALLY_JITTER.x), PLAYER_RALLY.y + jitter(RALLY_JITTER.y));
+// A human team buys a soldier (via the 'buy' command, match.js): it
+// appears at that team's own tower gate.
+function buySoldier(side) {
+  const team = sides[side];
+  if (gameOver || team.money < team.params.soldierCost || isStudyMode()) return;
+  if (livingSoldierCount(side) >= MAX_SOLDIERS_PER_SIDE) return;
+  team.money -= team.params.soldierCost;
+  const rally = rallyPoint(side);
+  spawnSoldier(side, 'player', rally.x + jitter(RALLY_JITTER.x), rally.y + jitter(RALLY_JITTER.y));
 }
 
 // ---------- Gold mines (see MINE_SITES etc. in config.js) ----------
@@ -396,7 +399,7 @@ function tick() {
   if (gameOver) return;
 
   battleElapsedMs += TICK_MS;
-  tickEnemyAI();
+  if (matchMode === 'computer') tickEnemyAI();
 
   const livingSoldiers = soldiers.filter(s => !s.dying);
   // Three sides now (player, computer, and the neutral gold-mine guards):
@@ -476,9 +479,9 @@ function tick() {
   render();
 
   if (computerCastleHP <= 0) {
-    endGame(true);
+    finishMatch('player');
   } else if (playerCastleHP <= 0) {
-    endGame(false);
+    finishMatch('computer');
   }
 }
 

@@ -13,7 +13,7 @@
      fetch of everything together instead of relying on cache timing to
      line up. No build step in this project, so this is manual -- there's
      nothing to automate it. -->
-<link rel="stylesheet" href="style.css?v=202609240400">
+<link rel="stylesheet" href="style.css?v=202609241200">
 </head>
 <body>
 
@@ -248,10 +248,13 @@
   <hr>
 
   <div class="castle-row" id="castleRow">
+    <!-- Red team's block (left). Labels and the buy button's spot follow
+         which team this browser plays -- applySideHud(), match.js. -->
     <div class="castle-block enemy">
-      <div class="castle-label">האויב</div>
+      <div class="castle-label" id="enemyCastleLabel">האויב</div>
       <div class="hp-bar-container"><div class="hp-bar-fill enemy" id="enemyHpFill"></div></div>
       <div class="hp-text" id="enemyHpText"></div>
+      <div id="buyBtnDesktopHomeRed"></div>
     </div>
 
     <!-- The wrapper holds the minimap in a fixed corner over the board:
@@ -298,7 +301,7 @@
     </div>
 
     <div class="castle-block player">
-      <div class="castle-label">אתה</div>
+      <div class="castle-label" id="playerCastleLabel">אתה</div>
       <div class="hp-bar-container"><div class="hp-bar-fill" id="playerHpFill"></div></div>
       <div class="hp-text" id="playerHpText"></div>
       <div id="buyBtnDesktopHome"><button class="buy-btn" id="buyBtn">קנה חייל (20)</button></div>
@@ -306,6 +309,8 @@
   </div>
 
   <div class="surrender-row">
+    <!-- Hot-seat (?hotseat=1) only: switch which team this screen plays. -->
+    <button class="hotseat-btn" id="hotseatSwitchBtn" style="display:none"></button>
     <button class="surrender-btn" id="surrenderBtn">אני נכנע 🏳️</button>
   </div>
 </div>
@@ -512,28 +517,29 @@
      (see preloadSoldierSprites() in render.js). -->
 <div id="spritePreload" style="position:fixed; left:-9999px; top:-9999px; width:1px; height:1px; overflow:hidden;" aria-hidden="true"></div>
 
-<script src="js/config.js?v=202609240400"></script>
-<script src="js/helpers.js?v=202609240400"></script>
-<script src="js/exercise-core.js?v=202609240400"></script>
-<script src="js/exercise-division.js?v=202609240400"></script>
-<script src="js/exercise-fractions.js?v=202609240400"></script>
-<script src="js/exercise-fraction-arithmetic.js?v=202609240400"></script>
-<script src="js/exercise-addfractions.js?v=202609240400"></script>
-<script src="js/exercise-subtractfractions.js?v=202609240400"></script>
-<script src="js/exercise-mixednumbers.js?v=202609240400"></script>
-<script src="js/exercise-addfractionsadvanced.js?v=202609240400"></script>
-<script src="js/exercise-letters.js?v=202609240400"></script>
-<script src="js/exercise-abc.js?v=202609240400"></script>
-<script src="js/exercise-nikud.js?v=202609240400"></script>
-<script src="js/exercise-compare.js?v=202609240400"></script>
-<script src="js/exercise-vocabulary.js?v=202609240400"></script>
-<script src="js/exercise-grammar.js?v=202609240400"></script>
-<script src="js/exercise-decimals.js?v=202609240400"></script>
-<script src="js/terrain.js?v=202609240400"></script>
-<script src="js/combat.js?v=202609240400"></script>
-<script src="js/render.js?v=202609240400"></script>
-<script src="js/commands.js?v=202609240400"></script>
-<script src="js/main.js?v=202609240400"></script>
+<script src="js/config.js?v=202609241200"></script>
+<script src="js/helpers.js?v=202609241200"></script>
+<script src="js/exercise-core.js?v=202609241200"></script>
+<script src="js/exercise-division.js?v=202609241200"></script>
+<script src="js/exercise-fractions.js?v=202609241200"></script>
+<script src="js/exercise-fraction-arithmetic.js?v=202609241200"></script>
+<script src="js/exercise-addfractions.js?v=202609241200"></script>
+<script src="js/exercise-subtractfractions.js?v=202609241200"></script>
+<script src="js/exercise-mixednumbers.js?v=202609241200"></script>
+<script src="js/exercise-addfractionsadvanced.js?v=202609241200"></script>
+<script src="js/exercise-letters.js?v=202609241200"></script>
+<script src="js/exercise-abc.js?v=202609241200"></script>
+<script src="js/exercise-nikud.js?v=202609241200"></script>
+<script src="js/exercise-compare.js?v=202609241200"></script>
+<script src="js/exercise-vocabulary.js?v=202609241200"></script>
+<script src="js/exercise-grammar.js?v=202609241200"></script>
+<script src="js/exercise-decimals.js?v=202609241200"></script>
+<script src="js/terrain.js?v=202609241200"></script>
+<script src="js/match.js?v=202609241200"></script>
+<script src="js/combat.js?v=202609241200"></script>
+<script src="js/render.js?v=202609241200"></script>
+<script src="js/commands.js?v=202609241200"></script>
+<script src="js/main.js?v=202609241200"></script>
 
 </body>
 </html>

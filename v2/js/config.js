@@ -235,7 +235,7 @@ const PLATEAUS = [
   { cx: 138, cy: 104, rx: 19, ry: 12, rampSide: 'bottom', rampX: 138 }
 ];
 // A mine the player holds lets them see around it, like their castle does
-// (playerSightCircles(), render.js). Any other mine shows its owner, flag
+// (sightCircles(), render.js). Any other mine shows its owner, flag
 // and capture ring only while the player currently sees it -- under fog it
 // just looks like a plain mine (renderMines()).
 const MINE_SIGHT = 18;
@@ -1055,7 +1055,7 @@ let num1, num2;
 let currentAnswer; // correct value for the current exercise, any mode
 let currentLetterAnswer = null; // correct letter (a single character) for the current letters-mode exercise
 let currentCompareAnswer = null; // correct '<'/'>' for the current comparefractions-mode exercise
-let playerMoney = 0;
+// (Coins now live per team in `sides` -- see match.js.)
 // Weak-pool state (see the WEAK_POOL_* constants above and the functions in
 // exercise-core.js). Deliberately reset every startGame(), never persisted
 // to localStorage -- a shared device could otherwise hand one kid's
@@ -1074,7 +1074,7 @@ let intervalId = null;
 let animIntervalId = null;
 let enemySpawnTimer = 0;
 let enemySquadSize = ENEMY_SQUAD_MIN; // size the currently-gathering raider squad must reach before it attacks
-let selectedIds = new Set();          // ids of the player's currently selected soldiers (see commands.js)
+let selectedIds = new Set();          // ids of this browser's team's currently selected soldiers (see commands.js)
 let mines = [];                       // per game: MINE_SITES + {owner, captureSide, captureMs}, see setupMines() in combat.js
 let swapTimeoutId = null;
 let battleElapsedMs = 0;

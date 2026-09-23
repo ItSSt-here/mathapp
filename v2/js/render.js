@@ -105,11 +105,11 @@ function render() {
 // A neutral mine has a dark entrance and no flag; an owned one lights up,
 // flies a flag in its owner's color and sits on a colored patch of ground.
 // While a side is capturing it, a ring above it fills in that side's color.
-// Fog of war: all of that shows only while the player currently sees the
-// mine (a mine they hold always counts as seen -- it gives sight, see
-// MINE_SIGHT). Otherwise it looks like a plain mine, whoever holds it.
+// Fog of war: all of that shows only while this browser's team currently
+// sees the mine (a mine it holds always counts as seen -- it gives sight,
+// see MINE_SIGHT). Otherwise it looks like a plain mine, whoever holds it.
 function mineVisibleState(m, sight) {
-  const seen = m.owner === 'player' || isSeenByPlayer(m.x, m.y - 3, sight);
+  const seen = m.owner === localSide || isInSight(m.x, m.y - 3, sight);
   return {
     seen,
     owner: seen ? m.owner : null,
@@ -118,7 +118,7 @@ function mineVisibleState(m, sight) {
 }
 
 function renderMines() {
-  const sight = playerSightCircles();
+  const sight = sightCircles(localSide);
   for (const m of mines) {
     const el = document.getElementById(`mine${m.id}`);
     if (!el) continue;
@@ -182,7 +182,7 @@ function renderMinimap() {
   fctx.fillStyle = FOG_COLOR;
   fctx.fillRect(0, 0, w, h);
   fctx.globalCompositeOperation = 'destination-out';
-  const sight = playerSightCircles();
+  const sight = sightCircles(localSide);
   for (const c of sight) {
     fctx.beginPath();
     fctx.arc(c.x * sx, c.y * sx, c.r * sx, 0, Math.PI * 2);
@@ -214,7 +214,7 @@ function renderMinimap() {
   }
   for (const s of soldiers) {
     if (s.dying) continue;
-    if (s.side !== 'player' && !isSeenByPlayer(s.x, s.y, sight)) continue;
+    if (s.side !== localSide && !isInSight(s.x, s.y, sight)) continue;
     ctx.fillStyle = s.side === 'player' ? MINIMAP_COLORS.player
       : (s.side === 'neutral' ? MINIMAP_COLORS.neutral : MINIMAP_COLORS.enemy);
     ctx.fillRect(s.x * sx - 1.5, s.y * sx - 1.5, 3, 3);
@@ -232,21 +232,23 @@ function renderMinimap() {
 }
 
 // ---------- Fog of war (see SOLDIER_SIGHT etc. in config.js) ----------
-// What the player can currently see: circles around their castle and every
-// living soldier of theirs. Recomputed from scratch each time, so a place
-// falls back into fog the moment nobody's near it.
-function playerSightCircles() {
-  const circles = [{ x: PLAYER_CASTLE_POS.x, y: PLAYER_CASTLE_POS.y, r: CASTLE_SIGHT }];
+// What a team can currently see: circles around its castle, its mines and
+// every living soldier of its own. Recomputed from scratch each time, so a
+// place falls back into fog the moment nobody's near it. The screen always
+// shows this browser's team's view (localSide, match.js).
+function sightCircles(side) {
+  const home = castlePos(side);
+  const circles = [{ x: home.x, y: home.y, r: CASTLE_SIGHT }];
   for (const m of mines) {
-    if (m.owner === 'player') circles.push({ x: m.x, y: m.y - 3, r: MINE_SIGHT });
+    if (m.owner === side) circles.push({ x: m.x, y: m.y - 3, r: MINE_SIGHT });
   }
   for (const s of soldiers) {
-    if (s.side === 'player' && !s.dying) circles.push({ x: s.x, y: s.y, r: SOLDIER_SIGHT });
+    if (s.side === side && !s.dying) circles.push({ x: s.x, y: s.y, r: SOLDIER_SIGHT });
   }
   return circles;
 }
 
-function isSeenByPlayer(x, y, circles) {
+function isInSight(x, y, circles) {
   return circles.some(c => Math.hypot(x - c.x, y - c.y) <= c.r);
 }
 
@@ -276,7 +278,7 @@ function renderFog() {
   ctx.fillRect(0, 0, w, h);
 
   ctx.globalCompositeOperation = 'destination-out';
-  for (const c of playerSightCircles()) {
+  for (const c of sightCircles(localSide)) {
     const cx = c.x * pxPerUnit;
     const cy = c.y * pxPerUnit;
     const r = c.r * pxPerUnit;
@@ -305,7 +307,7 @@ const soldierElements = new Map();
 function renderSoldiers() {
   const soldiersLayer = document.getElementById('soldiersLayer');
   const liveIds = new Set();
-  const sight = playerSightCircles();
+  const sight = sightCircles(localSide);
 
   for (const s of soldiers) {
     liveIds.add(s.id);
@@ -334,9 +336,9 @@ function renderSoldiers() {
     refs.wrap.style.top = `${s.y / WORLD_H * 100}%`;
     // Feet further down the board = closer to the viewer = drawn on top.
     refs.wrap.style.zIndex = Math.round(s.y * 10);
-    // Fog of war: enemy soldiers (alive or fallen) only show inside the
-    // player's current sight.
-    const hidden = s.side !== 'player' && !isSeenByPlayer(s.x, s.y, sight);
+    // Fog of war: other teams' soldiers (alive or fallen) only show inside
+    // this team's current sight.
+    const hidden = s.side !== localSide && !isInSight(s.x, s.y, sight);
     refs.wrap.style.visibility = hidden ? 'hidden' : '';
 
     refs.hpFill.style.width = `${Math.max(0, s.hp) / SOLDIER_HP * 100}%`;

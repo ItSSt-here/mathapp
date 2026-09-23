@@ -5,7 +5,9 @@
 // selection there in a small formation, or right-click the enemy castle to
 // send them to besiege it. What soldiers do once ordered (including
 // breaking off to fight nearby enemies) is combat.js's job -- this file
-// only turns mouse input into selectedIds and s.order.
+// only turns mouse input into selectedIds and move/attack commands
+// (issueCommand(), match.js). "Your" soldiers are those of this browser's
+// team, localSide (blue normally, either team in hot-seat/PvP).
 //
 // Because the board is flat (no camera tilt -- see config.js's board
 // section), turning a mouse position into a board position is just a
@@ -34,7 +36,7 @@ function clientToBoard(clientX, clientY) {
 }
 
 function livingPlayerSoldiers() {
-  return soldiers.filter(s => s.side === 'player' && !s.dying);
+  return soldiers.filter(s => s.side === localSide && !s.dying);
 }
 
 function soldierHitBox(s) {
@@ -179,11 +181,10 @@ function onBoardRightClick(e) {
   const group = livingPlayerSoldiers().filter(s => selectedIds.has(s.id));
   if (!group.length) return;
 
-  if (pointInElement(document.getElementById('enemyCastleGraphic'), e.clientX, e.clientY)) {
-    for (const s of group) {
-      s.order = { x: COMPUTER_CASTLE_POS.x, y: COMPUTER_CASTLE_POS.y, castle: true };
-    }
-    showMoveMarker(COMPUTER_CASTLE_POS, true);
+  const enemy = enemyOf(localSide);
+  if (pointInElement(document.getElementById(castleGraphicId(enemy)), e.clientX, e.clientY)) {
+    issueCommand({ type: 'attack', ids: group.map(s => s.id) });
+    showMoveMarker(castlePos(enemy), true);
     return;
   }
 
@@ -191,7 +192,7 @@ function onBoardRightClick(e) {
   const click = clientToBoard(e.clientX, e.clientY);
   const p = nearestWalkable(click.x, click.y);
   const targets = formationTargets(group, p);
-  for (const s of group) s.order = targets.get(s.id);
+  issueCommand({ type: 'move', orders: group.map(s => [s.id, targets.get(s.id).x, targets.get(s.id).y]) });
   showMoveMarker(p, false);
 }
 

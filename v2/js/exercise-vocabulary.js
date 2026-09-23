@@ -366,12 +366,7 @@ function changeVocabularyTypedQuestion() {
   const input = document.getElementById('vocabularyTypedInput');
   if (swapBtn.disabled) return; // already mid-reveal
 
-  playerMoney -= SWAP_QUESTION_COST;
-  swapCount++;
-  recordWeakPoolSwap();
-  updateCoinsDisplay();
-  updateStatsCountersDisplay();
-  showFloatingText(`-${SWAP_QUESTION_COST}`, 'negative', swapBtn);
+  chargeSwap(swapBtn);
 
   swapBtn.disabled = true;
   checkBtn.disabled = true;

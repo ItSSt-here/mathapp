@@ -1952,6 +1952,20 @@ hr {
   box-shadow: 0 1px 0 #8f8f8f;
 }
 
+/* Hot-seat (?hotseat=1) team switch, colored as the team now playing. */
+.hotseat-btn {
+  font-size: 13px;
+  font-weight: bold;
+  padding: 6px 14px;
+  margin-inline-end: 10px;
+  border: none;
+  border-radius: 10px;
+  color: #fff;
+  cursor: pointer;
+}
+.hotseat-btn.side-player   { background: #2f8fff; box-shadow: 0 3px 0 #1c5fb0; }
+.hotseat-btn.side-computer { background: #ff3b30; box-shadow: 0 3px 0 #b0261e; }
+
 .overlay-battle-time {
   font-size: 13px;
   color: #777;

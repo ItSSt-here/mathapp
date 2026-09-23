@@ -54,8 +54,10 @@ function strikeDamage() {
 // The slowest speed tier ("לימוד - ללא אויב") has no enemy spawning at all,
 // marked by a `null` entry in DIFFICULTY_SPAWN_INTERVALS_MS rather than a
 // difficulty index number, so it stays correct if the tier ever moves.
+// Only exists against the computer -- with two human teams there's always
+// an enemy.
 function isStudyMode() {
-  return DIFFICULTY_SPAWN_INTERVALS_MS[difficultyIndex] == null;
+  return matchMode === 'computer' && DIFFICULTY_SPAWN_INTERVALS_MS[difficultyIndex] == null;
 }
 
 function formatDuration(ms) {
