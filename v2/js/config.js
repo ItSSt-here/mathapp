@@ -17,7 +17,7 @@ const SWAP_QUESTION_COST = 15;
 // "נקודות" score (see markCorrect() and endGame()) -- without a cap, a
 // student who avoids spending could inflate the number indefinitely, which
 // would make it useless for comparing rounds in the parent-facing log.
-const MAX_COINS = 100;
+const MAX_COINS = 200; // v2: raised from 100 since gold mines make each correct answer worth more
 const SWAP_REVEAL_MS = 2000;
 const DEATH_FADE_MS = 5000;   // how long a fallen soldier's skull lies there before disappearing
 
@@ -175,7 +175,7 @@ const SCENERY = [
   // small groves in the open areas above and below the road
   { art: 'tree', x: 58, y: 30 }, { art: 'tree', x: 64, y: 33 }, { art: 'tree', x: 140, y: 29 },
   { art: 'tree', x: 70, y: 76 }, { art: 'tree', x: 132, y: 74 }, { art: 'tree', x: 137, y: 77 },
-  { art: 'bush2', x: 98, y: 27 }, { art: 'rock1', x: 30, y: 30 }, { art: 'mushroom', x: 170, y: 32 },
+  { art: 'bush2', x: 84, y: 27 }, { art: 'rock1', x: 30, y: 30 }, { art: 'mushroom', x: 170, y: 32 },
   { art: 'bush3', x: 102, y: 80 }, { art: 'rock2', x: 36, y: 78 }, { art: 'pumpkin', x: 166, y: 78 },
   // around the road
   { art: 'bush1', x: 55, y: 48 }, { art: 'bush3', x: 88, y: 61 }, { art: 'rock1', x: 120, y: 45 },
@@ -185,6 +185,31 @@ const SCENERY = [
 ];
 const ENEMY_SQUAD_MIN = 1;
 const ENEMY_SQUAD_MAX = 3;
+
+// ---------- Gold mines (tickMines() in combat.js, renderMines() in render.js) ----------
+// Off the main road on purpose (see [[project_v2_roadmap]]): taking one is a
+// detour that splits your army, not a free bonus on the way to the enemy.
+// One contested mine top-middle, equally far from both castles; one at the
+// bottom a bit closer to each side. All start neutral.
+// A side captures a mine by having soldiers within MINE_RANGE of it and none
+// of the other side's, for MINE_CAPTURE_MS in a row (a ring fills up); it then
+// stays that side's until the other side captures it back.
+// Each mine the player holds adds MINE_BONUS coins to every correct answer
+// (markCorrect(), exercise-core.js) -- so mines make every exercise worth
+// more. Each mine the enemy holds makes its new soldiers come out
+// ENEMY_MINE_SPAWN_SPEEDUP faster, so leaving the mines to it has a price.
+const MINE_SITES = [
+  { x: 100, y: 22 },
+  { x: 62, y: 88 },
+  { x: 138, y: 88 }
+];
+const MINE_RANGE = 8;
+const MINE_CAPTURE_MS = 3000;
+const MINE_BONUS = 3;
+const ENEMY_MINE_SPAWN_SPEEDUP = 0.2;  // spawn interval x (1 - 0.2 per enemy mine)
+// When an enemy squad is ready, the chance it goes to take a mine it doesn't
+// own (then stays there guarding it) instead of attacking the player's castle.
+const ENEMY_MINE_RAID_CHANCE = 0.5;
 
 // Fog of war (renderFog() in render.js): the board is dimmed everywhere
 // except within sight of the player's castle and living soldiers, and enemy
@@ -1015,6 +1040,7 @@ let animIntervalId = null;
 let enemySpawnTimer = 0;
 let enemySquadSize = ENEMY_SQUAD_MIN; // size the currently-gathering raider squad must reach before it attacks
 let selectedIds = new Set();          // ids of the player's currently selected soldiers (see commands.js)
+let mines = [];                       // per game: MINE_SITES + {owner, captureSide, captureMs}, see setupMines() in combat.js
 let swapTimeoutId = null;
 let battleElapsedMs = 0;
 

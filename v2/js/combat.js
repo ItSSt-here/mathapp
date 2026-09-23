@@ -77,13 +77,61 @@ function buySoldier() {
     PLAYER_RALLY.x + jitter(RALLY_JITTER.x), PLAYER_RALLY.y + jitter(RALLY_JITTER.y));
 }
 
+// ---------- Gold mines (see MINE_SITES etc. in config.js) ----------
+function setupMines() {
+  mines = MINE_SITES.map((site, i) => ({
+    id: i, x: site.x, y: site.y, owner: null, captureSide: null, captureMs: 0
+  }));
+}
+
+function mineCount(side) {
+  return mines.filter(m => m.owner === side).length;
+}
+
+// Capture progress: soldiers of exactly one side near a mine that isn't
+// theirs fill its ring; once full the mine flips to them. Both sides there
+// = contested, progress pauses; nobody there = progress drains away.
+function tickMines(livingSoldiers) {
+  for (const m of mines) {
+    let players = 0;
+    let computers = 0;
+    for (const s of livingSoldiers) {
+      if (Math.hypot(s.x - m.x, s.y - m.y) > MINE_RANGE) continue;
+      if (s.side === 'player') players++; else computers++;
+    }
+    const side = players && !computers ? 'player' : (computers && !players ? 'computer' : null);
+    if (side && side !== m.owner) {
+      if (m.captureSide !== side) { m.captureSide = side; m.captureMs = 0; }
+      m.captureMs += TICK_MS;
+      if (m.captureMs >= MINE_CAPTURE_MS) {
+        m.owner = side;
+        m.captureSide = null;
+        m.captureMs = 0;
+      }
+    } else if (!players && !computers) {
+      m.captureMs = Math.max(0, m.captureMs - TICK_MS);
+      if (!m.captureMs) m.captureSide = null;
+    }
+    // Contested, or the owner is standing on its own mine: progress holds.
+  }
+}
+
+// Where an enemy squad heading for a mine should stand: just below it, so
+// they're drawn in front of it.
+function mineGuardSpot(m) {
+  return { x: m.x + jitter(4), y: m.y + 3 + jitter(2) };
+}
+
 // Enemy spawning + squad logic: new raiders gather at their own spot near
 // ENEMY_RALLY (each gets its own jittered home, so separation nudges don't
-// make a crowd shuffle forever), and once enough are gathered the whole
-// squad is sent at the player's castle and a new random squad size is drawn.
+// make a crowd shuffle forever). Once enough are gathered, the squad either
+// goes to take a mine it doesn't own and stays to guard it
+// (ENEMY_MINE_RAID_CHANCE), or marches on the player's castle; then a new
+// random squad size is drawn. Every mine it owns spawns soldiers faster.
 function tickEnemyAI() {
-  const spawnInterval = DIFFICULTY_SPAWN_INTERVALS_MS[difficultyIndex];
-  if (spawnInterval == null) return; // study mode: no enemy at all
+  const baseInterval = DIFFICULTY_SPAWN_INTERVALS_MS[difficultyIndex];
+  if (baseInterval == null) return; // study mode: no enemy at all
+  const spawnInterval = baseInterval * Math.max(0.4, 1 - ENEMY_MINE_SPAWN_SPEEDUP * mineCount('computer'));
 
   enemySpawnTimer += TICK_MS;
   if (enemySpawnTimer >= spawnInterval) {
@@ -98,9 +146,25 @@ function tickEnemyAI() {
 
   const gathering = soldiers.filter(s => s.role === 'raider' && !s.dying && !s.order);
   if (gathering.length >= enemySquadSize) {
+    // A mine worth taking: not already the enemy's, and not already being
+    // guarded by an earlier enemy squad. Nearest to the enemy castle first.
+    const guarded = new Set(soldiers.filter(s => s.role === 'mineGuard' && !s.dying).map(s => s.mineId));
+    const targets = mines
+      .filter(m => m.owner !== 'computer' && !guarded.has(m.id))
+      .sort((a, b) => Math.hypot(a.x - COMPUTER_CASTLE_POS.x, a.y - COMPUTER_CASTLE_POS.y)
+                    - Math.hypot(b.x - COMPUTER_CASTLE_POS.x, b.y - COMPUTER_CASTLE_POS.y));
+    const mine = targets.length && Math.random() < ENEMY_MINE_RAID_CHANCE ? targets[0] : null;
     for (const r of gathering) {
-      r.home = null;
-      r.order = { x: PLAYER_CASTLE_POS.x, y: PLAYER_CASTLE_POS.y, castle: true };
+      if (mine) {
+        // Walks to the mine via its home spot and stays there for good
+        // (home + normal aggro = it chases intruders, then comes back).
+        r.role = 'mineGuard';
+        r.mineId = mine.id;
+        r.home = mineGuardSpot(mine);
+      } else {
+        r.home = null;
+        r.order = { x: PLAYER_CASTLE_POS.x, y: PLAYER_CASTLE_POS.y, castle: true };
+      }
     }
     enemySquadSize = randInt(ENEMY_SQUAD_MIN, ENEMY_SQUAD_MAX);
   }
@@ -321,6 +385,7 @@ function tick() {
   }
 
   separateSoldiers(stillLiving);
+  tickMines(stillLiving);
 
   // Record which pose/animation each soldier is in; actual frame advancement
   // happens on its own faster clock (see animTick() below) so combat/movement

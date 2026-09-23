@@ -294,6 +294,7 @@ function startGame() {
   hideSelectionBox();
   placeBoard();
   scrollBoardTo(PLAYER_CASTLE_POS.x, PLAYER_CASTLE_POS.y); // start looking at the player's own castle
+  setupMines();
   setupEnemyForces();
 
   if (swapTimeoutId) clearTimeout(swapTimeoutId);

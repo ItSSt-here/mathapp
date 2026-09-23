@@ -737,12 +737,15 @@ function markCorrect(anchorEl) {
   const feedback = document.getElementById('feedback');
   feedback.textContent = 'נכון';
   feedback.className = 'feedback correct';
-  playerMoney = Math.min(MAX_COINS, playerMoney + CORRECT_REWARD);
+  // v2: each gold mine the player holds adds MINE_BONUS to every correct
+  // answer (see MINE_SITES etc. in config.js).
+  const reward = CORRECT_REWARD + MINE_BONUS * mineCount('player');
+  playerMoney = Math.min(MAX_COINS, playerMoney + reward);
   correctCount++;
   recordWeakPoolRecovery();
   updateCoinsDisplay();
   updateStatsCountersDisplay();
-  showFloatingText(`+${CORRECT_REWARD}`, 'positive', anchorEl);
+  showFloatingText(`+${reward}`, 'positive', anchorEl);
 }
 
 function markWrong(anchorEl, message = 'לא נכון, נסה שוב') {
@@ -979,7 +982,14 @@ function updateCoinsDisplay() {
   const coinsEl = document.getElementById('coins');
   // The number is wrapped in its own LTR span so a negative balance
   // doesn't get its minus sign flipped by the page's RTL bidi handling.
-  coinsEl.innerHTML = `מטבעות: <span style="direction:ltr;unicode-bidi:isolate">${playerMoney}</span>`;
+  // v2: with any gold mines held, also show how much each correct answer is
+  // worth now (see markCorrect() above).
+  const mineCountHeld = mineCount('player');
+  const mineNote = mineCountHeld
+    ? ` <span class="mine-bonus-note">⛏ ${mineCountHeld} · +${CORRECT_REWARD + MINE_BONUS * mineCountHeld} לתשובה</span>`
+    : '';
+  const coinsHtml = `מטבעות: <span style="direction:ltr;unicode-bidi:isolate">${playerMoney}</span>${mineNote}`;
+  if (coinsEl.innerHTML !== coinsHtml) coinsEl.innerHTML = coinsHtml;
   coinsEl.className = playerMoney < 0 ? 'coins negative' : 'coins';
   const buyBtn = document.getElementById('buyBtn');
   const armySize = livingSoldierCount('player');

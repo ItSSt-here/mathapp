@@ -6,3 +6,6 @@ looked wrong standing at the left/right ends of the map):
   tower-red.png       <- Factions/Knights/Buildings/Tower/Tower_Red.png
   tower-destroyed.png <- Factions/Knights/Buildings/Tower/Tower_Destroyed.png
 Fire effect (../effects/fire.png) <- Effects/Fire/Fire.png (7 frames of 128x128).
+Gold mine (same pack, same CC0 download):
+  mine-active.png   <- Resources/Gold Mine/GoldMine_Active.png   (owned mine, lit entrance)
+  mine-inactive.png <- Resources/Gold Mine/GoldMine_Inactive.png (neutral mine)

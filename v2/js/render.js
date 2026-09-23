@@ -31,7 +31,8 @@ function renderCastle(graphicId, imgId, side, hp) {
 function preloadCastleSprites() {
   const container = document.getElementById('spritePreload');
   for (const src of ['assets/buildings/tower-blue.png', 'assets/buildings/tower-red.png',
-                     'assets/buildings/tower-destroyed.png', 'assets/effects/fire.png']) {
+                     'assets/buildings/tower-destroyed.png', 'assets/effects/fire.png',
+                     'assets/buildings/mine-active.png', 'assets/buildings/mine-inactive.png']) {
     const img = document.createElement('img');
     img.src = src;
     container.appendChild(img);
@@ -93,9 +94,29 @@ function render() {
   document.getElementById('battleTimer').textContent = formatDuration(battleElapsedMs);
 
   renderSoldiers();
+  renderMines();
   renderFog();
   renderMinimap();
   updateCoinsDisplay();
+}
+
+// ---------- Gold mines (logic in combat.js, elements built by placeBoard()) ----------
+// A neutral mine has a dark entrance and no flag; an owned one lights up,
+// flies a flag in its owner's color and sits on a colored patch of ground.
+// While a side is capturing it, a ring above it fills in that side's color.
+function renderMines() {
+  for (const m of mines) {
+    const el = document.getElementById(`mine${m.id}`);
+    if (!el) continue;
+    const cls = 'mine'
+      + (m.owner ? ` owner-${m.owner}` : '')
+      + (m.captureSide ? ` capturing capturing-${m.captureSide}` : '');
+    if (el.className !== cls) el.className = cls;
+    const img = el.firstChild;
+    const src = `assets/buildings/mine-${m.owner ? 'active' : 'inactive'}.png`;
+    if (!img.src.endsWith(src)) img.src = src;
+    el.style.setProperty('--capture', (m.captureMs / MINE_CAPTURE_MS).toFixed(3));
+  }
 }
 
 // ---------- Minimap (click/drag handling is in commands.js) ----------
@@ -138,6 +159,16 @@ function renderMinimap() {
     fctx.fill();
   }
   ctx.drawImage(minimapFogCanvas, 0, 0);
+
+  // Gold mines: gold squares, bordered in the owner's color (white if neutral).
+  for (const m of mines) {
+    ctx.fillStyle = '#f2c230';
+    ctx.fillRect(m.x * sx - 3.5, (m.y - 3) * sx - 3.5, 7, 7);
+    ctx.strokeStyle = m.owner === 'player' ? MINIMAP_COLORS.player
+      : (m.owner === 'computer' ? MINIMAP_COLORS.enemy : '#ffffff');
+    ctx.lineWidth = 2;
+    ctx.strokeRect(m.x * sx - 3.5, (m.y - 3) * sx - 3.5, 7, 7);
+  }
 
   // Castles (always shown -- you know where both bases are), then soldiers.
   for (const [pos, color, hp] of [[PLAYER_CASTLE_POS, MINIMAP_COLORS.player, playerCastleHP],
@@ -323,6 +354,22 @@ function placeBoard() {
   };
   placeAt(document.getElementById('playerCastleGraphic'), PLAYER_CASTLE_POS);
   placeAt(document.getElementById('enemyCastleGraphic'), COMPUTER_CASTLE_POS);
+
+  // Gold mine elements, one per MINE_SITES entry, built once; their look
+  // (owner, capture ring) is updated every frame by renderMines().
+  const minesLayer = document.getElementById('minesLayer');
+  if (!minesLayer.childElementCount) {
+    MINE_SITES.forEach((site, i) => {
+      const el = document.createElement('div');
+      el.className = 'mine';
+      el.id = `mine${i}`;
+      el.innerHTML = '<img class="mine-img" alt="" src="assets/buildings/mine-inactive.png">'
+        + '<div class="mine-flag"><div class="mine-flag-cloth"></div></div>'
+        + '<div class="mine-ring"></div>';
+      placeAt(el, site);
+      minesLayer.appendChild(el);
+    });
+  }
 
   const layer = document.getElementById('sceneryLayer');
   if (layer.childElementCount) return; // scenery never changes; built on the first game only
