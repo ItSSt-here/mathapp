@@ -11,9 +11,13 @@
         },
         "seats": {
           "$side": {
-            ".write": "auth != null && ($side === 'player' || $side === 'computer') && (!data.exists() || data.child('uid').val() === auth.uid)",
+            ".write": "auth != null && ($side === 'player' || $side === 'computer') && (!data.exists() || data.child('uid').val() === auth.uid || data.child('online').val() === false)",
             ".validate": "newData.child('uid').val() === auth.uid"
           }
+        },
+        "startAt": {
+          ".write": "auth != null && !data.exists() && data.parent().child('seats/player/ready').val() === true && data.parent().child('seats/computer/ready').val() === true",
+          ".validate": "newData.isNumber() && newData.val() > now - 10000 && newData.val() < now + 10000"
         }
       }
     }

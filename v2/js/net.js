@@ -22,7 +22,9 @@
 //       player/   {topic, level, review, soldierCost, correctReward,
 //                  mineBonus, wrongPenalty, swapAllowed, swapCost}   (blue)
 //       computer/ { ...same... }                                      (red)
-//     seats/<side>/ {uid, ready}   -- filled in by the lobby (step 3)
+//     seats/<side>/ {uid, online, ready}  -- the lobby (joinRoom() below)
+//     startAt          server timestamp, written once when both are ready;
+//                      both browsers start the match PVP_COUNTDOWN_MS after it
 
 const FIREBASE_SDK_VERSION = '12.19.0';
 const FIREBASE_CONFIG = {
@@ -102,6 +104,75 @@ async function fetchRoomConfig(roomId) {
   const db = await connectFirebase();
   const snap = await db.ref(`rooms/${roomId}/config`).get();
   return snap.exists() ? snap.val() : null;
+}
+
+// ---------- The lobby: seats, ready, synchronized start ----------
+// Each student's browser sits in its team's seat: {uid, online, ready}.
+// `online` is presence -- Firebase itself flips it to false (and cancels
+// `ready`) if the tab closes or the connection drops (onDisconnect). A seat
+// belongs to whoever took it, but a seat whose owner is offline can be taken
+// over (e.g. the student moved to another computer) -- see the rules.
+//
+// Clocks: every computer's own clock is a bit off, so the start moment is a
+// Firebase *server* timestamp, and each browser converts it with its own
+// measured offset from the server clock (.info/serverTimeOffset). That way
+// both countdowns hit zero at the same real moment.
+let serverTimeOffset = 0;
+
+function serverNow() {
+  return Date.now() + serverTimeOffset;
+}
+
+// Joins `team`'s seat in the room and keeps it (re-claimed after every
+// reconnect). onRoom(room) is called with the whole room snapshot on every
+// change. Resolves to an object with setReady()/requestStart(); rejects with
+// code 'SEAT_TAKEN' if someone else is online in that seat.
+async function joinRoom(roomId, team, onRoom) {
+  const db = await connectFirebase();
+  const uid = firebase.auth().currentUser.uid;
+  const roomRef = db.ref(`rooms/${roomId}`);
+  const seatRef = roomRef.child(`seats/${team}`);
+
+  db.ref('.info/serverTimeOffset').on('value', snap => { serverTimeOffset = snap.val() || 0; });
+
+  // Sit down first, then register the "mark me offline" instruction -- the
+  // rules only accept it for a seat that's already ours.
+  const claim = async () => {
+    await seatRef.set({ uid, online: true, ready: false });
+    await seatRef.onDisconnect().update({ online: false, ready: false });
+  };
+  try {
+    await claim();
+  } catch (err) {
+    if (!/permission/i.test(err.code || err.message)) throw err;
+    const e = new Error('seat taken');
+    e.code = 'SEAT_TAKEN';
+    throw e;
+  }
+  // After a dropped connection comes back, sit down again (Firebase already
+  // marked us offline when it dropped).
+  let firstConnect = true;
+  db.ref('.info/connected').on('value', snap => {
+    if (!snap.val()) return;
+    if (firstConnect) { firstConnect = false; return; }
+    claim().catch(err => console.error('re-claiming seat failed', err));
+  });
+
+  roomRef.on('value', snap => onRoom(snap.val()));
+
+  return {
+    uid,
+    setReady: ready => seatRef.update({ ready }),
+    // Both are ready: fix the start moment. Both browsers may try at once,
+    // so it's a transaction that only writes while startAt is still empty.
+    // applyLocally=false matters: a plain set() shows up in this browser's
+    // own listeners *before* the server accepts it, so a rejected or
+    // losing write could start a countdown to the wrong moment. This way
+    // both browsers only ever see the one value the server kept.
+    requestStart: () => roomRef.child('startAt')
+      .transaction(cur => (cur == null ? firebase.database.ServerValue.TIMESTAMP : undefined), null, false)
+      .catch(err => console.error('setting the start moment failed', err))
+  };
 }
 
 function buildRoomLink(roomId, team) {

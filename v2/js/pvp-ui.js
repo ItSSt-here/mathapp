@@ -171,9 +171,18 @@ async function onPvpCreate() {
 // ---------- Student: arriving on a room link ----------
 // Takes this link's team, loads the room's settings, and applies this
 // team's topic/level/review to the exercises (the same globals the normal
-// topic screens set). The match itself starts from the lobby (next step:
-// ready buttons + countdown).
+// topic screens set), then sits down in the room's lobby (joinRoom(),
+// net.js): each student presses "מוכן", and once both are ready both
+// browsers count down PVP_COUNTDOWN_MS to the same server-clock moment and
+// start the match.
 let matchConfig = null; // the room's {player, computer} settings once loaded
+let roomSession = null; // joinRoom()'s handle while in a room
+let pvpCountdownTimer = null;
+let pvpStarted = false;
+const PVP_COUNTDOWN_MS = 3000;
+// A room whose start was longer ago than this is a match already under
+// way (e.g. the page was refreshed mid-game) -- rejoining one comes later.
+const PVP_LATE_JOIN_MS = 10000;
 
 async function openPvpLobby(params) {
   const team = URL_SIDE_TO_TEAM[params.get(URL_PARAM_SIDE)];
@@ -211,6 +220,75 @@ async function openPvpLobby(params) {
   box.classList.add(`side-${team}`);
   title.textContent = team === 'player' ? 'אתה בצד הכחול 🔵' : 'אתה בצד האדום 🔴';
   info.textContent = `נושא: ${topicLabel(mine.topic)} · רמה ${mine.level}`;
+
+  try {
+    roomSession = await joinRoom(roomId, team, onRoomUpdate);
+  } catch (err) {
+    console.error(err);
+    title.textContent = err.code === 'SEAT_TAKEN' ? 'הצד הזה כבר תפוס' : 'אין חיבור';
+    info.textContent = err.code === 'SEAT_TAKEN'
+      ? 'מישהו אחר כבר מחובר לצד הזה. בדקו שפתחתם את הקישור הנכון.'
+      : 'לא הצלחנו להתחבר. בדקו את החיבור לאינטרנט ורעננו את הדף.';
+    return;
+  }
+  const readyBtn = document.getElementById('pvpReadyBtn');
+  readyBtn.style.display = '';
+  readyBtn.disabled = false;
+}
+
+// Every change in the room (either student connecting, leaving, getting
+// ready, or the start moment being set) redraws the lobby from scratch.
+function onRoomUpdate(room) {
+  if (!room || pvpStarted) return;
+  const seats = room.seats || {};
+  for (const team of ['player', 'computer']) {
+    const seat = seats[team];
+    const mine = team === localSide;
+    const name = team === 'player' ? '🔵 כחול' : '🔴 אדום';
+    const state = !seat || !seat.online ? 'ממתין שיתחבר...'
+      : (seat.ready ? 'מוכן ✔' : 'מחובר, עוד לא מוכן');
+    const el = document.getElementById(`pvpSeat-${team}`);
+    el.textContent = `${name}${mine ? ' (אתה)' : ''}: ${state}`;
+    el.classList.toggle('ready', !!(seat && seat.online && seat.ready));
+  }
+
+  const myReady = !!(seats[localSide] && seats[localSide].ready);
+  const readyBtn = document.getElementById('pvpReadyBtn');
+  readyBtn.textContent = myReady ? 'לא מוכן עדיין' : 'מוכן! ✋';
+  readyBtn.classList.toggle('is-ready', myReady);
+
+  const bothReady = ['player', 'computer'].every(t => seats[t] && seats[t].online && seats[t].ready);
+  if (room.startAt) {
+    if (serverNow() - room.startAt > PVP_LATE_JOIN_MS) {
+      document.getElementById('pvpLobbyTitle').textContent = 'המשחק כבר התחיל';
+      document.getElementById('pvpLobbyInfo').textContent = 'אי אפשר עדיין להצטרף באמצע משחק.';
+      readyBtn.style.display = 'none';
+      return;
+    }
+    startPvpCountdown(room.startAt + PVP_COUNTDOWN_MS);
+  } else if (bothReady) {
+    roomSession.requestStart();
+  }
+}
+
+// Counts down to the shared start moment (server clock), then starts.
+function startPvpCountdown(startServerMs) {
+  if (pvpCountdownTimer) return;
+  document.getElementById('pvpReadyBtn').style.display = 'none';
+  const el = document.getElementById('pvpCountdown');
+  const step = () => {
+    const left = startServerMs - serverNow();
+    if (left <= 0) {
+      clearInterval(pvpCountdownTimer);
+      pvpStarted = true;
+      document.getElementById('pvpLobbyOverlay').classList.remove('show');
+      startGame();
+      return;
+    }
+    el.textContent = String(Math.ceil(left / 1000));
+  };
+  pvpCountdownTimer = setInterval(step, 50);
+  step();
 }
 
 // ---------- Wiring ----------
@@ -231,6 +309,10 @@ document.getElementById('pvpBackBtn').addEventListener('click', () => {
 document.getElementById('pvpNewGameBtn').addEventListener('click', () => {
   document.getElementById('pvpLinksOverlay').classList.remove('show');
   openPvpSetup();
+});
+document.getElementById('pvpReadyBtn').addEventListener('click', () => {
+  if (!roomSession) return;
+  roomSession.setReady(!document.getElementById('pvpReadyBtn').classList.contains('is-ready'));
 });
 for (const [btnId, inputId, feedbackId] of [['pvpCopyBlueBtn', 'pvpLinkBlue', 'pvpCopyBlueFeedback'],
                                             ['pvpCopyRedBtn', 'pvpLinkRed', 'pvpCopyRedFeedback']]) {

@@ -2023,6 +2023,32 @@ hr {
   border: 2px solid var(--team);
   border-radius: 8px;
 }
+.pvp-seat {
+  font-size: 16px;
+  color: #777;
+  margin: 6px 0;
+}
+.pvp-seat:empty { display: none; }
+.pvp-seat.ready { color: #1f9d3a; font-weight: bold; }
+.pvp-ready-btn {
+  margin-top: 16px;
+  font-size: 24px;
+  padding: 14px 40px;
+}
+.pvp-ready-btn.is-ready {
+  background: linear-gradient(180deg, #d9d9d9, #b7b7b7);
+  color: #555;
+  box-shadow: 0 3px 0 #8f8f8f;
+  font-size: 16px;
+}
+.pvp-countdown {
+  font-size: 72px;
+  font-weight: bold;
+  color: #4a3fd1;
+  line-height: 1;
+  margin-top: 10px;
+}
+.pvp-countdown:empty { display: none; }
 .pvp-lobby-card.side-player   .overlay-title { color: #2f8fff; }
 .pvp-lobby-card.side-computer .overlay-title { color: #ff3b30; }
 @media (max-width: 600px) {

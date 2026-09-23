@@ -282,6 +282,11 @@ function endGame(playerWon, surrendered) {
   document.getElementById('overlayWrongCount').textContent = wrongCount;
   document.getElementById('overlaySwapCount').textContent = swapCount;
   logRoundStats(playerWon, surrendered);
+  // A PvP match comes from the teacher's room link -- restarting or
+  // changing settings locally would just be a game against nobody.
+  const pvp = matchMode === 'pvp';
+  document.getElementById('restartBtn').style.display = pvp ? 'none' : '';
+  document.getElementById('changeDifficultyBtn').style.display = pvp ? 'none' : '';
   overlay.classList.add('show');
 }
 
