@@ -1952,6 +1952,83 @@ hr {
   box-shadow: 0 1px 0 #8f8f8f;
 }
 
+/* ---------- PvP screens (pvp-ui.js) ---------- */
+.pvp-card {
+  width: 760px;
+  max-height: 92vh;
+  overflow-y: auto;
+  padding: 24px 28px;
+}
+.pvp-same {
+  display: block;
+  font-size: 15px;
+  margin-bottom: 14px;
+  cursor: pointer;
+}
+.pvp-columns {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 18px;
+  text-align: start;
+}
+.pvp-column {
+  flex: 1;
+  min-width: 0;
+  border-radius: 12px;
+  padding: 12px 14px;
+  border: 2px solid var(--team);
+  background: color-mix(in srgb, var(--team) 7%, white);
+}
+.side-player   { --team: #2f8fff; }
+.side-computer { --team: #ff3b30; }
+.pvp-column.pvp-locked { opacity: 0.55; }
+.pvp-column-title {
+  font-weight: bold;
+  font-size: 17px;
+  color: var(--team);
+  margin-bottom: 8px;
+}
+.pvp-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 14px;
+  padding: 4px 0;
+}
+.pvp-row select { max-width: 55%; font-size: 14px; }
+.pvp-row input[type="number"] { width: 64px; font-size: 14px; }
+.pvp-row.pvp-disabled { opacity: 0.45; }
+.pvp-level-description {
+  font-size: 11.5px;
+  color: #777;
+  line-height: 1.35;
+  max-height: 5.4em;
+  overflow-y: auto;
+  margin: 0 0 6px;
+}
+.pvp-link-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-weight: bold;
+  color: var(--team);
+}
+.pvp-link-row input {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  padding: 6px 8px;
+  border: 2px solid var(--team);
+  border-radius: 8px;
+}
+.pvp-lobby-card.side-player   .overlay-title { color: #2f8fff; }
+.pvp-lobby-card.side-computer .overlay-title { color: #ff3b30; }
+@media (max-width: 600px) {
+  .pvp-columns { flex-direction: column; }
+}
+
 /* Hot-seat (?hotseat=1) team switch, colored as the team now playing. */
 .hotseat-btn {
   font-size: 13px;

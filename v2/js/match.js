@@ -15,6 +15,9 @@
 //                 both teams are human, and a button switches which team this
 //                 one browser is currently playing. Stand-in for PvP until
 //                 the network part exists.
+//   'pvp'      -- opened from a room link the teacher created (pvp-ui.js):
+//                 localSide is that link's team, and both teams' settings
+//                 come from the room (matchConfig).
 //
 // The command funnel: every action a player takes that changes the battle
 // (buy, move, attack, correct/wrong answer, swap, surrender) is described
@@ -46,9 +49,10 @@ function defaultSideParams() {
 let sides = {};
 
 function setupSides() {
+  const paramsOf = team => (matchMode === 'pvp' && matchConfig ? { ...matchConfig[team] } : defaultSideParams());
   sides = {
-    player: { params: defaultSideParams(), money: 0 },
-    computer: { params: defaultSideParams(), money: 0 }
+    player: { params: paramsOf('player'), money: 0 },
+    computer: { params: paramsOf('computer'), money: 0 }
   };
 }
 

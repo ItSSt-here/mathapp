@@ -157,11 +157,22 @@ function parseUrlParams() {
 const ARRIVED_STAGE_OVERLAY = { mode: 'modeOverlay', difficulty: 'exDifficultyOverlay', speed: 'startOverlay' };
 
 function showInitialOverlay() {
+  const params = new URLSearchParams(location.search);
+  // A PvP room link (?room=...&side=blue|red) goes straight to that match's
+  // lobby -- none of the normal topic/level/speed screens (pvp-ui.js).
+  if (params.get(URL_PARAM_ROOM)) {
+    arrivedStage = 'pvp';
+    openPvpLobby(params);
+    return;
+  }
   // ?hotseat=1: debug/playtest mode, both teams human on one screen (match.js).
-  if (new URLSearchParams(location.search).get('hotseat') === '1') matchMode = 'hotseat';
+  if (params.get('hotseat') === '1') matchMode = 'hotseat';
   arrivedStage = parseUrlParams();
   document.getElementById('weakPoolCheckbox').checked = weakPoolReviewEnabled;
-  const overlayId = arrivedStage === 'subtopic' ? TOPIC_GROUPS[arrivedGroup].overlayId : ARRIVED_STAGE_OVERLAY[arrivedStage];
+  // A bare link first asks "against the computer, or PvP?" (the teacher's
+  // entry to PvP setup); hot-seat is already its own kind of game.
+  const overlayId = arrivedStage === 'subtopic' ? TOPIC_GROUPS[arrivedGroup].overlayId
+    : (arrivedStage === 'mode' && matchMode === 'computer' ? 'matchTypeOverlay' : ARRIVED_STAGE_OVERLAY[arrivedStage]);
   document.getElementById(overlayId).classList.add('show');
 }
 
@@ -276,7 +287,9 @@ function endGame(playerWon, surrendered) {
 
 function startGame() {
   setupSides(); // both teams' settings + coins (match.js)
-  localSide = 'player'; // a new game always starts as blue (hot-seat can switch)
+  // A new game starts as blue (hot-seat can switch); in PvP the room link
+  // decided the team.
+  if (matchMode !== 'pvp') localSide = 'player';
   // Weak pool never carries over between rounds -- see its state comment in
   // config.js for why (shared-device mistake bleed-through).
   weakPool = [];

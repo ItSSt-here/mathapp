@@ -1,0 +1,21 @@
+{
+  "rules": {
+    "rooms": {
+      "$room": {
+        ".read": "auth != null",
+        ".write": "auth != null && !data.exists() && newData.child('createdBy').val() === auth.uid",
+        "createdAt": { ".validate": "newData.val() === now" },
+        "config": {
+          "player": { ".validate": "newData.hasChildren(['topic', 'level', 'soldierCost', 'correctReward'])" },
+          "computer": { ".validate": "newData.hasChildren(['topic', 'level', 'soldierCost', 'correctReward'])" }
+        },
+        "seats": {
+          "$side": {
+            ".write": "auth != null && ($side === 'player' || $side === 'computer') && (!data.exists() || data.child('uid').val() === auth.uid)",
+            ".validate": "newData.child('uid').val() === auth.uid"
+          }
+        }
+      }
+    }
+  }
+}

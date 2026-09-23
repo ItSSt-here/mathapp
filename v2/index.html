@@ -13,7 +13,7 @@
      fetch of everything together instead of relying on cache timing to
      line up. No build step in this project, so this is manual -- there's
      nothing to automate it. -->
-<link rel="stylesheet" href="style.css?v=202609241200">
+<link rel="stylesheet" href="style.css?v=202609241400">
 </head>
 <body>
 
@@ -315,6 +315,65 @@
   </div>
 </div>
 
+<!-- PvP screens (pvp-ui.js). A bare link starts here: against the computer
+     continues to the usual topic screens, PvP opens the teacher's setup. -->
+<div class="overlay" id="matchTypeOverlay">
+  <div class="overlay-card">
+    <div class="overlay-title" style="color:#4a3fd1;">קרב טירות ⚔️</div>
+    <p class="overlay-text">איך משחקים?</p>
+    <div class="postgame-buttons">
+      <button class="restart-btn" id="matchComputerBtn">🖥️ מול המחשב</button>
+      <button class="restart-btn" id="matchPvpBtn">⚔️ שני תלמידים (PvP)</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="pvpSetupOverlay">
+  <div class="overlay-card pvp-card">
+    <div class="overlay-title" style="color:#4a3fd1;">משחק PvP ⚔️</div>
+    <label class="pvp-same"><input type="checkbox" id="pvpSameSettings" checked> אותן הגדרות לשני הצדדים</label>
+    <!-- Each column is built by buildPvpColumn(). Blue first = on the right (RTL), like its tower. -->
+    <div class="pvp-columns">
+      <div class="pvp-column side-player" id="pvpColumn-player"></div>
+      <div class="pvp-column side-computer" id="pvpColumn-computer"></div>
+    </div>
+    <div class="postgame-buttons">
+      <button class="restart-btn" id="pvpCreateBtn">צור משחק וקבל קישורים</button>
+      <button class="copy-link-btn" id="pvpBackBtn">חזרה</button>
+    </div>
+    <div class="copy-feedback" id="pvpSetupStatus"></div>
+  </div>
+</div>
+
+<div class="overlay" id="pvpLinksOverlay">
+  <div class="overlay-card pvp-card">
+    <div class="overlay-title" style="color:#4a3fd1;">המשחק מוכן! 🎉</div>
+    <p class="overlay-text">שלחו לכל תלמיד את הקישור של הצד שלו.</p>
+    <div class="pvp-link-row side-player">
+      <span>🔵 כחול</span>
+      <input type="text" readonly id="pvpLinkBlue" dir="ltr">
+      <button class="copy-link-btn" id="pvpCopyBlueBtn">העתק</button>
+      <span class="copy-feedback" id="pvpCopyBlueFeedback"></span>
+    </div>
+    <div class="pvp-link-row side-computer">
+      <span>🔴 אדום</span>
+      <input type="text" readonly id="pvpLinkRed" dir="ltr">
+      <button class="copy-link-btn" id="pvpCopyRedBtn">העתק</button>
+      <span class="copy-feedback" id="pvpCopyRedFeedback"></span>
+    </div>
+    <div class="postgame-buttons">
+      <button class="restart-btn" id="pvpNewGameBtn">משחק חדש</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="pvpLobbyOverlay">
+  <div class="overlay-card pvp-lobby-card">
+    <div class="overlay-title" id="pvpLobbyTitle">מתחבר למשחק...</div>
+    <p class="overlay-text" id="pvpLobbyInfo"></p>
+  </div>
+</div>
+
 <div class="overlay" id="modeOverlay">
   <div class="overlay-card">
     <div class="overlay-title" style="color:#4a3fd1;">קרב טירות ⚔️</div>
@@ -517,29 +576,31 @@
      (see preloadSoldierSprites() in render.js). -->
 <div id="spritePreload" style="position:fixed; left:-9999px; top:-9999px; width:1px; height:1px; overflow:hidden;" aria-hidden="true"></div>
 
-<script src="js/config.js?v=202609241200"></script>
-<script src="js/helpers.js?v=202609241200"></script>
-<script src="js/exercise-core.js?v=202609241200"></script>
-<script src="js/exercise-division.js?v=202609241200"></script>
-<script src="js/exercise-fractions.js?v=202609241200"></script>
-<script src="js/exercise-fraction-arithmetic.js?v=202609241200"></script>
-<script src="js/exercise-addfractions.js?v=202609241200"></script>
-<script src="js/exercise-subtractfractions.js?v=202609241200"></script>
-<script src="js/exercise-mixednumbers.js?v=202609241200"></script>
-<script src="js/exercise-addfractionsadvanced.js?v=202609241200"></script>
-<script src="js/exercise-letters.js?v=202609241200"></script>
-<script src="js/exercise-abc.js?v=202609241200"></script>
-<script src="js/exercise-nikud.js?v=202609241200"></script>
-<script src="js/exercise-compare.js?v=202609241200"></script>
-<script src="js/exercise-vocabulary.js?v=202609241200"></script>
-<script src="js/exercise-grammar.js?v=202609241200"></script>
-<script src="js/exercise-decimals.js?v=202609241200"></script>
-<script src="js/terrain.js?v=202609241200"></script>
-<script src="js/match.js?v=202609241200"></script>
-<script src="js/combat.js?v=202609241200"></script>
-<script src="js/render.js?v=202609241200"></script>
-<script src="js/commands.js?v=202609241200"></script>
-<script src="js/main.js?v=202609241200"></script>
+<script src="js/config.js?v=202609241400"></script>
+<script src="js/helpers.js?v=202609241400"></script>
+<script src="js/exercise-core.js?v=202609241400"></script>
+<script src="js/exercise-division.js?v=202609241400"></script>
+<script src="js/exercise-fractions.js?v=202609241400"></script>
+<script src="js/exercise-fraction-arithmetic.js?v=202609241400"></script>
+<script src="js/exercise-addfractions.js?v=202609241400"></script>
+<script src="js/exercise-subtractfractions.js?v=202609241400"></script>
+<script src="js/exercise-mixednumbers.js?v=202609241400"></script>
+<script src="js/exercise-addfractionsadvanced.js?v=202609241400"></script>
+<script src="js/exercise-letters.js?v=202609241400"></script>
+<script src="js/exercise-abc.js?v=202609241400"></script>
+<script src="js/exercise-nikud.js?v=202609241400"></script>
+<script src="js/exercise-compare.js?v=202609241400"></script>
+<script src="js/exercise-vocabulary.js?v=202609241400"></script>
+<script src="js/exercise-grammar.js?v=202609241400"></script>
+<script src="js/exercise-decimals.js?v=202609241400"></script>
+<script src="js/terrain.js?v=202609241400"></script>
+<script src="js/match.js?v=202609241400"></script>
+<script src="js/net.js?v=202609241400"></script>
+<script src="js/combat.js?v=202609241400"></script>
+<script src="js/render.js?v=202609241400"></script>
+<script src="js/commands.js?v=202609241400"></script>
+<script src="js/pvp-ui.js?v=202609241400"></script>
+<script src="js/main.js?v=202609241400"></script>
 
 </body>
 </html>
