@@ -98,7 +98,7 @@ const CASTLE_FIRE_2_PCT = 15;
 // through the vertical middle; the open areas above and below it are room
 // for side objectives (e.g. gold mines, see [[project_v2_roadmap]]).
 const WORLD_W = 200;
-const WORLD_H = 100;
+const WORLD_H = 130;
 const VIEW_W = 100;
 const VIEW_H = 40;
 const Y_MOVE_MIN = 7;   // keeps a soldier's head on the board at the top edge
@@ -112,8 +112,8 @@ const Y_MOVE_MAX = WORLD_H - 1;
 // it" -- is a box CASTLE_HALF_W to each side of that point and CASTLE_DEPTH
 // deep going up the board from it; a soldier within CASTLE_REACH of that box
 // can besiege (castleDistance() in combat.js).
-const PLAYER_CASTLE_POS = { x: WORLD_W - 8, y: 56 };
-const COMPUTER_CASTLE_POS = { x: 8, y: 56 };
+const PLAYER_CASTLE_POS = { x: WORLD_W - 8, y: 65 };
+const COMPUTER_CASTLE_POS = { x: 8, y: 65 };
 const CASTLE_HALF_W = 4.2;
 const CASTLE_DEPTH = 5;
 const CASTLE_REACH = 3;
@@ -123,7 +123,7 @@ const CASTLE_REACH = 3;
 // of it rather than hidden behind it) and just stand there until given an
 // order (see commands.js). RALLY_JITTER is the random spread around that
 // point, in board units.
-const PLAYER_RALLY = { x: WORLD_W - 10, y: 59.5 };
+const PLAYER_RALLY = { x: WORLD_W - 10, y: 68.5 };
 const RALLY_JITTER = { x: 3, y: 2.5 };
 
 // A soldier walks toward any enemy this close (even mid-order -- it resumes
@@ -139,9 +139,9 @@ const SEPARATION_DIST = 2.5;
 // - Raiders: new enemy soldiers (DIFFICULTY_SPAWN_INTERVALS_MS below) gather
 //   at ENEMY_RALLY until a randomly sized squad (ENEMY_SQUAD_MIN-MAX) is
 //   complete, then all march on the player's castle together.
-const ENEMY_GUARD_POSTS = [{ x: 22, y: 44 }, { x: 24, y: 55 }, { x: 22, y: 65 }];
+const ENEMY_GUARD_POSTS = [{ x: 22, y: 53 }, { x: 24, y: 64 }, { x: 22, y: 74 }];
 const GUARD_LEASH = 22;
-const ENEMY_RALLY = { x: 14, y: 65 };
+const ENEMY_RALLY = { x: 14, y: 74 };
 
 // Scenery (placeBoard() in render.js): purely decorative, soldiers walk
 // past it. Fixed positions so the map looks the same every game; kept clear
@@ -168,20 +168,20 @@ const SCENERY = [
   { art: 'tree', x: 148, y: 6 }, { art: 'tree', x: 163, y: 8 }, { art: 'tree', x: 179, y: 5 },
   { art: 'tree', x: 194, y: 7 },
   // bottom edge
-  { art: 'tree', x: 10, y: 101 }, { art: 'tree', x: 27, y: 102 }, { art: 'tree', x: 42, y: 101 },
-  { art: 'tree', x: 78, y: 102 }, { art: 'tree', x: 88, y: 101 }, { art: 'tree', x: 105, y: 101 },
-  { art: 'tree', x: 122, y: 102 }, { art: 'tree', x: 150, y: 102 }, { art: 'tree', x: 159, y: 101 },
-  { art: 'tree', x: 176, y: 102 }, { art: 'tree', x: 192, y: 101 },
+  { art: 'tree', x: 10, y: 131 }, { art: 'tree', x: 27, y: 132 }, { art: 'tree', x: 42, y: 131 },
+  { art: 'tree', x: 78, y: 132 }, { art: 'tree', x: 88, y: 131 }, { art: 'tree', x: 105, y: 131 },
+  { art: 'tree', x: 122, y: 132 }, { art: 'tree', x: 150, y: 132 }, { art: 'tree', x: 159, y: 131 },
+  { art: 'tree', x: 176, y: 132 }, { art: 'tree', x: 192, y: 131 },
   // small groves in the open areas above and below the road
   { art: 'tree', x: 58, y: 30 }, { art: 'tree', x: 64, y: 33 }, { art: 'tree', x: 140, y: 29 },
-  { art: 'tree', x: 70, y: 76 }, { art: 'tree', x: 132, y: 74 }, { art: 'tree', x: 137, y: 77 },
-  { art: 'bush2', x: 84, y: 27 }, { art: 'rock1', x: 30, y: 30 }, { art: 'mushroom', x: 170, y: 32 },
-  { art: 'bush3', x: 102, y: 80 }, { art: 'rock2', x: 36, y: 78 }, { art: 'pumpkin', x: 166, y: 78 },
+  { art: 'tree', x: 36, y: 100 }, { art: 'tree', x: 170, y: 100 }, { art: 'tree', x: 100, y: 98 },
+  { art: 'bush2', x: 74, y: 27 }, { art: 'rock1', x: 30, y: 30 }, { art: 'mushroom', x: 170, y: 32 },
+  { art: 'bush3', x: 100, y: 110 }, { art: 'rock2', x: 30, y: 112 }, { art: 'pumpkin', x: 168, y: 112 },
   // around the road
-  { art: 'bush1', x: 55, y: 48 }, { art: 'bush3', x: 88, y: 61 }, { art: 'rock1', x: 120, y: 45 },
-  { art: 'rock2', x: 146, y: 63 }, { art: 'mushroom', x: 72, y: 54 }, { art: 'pumpkin', x: 101, y: 52 },
-  { art: 'bush2', x: 132, y: 56 }, { art: 'mushroom', x: 44, y: 59 }, { art: 'rock2', x: 60, y: 65 },
-  { art: 'bush1', x: 156, y: 47 }
+  { art: 'bush1', x: 55, y: 57 }, { art: 'bush3', x: 88, y: 70 }, { art: 'rock1', x: 120, y: 54 },
+  { art: 'rock2', x: 146, y: 72 }, { art: 'mushroom', x: 72, y: 63 }, { art: 'pumpkin', x: 101, y: 61 },
+  { art: 'bush2', x: 132, y: 65 }, { art: 'mushroom', x: 44, y: 68 }, { art: 'rock2', x: 60, y: 74 },
+  { art: 'bush1', x: 156, y: 56 }
 ];
 const ENEMY_SQUAD_MIN = 1;
 const ENEMY_SQUAD_MAX = 3;
@@ -191,31 +191,54 @@ const ENEMY_SQUAD_MAX = 3;
 // detour that splits your army, not a free bonus on the way to the enemy.
 // One contested mine top-middle, equally far from both castles; one at the
 // bottom a bit closer to each side. All start neutral.
-// A side captures a mine by having soldiers within MINE_RANGE of it and none
-// of the other side's, for MINE_CAPTURE_MS in a row (a ring fills up); it then
+// A side captures a mine by having soldiers up on its plateau and none of
+// the other side's, for MINE_CAPTURE_MS in a row (a ring fills up); it then
 // stays that side's until the other side captures it back.
 // Each mine the player holds adds MINE_BONUS coins to every correct answer
 // (markCorrect(), exercise-core.js) -- so mines make every exercise worth
 // more. Each mine the enemy holds makes its new soldiers come out
 // ENEMY_MINE_SPAWN_SPEEDUP faster, so leaving the mines to it has a price.
-// Every mine starts with `guards` neutral guards (purple warriors, their own
-// side): nobody can capture a mine while any of its guards still stands, so
-// taking one means building an army first. They stand at MINE_GUARD_OFFSETS
-// around the mine, attack anyone of either side who comes within
-// MINE_GUARD_LEASH of their post, and are never replaced once killed.
+// Every mine sits on its own raised plateau (PLATEAUS below): cliffs all
+// around, one ramp in, on the far side from the road -- so going for a mine
+// is a real detour. Only soldiers up on the plateau count for capturing it.
+// Every mine starts with guards (purple warriors, their own neutral
+// side) at `guardPosts`: nobody can capture a mine while any of its guards
+// still stands, so taking one means building an army first. They attack
+// anyone who comes up onto their plateau within MINE_GUARD_LEASH of their
+// post, never go down the ramp, and are never replaced once killed.
+// `hold` is where an enemy squad that took the mine stands guard.
 const MINE_SITES = [
-  { x: 100, y: 16, guards: 3 },
-  { x: 62, y: 93, guards: 2 },
-  { x: 138, y: 93, guards: 2 }
+  { x: 100, y: 33, plateau: 0,
+    guardPosts: [{ x: 93, y: 22 }, { x: 107, y: 22 }, { x: 100, y: 19 }], hold: { x: 100, y: 25 } },
+  { x: 62, y: 101, plateau: 1,
+    guardPosts: [{ x: 56, y: 108 }, { x: 68, y: 108 }], hold: { x: 62, y: 109 } },
+  { x: 138, y: 101, plateau: 2,
+    guardPosts: [{ x: 132, y: 108 }, { x: 144, y: 108 }], hold: { x: 138, y: 109 } }
 ];
-const MINE_GUARD_OFFSETS = [{ x: -6, y: 4 }, { x: 6, y: 4 }, { x: 0, y: 7 }];
-const MINE_GUARD_LEASH = 12;
+const MINE_GUARD_LEASH = 14;
+
+// ---------- Raised plateaus (terrain grid + pathfinding: terrain.js) ----------
+// Ellipses in board units (center cx,cy, radii rx,ry) -- round on purpose:
+// a rectangle's corners were where soldiers used to get stuck. The outer
+// CLIFF_W-thick ring of each one is cliff (impassable), except for the
+// ramp: a gap RAMP_W units wide, centered at rampX, through the cliff on
+// its `rampSide` (top or bottom). The top plateau keeps a
+// walkable corridor between itself and the top edge (and the bottom ones
+// between themselves and the bottom edge) so you can walk around to the ramp.
+// Step 1 of the feature: mechanic with placeholder visuals (see
+// [[project_v2_roadmap]]); real cliff/stairs art comes later.
+const CLIFF_W = 2;
+const RAMP_W = 6;
+const PLATEAUS = [
+  { cx: 100, cy: 26, rx: 19, ry: 12, rampSide: 'top', rampX: 100 },
+  { cx: 62, cy: 104, rx: 19, ry: 12, rampSide: 'bottom', rampX: 62 },
+  { cx: 138, cy: 104, rx: 19, ry: 12, rampSide: 'bottom', rampX: 138 }
+];
 // A mine the player holds lets them see around it, like their castle does
 // (playerSightCircles(), render.js). Any other mine shows its owner, flag
 // and capture ring only while the player currently sees it -- under fog it
 // just looks like a plain mine (renderMines()).
 const MINE_SIGHT = 18;
-const MINE_RANGE = 8;
 const MINE_CAPTURE_MS = 3000;
 const MINE_BONUS = 3;
 const ENEMY_MINE_SPAWN_SPEEDUP = 0.2;  // spawn interval x (1 - 0.2 per enemy mine)
@@ -235,7 +258,7 @@ const FOG_COLOR = 'rgba(12, 18, 32, 0.62)';
 // Most living soldiers either side may have on the board at once (corpses
 // don't count). Stops "buy 1000 soldiers" play; the enemy's guards count
 // toward its cap, and it simply skips a spawn while at the cap.
-const MAX_SOLDIERS_PER_SIDE = 12;
+const MAX_SOLDIERS_PER_SIDE = 20;
 
 // Board units per tick. 0.8 crosses the whole 200-unit board in about a minute.
 const SOLDIER_SPEED = 0.8;

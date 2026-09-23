@@ -80,18 +80,19 @@ function buySoldier() {
 // ---------- Gold mines (see MINE_SITES etc. in config.js) ----------
 function setupMines() {
   mines = MINE_SITES.map((site, i) => ({
-    id: i, x: site.x, y: site.y, owner: null, captureSide: null, captureMs: 0
+    id: i, x: site.x, y: site.y, level: site.plateau + 1, hold: site.hold,
+    owner: null, captureSide: null, captureMs: 0
   }));
-  // Neutral guards (purple, their own 'neutral' side): stand in front of
-  // their mine, attack anyone of either side who comes within
-  // MINE_GUARD_LEASH of their post, and are never replaced. Not in the
-  // no-enemy study mode.
+  // Neutral guards (purple, their own 'neutral' side): stand at their posts
+  // up on the mine's plateau, only ever go after intruders who are up on
+  // that same plateau (never down the ramp -- see updateSoldier()), and
+  // are never replaced. Not in the no-enemy study mode.
   if (isStudyMode()) return;
   mines.forEach((m, i) => {
-    for (const offset of MINE_GUARD_OFFSETS.slice(0, MINE_SITES[i].guards)) {
-      const post = { x: m.x + offset.x, y: m.y + offset.y };
+    for (const post of MINE_SITES[i].guardPosts) {
       const g = spawnSoldier('neutral', 'mineKeeper', post.x, post.y, post, MINE_GUARD_LEASH);
       g.mineId = m.id;
+      g.plateauLevel = m.level;
     }
   });
 }
@@ -104,15 +105,15 @@ function mineCount(side) {
   return mines.filter(m => m.owner === side).length;
 }
 
-// Capture progress: soldiers of exactly one side near a mine that isn't
-// theirs fill its ring; once full the mine flips to them. Both sides there
+// Capture progress: soldiers of exactly one side up on a mine's plateau
+// (terrainLevel(), terrain.js -- the ramp doesn't count) fill its ring; once full the mine flips to them. Both sides there
 // = contested, progress pauses; nobody there = progress drains away.
 function tickMines(livingSoldiers) {
   for (const m of mines) {
     let players = 0;
     let computers = 0;
     for (const s of livingSoldiers) {
-      if (s.side === 'neutral' || Math.hypot(s.x - m.x, s.y - m.y) > MINE_RANGE) continue;
+      if (s.side === 'neutral' || terrainLevel(s.x, s.y) !== m.level) continue;
       if (s.side === 'player') players++; else computers++;
     }
     // Nobody can take a mine while any of its neutral guards still stands.
@@ -135,10 +136,10 @@ function tickMines(livingSoldiers) {
   }
 }
 
-// Where an enemy squad heading for a mine should stand: just below it, so
-// they're drawn in front of it.
+// Where an enemy squad that went for a mine stands guard: around the mine
+// site's `hold` point up on its plateau.
 function mineGuardSpot(m) {
-  return { x: m.x + jitter(4), y: m.y + 3 + jitter(2) };
+  return nearestWalkable(m.hold.x + jitter(4), m.hold.y + jitter(2));
 }
 
 // Enemy spawning + squad logic: new raiders gather at their own spot near
@@ -202,10 +203,12 @@ function nearestOpponent(s, opponents, maxDist, accept) {
   return closest;
 }
 
-// One step toward (tx, ty), snapped to the nearest of 8 compass directions
-// (45 deg apart) -- keeps movement grid-like and gives a future 8-directional
-// sprite a fixed set of angles (facingDeg) to key off. Lands exactly on the
-// target when it's within one step, so arrivals never overshoot/jitter.
+// One step straight toward (tx, ty), at its exact angle. (Movement used to
+// be snapped to 8 compass directions; with cliffs on the board that made
+// soldiers drift off a clear straight line into a cliff corner and get
+// stuck there -- so only the *facing* is snapped now, to the nearest of 8
+// directions, as facingDeg for a future 8-directional sprite.) Lands exactly
+// on the target when it's within one step, so arrivals never overshoot.
 function stepToward(s, tx, ty) {
   const dist = Math.hypot(tx - s.x, ty - s.y);
   if (dist <= SOLDIER_SPEED) {
@@ -213,17 +216,53 @@ function stepToward(s, tx, ty) {
     s.y = ty;
   } else {
     const angle = Math.atan2(ty - s.y, tx - s.x);
-    const step = Math.PI / 4;
-    const snapped = Math.round(angle / step) * step;
+    const snapped = Math.round(angle / (Math.PI / 4)) * (Math.PI / 4);
     s.facingDeg = ((Math.round(snapped * 180 / Math.PI) % 360) + 360) % 360;
-    const dx = Math.cos(snapped);
+    const dx = Math.cos(angle);
+    const dy = Math.sin(angle);
     if (dx < -0.01) s.faceLeft = true;
     else if (dx > 0.01) s.faceLeft = false;
-    s.x += dx * SOLDIER_SPEED;
-    s.y += Math.sin(snapped) * SOLDIER_SPEED;
+    // Never step into a cliff: try the full diagonal/straight step, then
+    // each axis on its own (sliding along the cliff), else stay put.
+    const ox = s.x;
+    const oy = s.y;
+    for (const [mx, my] of [[dx, dy], [dx, 0], [0, dy]]) {
+      if (!mx && !my) continue;
+      s.x = ox + mx * SOLDIER_SPEED;
+      s.y = oy + my * SOLDIER_SPEED;
+      clampToBoard(s);
+      if (!isBlocked(s.x, s.y)) break;
+      s.x = ox;
+      s.y = oy;
+    }
   }
   clampToBoard(s);
   s.moving = true;
+}
+
+// Walks toward (tx, ty) around any cliffs in the way: straight (stepToward)
+// while the direct line is clear, otherwise along an A* path (findPath(),
+// terrain.js). The path is cached on the soldier and only recomputed when
+// the target moves to a different 3-unit square or every PATH_REFRESH_TICKS
+// ticks, and waypoints are skipped whenever a later one is already in clear
+// view, so the walk doesn't zigzag cell by cell.
+const PATH_REFRESH_TICKS = 8;
+function moveToward(s, tx, ty) {
+  if (lineClear(s.x, s.y, tx, ty)) {
+    s.path = null;
+    stepToward(s, tx, ty);
+    return;
+  }
+  const key = `${Math.round(tx / 3)},${Math.round(ty / 3)}`;
+  if (!s.path || s.pathKey !== key || --s.pathAge <= 0) {
+    s.path = findPath(s.x, s.y, tx, ty);
+    s.pathKey = key;
+    s.pathAge = PATH_REFRESH_TICKS + (s.id % 4); // staggered, so a whole group doesn't recompute on the same tick
+  }
+  if (!s.path || !s.path.length) return; // unreachable: stand still
+  while (s.path.length > 1 && lineClear(s.x, s.y, s.path[1].x, s.path[1].y)) s.path.shift();
+  if (Math.hypot(s.path[0].x - s.x, s.path[0].y - s.y) <= SOLDIER_SPEED && s.path.length > 1) s.path.shift();
+  stepToward(s, s.path[0].x, s.path[0].y);
 }
 
 // Straight-line distance from soldier s to the nearest point of a castle's
@@ -276,12 +315,20 @@ function updateSoldier(s, opponents) {
   // around its post, however far that is from where it currently stands --
   // so guards actually defend their castle instead of watching it get
   // besieged from just outside AGGRO_RANGE.
-  const threat = s.leash == null
-    ? nearestOpponent(s, opponents, AGGRO_RANGE)
-    : nearestOpponent(s, opponents, Infinity,
-        o => Math.hypot(o.x - s.home.x, o.y - s.home.y) <= s.leash);
+  // Nobody targets an enemy across a cliff (lineClear, terrain.js): an army
+  // walking below a plateau isn't pulled up its ramp by guards it can see.
+  // Mine guards only go after intruders up on their own plateau.
+  const inSight = o => lineClear(s.x, s.y, o.x, o.y);
+  const threat = s.plateauLevel
+    ? nearestOpponent(s, opponents, Infinity,
+        o => terrainLevel(o.x, o.y) === s.plateauLevel
+          && Math.hypot(o.x - s.home.x, o.y - s.home.y) <= s.leash)
+    : s.leash == null
+      ? nearestOpponent(s, opponents, AGGRO_RANGE, inSight)
+      : nearestOpponent(s, opponents, Infinity,
+          o => Math.hypot(o.x - s.home.x, o.y - s.home.y) <= s.leash && inSight(o));
   if (threat) {
-    stepToward(s, threat.x, threat.y);
+    moveToward(s, threat.x, threat.y);
     return;
   }
 
@@ -291,16 +338,16 @@ function updateSoldier(s, opponents) {
   if (s.order) {
     if (s.order.castle) {
       if (atEnemyCastle) besiege(s, enemyCastle);
-      else stepToward(s, s.order.x, s.order.y);
+      else moveToward(s, s.order.x, s.order.y);
     } else {
-      stepToward(s, s.order.x, s.order.y);
+      moveToward(s, s.order.x, s.order.y);
       if (s.x === s.order.x && s.y === s.order.y) s.order = null;
     }
     return;
   }
 
   if (s.home && Math.hypot(s.x - s.home.x, s.y - s.home.y) > HOME_TOLERANCE) {
-    stepToward(s, s.home.x, s.home.y);
+    moveToward(s, s.home.x, s.home.y);
     return;
   }
   if (s.side === 'neutral') return; // mine guards have no castle to attack
@@ -314,7 +361,7 @@ function updateSoldier(s, opponents) {
     besiege(s, enemyCastle);
   } else if (castleDist <= AGGRO_RANGE) {
     const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
-    stepToward(s,
+    moveToward(s,
       clamp(s.x, enemyCastle.x - CASTLE_HALF_W, enemyCastle.x + CASTLE_HALF_W),
       clamp(s.y, enemyCastle.y - CASTLE_DEPTH, enemyCastle.y));
   }
@@ -333,10 +380,14 @@ function separateSoldiers(living) {
       if (d >= SEPARATION_DIST) continue;
       if (d === 0) { dx = jitter(1); dy = jitter(1); d = Math.hypot(dx, dy) || 1; }
       const push = (SEPARATION_DIST - d) / 4; // gentle: resolves over a few ticks
-      a.x -= dx / d * push; a.y -= dy / d * push;
-      b.x += dx / d * push; b.y += dy / d * push;
-      clampToBoard(a);
-      clampToBoard(b);
+      for (const [u, sign] of [[a, -1], [b, 1]]) {
+        const ox = u.x;
+        const oy = u.y;
+        u.x += sign * dx / d * push;
+        u.y += sign * dy / d * push;
+        clampToBoard(u);
+        if (isBlocked(u.x, u.y)) { u.x = ox; u.y = oy; } // never pushed into a cliff
+      }
     }
   }
 }
@@ -356,7 +407,8 @@ function tick() {
   // fights its nearest opponent within actual contact range.
   const opponentOf = new Map();
   for (const s of livingSoldiers) {
-    const opp = nearestOpponent(s, opponentsOf(s, livingSoldiers), ENGAGE_RANGE);
+    const opp = nearestOpponent(s, opponentsOf(s, livingSoldiers), ENGAGE_RANGE,
+      o => lineClear(s.x, s.y, o.x, o.y)); // no fighting across a cliff
     if (opp) opponentOf.set(s.id, opp);
   }
 

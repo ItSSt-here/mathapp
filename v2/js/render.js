@@ -153,6 +153,21 @@ function renderMinimap() {
 
   ctx.fillStyle = MINIMAP_COLORS.grass;
   ctx.fillRect(0, 0, w, h);
+  // Plateaus: earthy cliff ring, lighter grass top, sand ramp.
+  for (const p of PLATEAUS) {
+    ctx.fillStyle = '#7e6a4d';
+    ctx.beginPath();
+    ctx.ellipse(p.cx * sx, p.cy * sx, p.rx * sx, p.ry * sx, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#9ccc5a';
+    ctx.beginPath();
+    ctx.ellipse(p.cx * sx, p.cy * sx, (p.rx - CLIFF_W) * sx, (p.ry - CLIFF_W) * sx, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#e0bd72';
+    const ry1 = p.rampSide === 'top' ? p.cy - p.ry : p.cy + p.ry - CLIFF_W;
+    ctx.fillRect((p.rampX - RAMP_W / 2) * sx, ry1 * sx, RAMP_W * sx, CLIFF_W * sx);
+  }
+
   ctx.fillStyle = MINIMAP_COLORS.tree;
   for (const item of SCENERY) {
     if (item.art === 'tree') ctx.fillRect(item.x * sx - 2, item.y * sx - 3, 4, 4);
@@ -360,11 +375,12 @@ function placeBoard() {
   // The window onto the board shows VIEW_W x VIEW_H units (minus whatever
   // the scrollbars take); the board inside it is WORLD_W/VIEW_W windows wide.
   document.getElementById('battlefield').style.aspectRatio = `${VIEW_W} / ${VIEW_H}`;
-  // Minimap canvas: fixed 200px wide, the board's own proportions (the CSS
-  // display size matches, so one canvas pixel = one screen pixel).
+  // Minimap canvas: fixed MINIMAP_W px wide (matches .minimap in style.css,
+  // so one canvas pixel = one screen pixel), the board's own proportions.
+  const MINIMAP_W = 170;
   const minimap = document.getElementById('minimap');
-  minimap.width = 200;
-  minimap.height = Math.round(200 * WORLD_H / WORLD_W);
+  minimap.width = MINIMAP_W;
+  minimap.height = Math.round(MINIMAP_W * WORLD_H / WORLD_W);
   plane.style.width = `${WORLD_W / VIEW_W * 100}%`;
   plane.style.aspectRatio = `${WORLD_W} / ${WORLD_H}`;
   plane.style.setProperty('--world-w', WORLD_W);
@@ -376,6 +392,28 @@ function placeBoard() {
   };
   placeAt(document.getElementById('playerCastleGraphic'), PLAYER_CASTLE_POS);
   placeAt(document.getElementById('enemyCastleGraphic'), COMPUTER_CASTLE_POS);
+
+  // Plateaus (placeholder look until the real cliff art: an earthy oval
+  // cliff, a grassy oval top inset by CLIFF_W, a sand ramp through the
+  // cliff). Built once; terrain never changes.
+  const terrainLayer = document.getElementById('terrainLayer');
+  if (!terrainLayer.childElementCount) {
+    const rect = (cls, x1, y1, x2, y2) => {
+      const el = document.createElement('div');
+      el.className = cls;
+      el.style.left = `${x1 / WORLD_W * 100}%`;
+      el.style.top = `${y1 / WORLD_H * 100}%`;
+      el.style.width = `${(x2 - x1) / WORLD_W * 100}%`;
+      el.style.height = `${(y2 - y1) / WORLD_H * 100}%`;
+      terrainLayer.appendChild(el);
+    };
+    for (const p of PLATEAUS) {
+      rect('plateau-cliff', p.cx - p.rx, p.cy - p.ry, p.cx + p.rx, p.cy + p.ry);
+      rect('plateau-top', p.cx - p.rx + CLIFF_W, p.cy - p.ry + CLIFF_W, p.cx + p.rx - CLIFF_W, p.cy + p.ry - CLIFF_W);
+      const ry1 = p.rampSide === 'top' ? p.cy - p.ry - 0.5 : p.cy + p.ry - CLIFF_W - 0.5;
+      rect(`plateau-ramp ramp-${p.rampSide}`, p.rampX - RAMP_W / 2, ry1, p.rampX + RAMP_W / 2, ry1 + CLIFF_W + 1);
+    }
+  }
 
   // Gold mine elements, one per MINE_SITES entry, built once; their look
   // (owner, capture ring) is updated every frame by renderMines().

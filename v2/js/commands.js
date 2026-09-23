@@ -146,10 +146,14 @@ function formationTargets(group, center) {
     rowSoldiers.forEach((s, col) => {
       const x = center.x + (col - (rowSoldiers.length - 1) / 2) * FORMATION_SPACING;
       const y = center.y + (row - (rows - 1) / 2) * FORMATION_SPACING;
-      targets.set(s.id, {
+      const spot = {
         x: Math.max(0, Math.min(WORLD_W, x)),
         y: Math.max(Y_MOVE_MIN, Math.min(Y_MOVE_MAX, y))
-      });
+      };
+      // A formation spot that would land across a cliff from the click (e.g.
+      // below a plateau's edge when the click was up on it) falls back to
+      // the click point itself; separation spreads them out from there.
+      targets.set(s.id, lineClear(center.x, center.y, spot.x, spot.y) ? spot : { x: center.x, y: center.y });
     });
   }
   return targets;
@@ -183,7 +187,9 @@ function onBoardRightClick(e) {
     return;
   }
 
-  const p = clientToBoard(e.clientX, e.clientY);
+  // A click on a cliff means "the nearest place you can actually stand".
+  const click = clientToBoard(e.clientX, e.clientY);
+  const p = nearestWalkable(click.x, click.y);
   const targets = formationTargets(group, p);
   for (const s of group) s.order = targets.get(s.id);
   showMoveMarker(p, false);
