@@ -13,7 +13,7 @@
      fetch of everything together instead of relying on cache timing to
      line up. No build step in this project, so this is manual -- there's
      nothing to automate it. -->
-<link rel="stylesheet" href="style.css?v=202609232300">
+<link rel="stylesheet" href="style.css?v=202609232350">
 </head>
 <body>
 
@@ -254,6 +254,10 @@
       <div class="hp-text" id="enemyHpText"></div>
     </div>
 
+    <!-- The wrapper holds the minimap in a fixed corner over the board:
+         .battlefield itself scrolls, so anything inside it would scroll away. -->
+    <div class="battlefield-wrap">
+    <canvas class="minimap" id="minimap"></canvas>
     <div class="battlefield" id="battlefield">
       <!-- Flat 3/4-view board (see the board section in config.js): castles
            and soldiers are positioned in board units by render.js; mouse
@@ -284,6 +288,7 @@
         <!-- Fog of war, drawn by renderFog() (render.js). -->
         <canvas class="fog-canvas" id="fogCanvas"></canvas>
       </div>
+    </div>
     </div>
 
     <div class="castle-block player">
@@ -501,27 +506,27 @@
      (see preloadSoldierSprites() in render.js). -->
 <div id="spritePreload" style="position:fixed; left:-9999px; top:-9999px; width:1px; height:1px; overflow:hidden;" aria-hidden="true"></div>
 
-<script src="js/config.js?v=202609232300"></script>
-<script src="js/helpers.js?v=202609232300"></script>
-<script src="js/exercise-core.js?v=202609232300"></script>
-<script src="js/exercise-division.js?v=202609232300"></script>
-<script src="js/exercise-fractions.js?v=202609232300"></script>
-<script src="js/exercise-fraction-arithmetic.js?v=202609232300"></script>
-<script src="js/exercise-addfractions.js?v=202609232300"></script>
-<script src="js/exercise-subtractfractions.js?v=202609232300"></script>
-<script src="js/exercise-mixednumbers.js?v=202609232300"></script>
-<script src="js/exercise-addfractionsadvanced.js?v=202609232300"></script>
-<script src="js/exercise-letters.js?v=202609232300"></script>
-<script src="js/exercise-abc.js?v=202609232300"></script>
-<script src="js/exercise-nikud.js?v=202609232300"></script>
-<script src="js/exercise-compare.js?v=202609232300"></script>
-<script src="js/exercise-vocabulary.js?v=202609232300"></script>
-<script src="js/exercise-grammar.js?v=202609232300"></script>
-<script src="js/exercise-decimals.js?v=202609232300"></script>
-<script src="js/combat.js?v=202609232300"></script>
-<script src="js/render.js?v=202609232300"></script>
-<script src="js/commands.js?v=202609232300"></script>
-<script src="js/main.js?v=202609232300"></script>
+<script src="js/config.js?v=202609232350"></script>
+<script src="js/helpers.js?v=202609232350"></script>
+<script src="js/exercise-core.js?v=202609232350"></script>
+<script src="js/exercise-division.js?v=202609232350"></script>
+<script src="js/exercise-fractions.js?v=202609232350"></script>
+<script src="js/exercise-fraction-arithmetic.js?v=202609232350"></script>
+<script src="js/exercise-addfractions.js?v=202609232350"></script>
+<script src="js/exercise-subtractfractions.js?v=202609232350"></script>
+<script src="js/exercise-mixednumbers.js?v=202609232350"></script>
+<script src="js/exercise-addfractionsadvanced.js?v=202609232350"></script>
+<script src="js/exercise-letters.js?v=202609232350"></script>
+<script src="js/exercise-abc.js?v=202609232350"></script>
+<script src="js/exercise-nikud.js?v=202609232350"></script>
+<script src="js/exercise-compare.js?v=202609232350"></script>
+<script src="js/exercise-vocabulary.js?v=202609232350"></script>
+<script src="js/exercise-grammar.js?v=202609232350"></script>
+<script src="js/exercise-decimals.js?v=202609232350"></script>
+<script src="js/combat.js?v=202609232350"></script>
+<script src="js/render.js?v=202609232350"></script>
+<script src="js/commands.js?v=202609232350"></script>
+<script src="js/main.js?v=202609232350"></script>
 
 </body>
 </html>

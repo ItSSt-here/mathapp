@@ -90,12 +90,17 @@ const CASTLE_FIRE_2_PCT = 15;
 // nothing has to be measured at runtime. A soldier's (x, y) is where its
 // FEET stand, so sorting by y gives correct front/back overlap for free.
 // The board is wider than the screen: VIEW_W units are visible at a time
-// and the rest is reached by scrolling left/right (scrollbar under the
-// board, or the number-pad arrows -- see commands.js). placeBoard()
-// (render.js) sizes the board from these, so they're the only source.
+// The board is bigger than the screen in both directions: a VIEW_W x
+// VIEW_H window of it is visible at a time, and the rest is reached by
+// scrolling (scrollbars, the number-pad arrows, or the minimap -- see
+// commands.js). placeBoard() (render.js) sizes the board and its window from
+// these, so they're the only source. The castles and the main road run
+// through the vertical middle; the open areas above and below it are room
+// for side objectives (e.g. gold mines, see [[project_v2_roadmap]]).
 const WORLD_W = 200;
-const WORLD_H = 40;
+const WORLD_H = 100;
 const VIEW_W = 100;
+const VIEW_H = 40;
 const Y_MOVE_MIN = 7;   // keeps a soldier's head on the board at the top edge
 const Y_MOVE_MAX = WORLD_H - 1;
 
@@ -107,8 +112,8 @@ const Y_MOVE_MAX = WORLD_H - 1;
 // it" -- is a box CASTLE_HALF_W to each side of that point and CASTLE_DEPTH
 // deep going up the board from it; a soldier within CASTLE_REACH of that box
 // can besiege (castleDistance() in combat.js).
-const PLAYER_CASTLE_POS = { x: WORLD_W - 8, y: 26 };
-const COMPUTER_CASTLE_POS = { x: 8, y: 26 };
+const PLAYER_CASTLE_POS = { x: WORLD_W - 8, y: 56 };
+const COMPUTER_CASTLE_POS = { x: 8, y: 56 };
 const CASTLE_HALF_W = 4.2;
 const CASTLE_DEPTH = 5;
 const CASTLE_REACH = 3;
@@ -118,7 +123,7 @@ const CASTLE_REACH = 3;
 // of it rather than hidden behind it) and just stand there until given an
 // order (see commands.js). RALLY_JITTER is the random spread around that
 // point, in board units.
-const PLAYER_RALLY = { x: WORLD_W - 10, y: 29.5 };
+const PLAYER_RALLY = { x: WORLD_W - 10, y: 59.5 };
 const RALLY_JITTER = { x: 3, y: 2.5 };
 
 // A soldier walks toward any enemy this close (even mid-order -- it resumes
@@ -134,14 +139,15 @@ const SEPARATION_DIST = 2.5;
 // - Raiders: new enemy soldiers (DIFFICULTY_SPAWN_INTERVALS_MS below) gather
 //   at ENEMY_RALLY until a randomly sized squad (ENEMY_SQUAD_MIN-MAX) is
 //   complete, then all march on the player's castle together.
-const ENEMY_GUARD_POSTS = [{ x: 22, y: 14 }, { x: 24, y: 25 }, { x: 22, y: 35 }];
+const ENEMY_GUARD_POSTS = [{ x: 22, y: 44 }, { x: 24, y: 55 }, { x: 22, y: 65 }];
 const GUARD_LEASH = 22;
-const ENEMY_RALLY = { x: 14, y: 35 };
+const ENEMY_RALLY = { x: 14, y: 65 };
 
 // Scenery (placeBoard() in render.js): purely decorative, soldiers walk
 // past it. Fixed positions so the map looks the same every game; kept clear
 // of the castles. x/y is where each item touches the ground. Trees line the
-// top and bottom edges; small bushes/rocks/mushrooms/a pumpkin dot the middle.
+// top and bottom edges and dot the open areas above/below the road; small
+// bushes/rocks/mushrooms/a pumpkin are scattered around the road.
 // `art` keys into SCENERY_ART: image, width in board units, and how far down
 // its own image the ground point sits (measured from the art).
 const SCENERY_ART = {
@@ -156,17 +162,26 @@ const SCENERY_ART = {
 };
 const SCENERY = [
   // top edge
-  { art: 'tree', x: 36, y: 7 }, { art: 'tree', x: 49, y: 5 }, { art: 'tree', x: 63, y: 8 },
-  { art: 'tree', x: 80, y: 6 }, { art: 'tree', x: 97, y: 8 }, { art: 'tree', x: 114, y: 5 },
-  { art: 'tree', x: 131, y: 7 }, { art: 'tree', x: 148, y: 6 }, { art: 'tree', x: 163, y: 8 },
+  { art: 'tree', x: 6, y: 7 }, { art: 'tree', x: 21, y: 5 }, { art: 'tree', x: 36, y: 7 },
+  { art: 'tree', x: 49, y: 5 }, { art: 'tree', x: 63, y: 8 }, { art: 'tree', x: 80, y: 6 },
+  { art: 'tree', x: 97, y: 8 }, { art: 'tree', x: 114, y: 5 }, { art: 'tree', x: 131, y: 7 },
+  { art: 'tree', x: 148, y: 6 }, { art: 'tree', x: 163, y: 8 }, { art: 'tree', x: 179, y: 5 },
+  { art: 'tree', x: 194, y: 7 },
   // bottom edge
-  { art: 'tree', x: 42, y: 41 }, { art: 'tree', x: 71, y: 42 }, { art: 'tree', x: 105, y: 41 },
-  { art: 'tree', x: 139, y: 42 }, { art: 'tree', x: 159, y: 41 },
-  // middle
-  { art: 'bush1', x: 55, y: 18 }, { art: 'bush3', x: 88, y: 31 }, { art: 'rock1', x: 120, y: 15 },
-  { art: 'rock2', x: 146, y: 33 }, { art: 'mushroom', x: 72, y: 24 }, { art: 'pumpkin', x: 101, y: 22 },
-  { art: 'bush2', x: 132, y: 26 }, { art: 'mushroom', x: 44, y: 29 }, { art: 'rock2', x: 60, y: 35 },
-  { art: 'bush1', x: 156, y: 17 }
+  { art: 'tree', x: 10, y: 101 }, { art: 'tree', x: 27, y: 102 }, { art: 'tree', x: 42, y: 101 },
+  { art: 'tree', x: 71, y: 102 }, { art: 'tree', x: 88, y: 101 }, { art: 'tree', x: 105, y: 101 },
+  { art: 'tree', x: 122, y: 102 }, { art: 'tree', x: 139, y: 102 }, { art: 'tree', x: 159, y: 101 },
+  { art: 'tree', x: 176, y: 102 }, { art: 'tree', x: 192, y: 101 },
+  // small groves in the open areas above and below the road
+  { art: 'tree', x: 58, y: 30 }, { art: 'tree', x: 64, y: 33 }, { art: 'tree', x: 140, y: 29 },
+  { art: 'tree', x: 70, y: 76 }, { art: 'tree', x: 132, y: 74 }, { art: 'tree', x: 137, y: 77 },
+  { art: 'bush2', x: 98, y: 27 }, { art: 'rock1', x: 30, y: 30 }, { art: 'mushroom', x: 170, y: 32 },
+  { art: 'bush3', x: 102, y: 80 }, { art: 'rock2', x: 36, y: 78 }, { art: 'pumpkin', x: 166, y: 78 },
+  // around the road
+  { art: 'bush1', x: 55, y: 48 }, { art: 'bush3', x: 88, y: 61 }, { art: 'rock1', x: 120, y: 45 },
+  { art: 'rock2', x: 146, y: 63 }, { art: 'mushroom', x: 72, y: 54 }, { art: 'pumpkin', x: 101, y: 52 },
+  { art: 'bush2', x: 132, y: 56 }, { art: 'mushroom', x: 44, y: 59 }, { art: 'rock2', x: 60, y: 65 },
+  { art: 'bush1', x: 156, y: 47 }
 ];
 const ENEMY_SQUAD_MIN = 1;
 const ENEMY_SQUAD_MAX = 3;

@@ -1261,19 +1261,39 @@ hr {
 .battlefield {
   direction: ltr;
   position: relative;
-  flex: 1;
-  min-width: 0;
+  width: 100%;
   margin: 0;
   border-radius: 14px;
-  /* The board inside is wider than this window onto it (WORLD_W vs VIEW_W,
-     config.js) -- a normal horizontal scrollbar pans it. Height is just the
-     board's own (placeBoard() gives it the world's aspect ratio) plus the
-     scrollbar, so nothing is hidden under the scrollbar. */
-  overflow-x: auto;
-  overflow-y: hidden;
+  /* A VIEW_W x VIEW_H window (aspect-ratio set by placeBoard(), render.js)
+     onto a board that's bigger in both directions (WORLD_W x WORLD_H,
+     config.js) -- normal scrollbars pan it, as do the number-pad arrows and
+     the minimap (commands.js). */
+  overflow: auto;
   border: 3px solid #5a9440;
   box-shadow: inset 0 4px 10px rgba(0,0,0,0.15);
   user-select: none;
+}
+
+/* Takes .battlefield's old place in the castle row, and holds the minimap
+   in a fixed corner over it (.battlefield scrolls; the wrapper doesn't). */
+.battlefield-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Minimap (renderMinimap() in render.js, clicks in commands.js): bottom-left
+   corner of the view, just above the horizontal scrollbar. */
+.minimap {
+  position: absolute;
+  left: 8px;
+  bottom: 22px;
+  width: 200px;
+  z-index: 5;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
 }
 
 /* ---------- The board (see the board section in config.js) ----------
@@ -1282,6 +1302,10 @@ hr {
    all position themselves in % of this element (render.js / commands.js). */
 .battlefield-plane {
   position: relative;
+  /* Art hanging past the board's edge (the bottom row of trees) must not
+     make the scroll area bigger than the board itself. `clip`, not
+     `hidden`, so this doesn't become a scroll container of its own. */
+  overflow: clip;
   /* width, aspect-ratio and --world-w are set by placeBoard() (render.js).
      Children size themselves in board units with
      calc(100% * <units> / var(--world-w)). */

@@ -293,7 +293,7 @@ function startGame() {
   selectedIds.clear();
   hideSelectionBox();
   placeBoard();
-  document.getElementById('battlefield').scrollLeft = 1e9; // start at the player's own castle (right end)
+  scrollBoardTo(PLAYER_CASTLE_POS.x, PLAYER_CASTLE_POS.y); // start looking at the player's own castle
   setupEnemyForces();
 
   if (swapTimeoutId) clearTimeout(swapTimeoutId);

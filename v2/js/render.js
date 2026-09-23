@@ -94,7 +94,76 @@ function render() {
 
   renderSoldiers();
   renderFog();
+  renderMinimap();
   updateCoinsDisplay();
+}
+
+// ---------- Minimap (click/drag handling is in commands.js) ----------
+// The whole board shrunk into a small canvas in the corner: grass, trees,
+// the same fog of war as the board (nothing remembered), both castles,
+// your soldiers, enemy soldiers only where you can currently see them, and
+// a white frame for the part of the board the main view is showing.
+const MINIMAP_COLORS = {
+  grass: '#6f9e3f', tree: '#2f5d3a', player: '#3aa0ff', enemy: '#ff4a3c', view: '#ffffff'
+};
+let minimapFogCanvas = null; // offscreen, reused every frame
+
+function renderMinimap() {
+  const canvas = document.getElementById('minimap');
+  const w = canvas.width;
+  const h = canvas.height;
+  const sx = w / WORLD_W; // minimap pixels per board unit (same vertically)
+  const ctx = canvas.getContext('2d');
+
+  ctx.fillStyle = MINIMAP_COLORS.grass;
+  ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = MINIMAP_COLORS.tree;
+  for (const item of SCENERY) {
+    if (item.art === 'tree') ctx.fillRect(item.x * sx - 2, item.y * sx - 3, 4, 4);
+  }
+
+  // Fog: same idea as renderFog(), at minimap scale, drawn offscreen first
+  // so its erased holes don't also erase the grass underneath.
+  if (!minimapFogCanvas) minimapFogCanvas = document.createElement('canvas');
+  minimapFogCanvas.width = w;
+  minimapFogCanvas.height = h;
+  const fctx = minimapFogCanvas.getContext('2d');
+  fctx.fillStyle = FOG_COLOR;
+  fctx.fillRect(0, 0, w, h);
+  fctx.globalCompositeOperation = 'destination-out';
+  const sight = playerSightCircles();
+  for (const c of sight) {
+    fctx.beginPath();
+    fctx.arc(c.x * sx, c.y * sx, c.r * sx, 0, Math.PI * 2);
+    fctx.fill();
+  }
+  ctx.drawImage(minimapFogCanvas, 0, 0);
+
+  // Castles (always shown -- you know where both bases are), then soldiers.
+  for (const [pos, color, hp] of [[PLAYER_CASTLE_POS, MINIMAP_COLORS.player, playerCastleHP],
+                                  [COMPUTER_CASTLE_POS, MINIMAP_COLORS.enemy, computerCastleHP]]) {
+    ctx.fillStyle = hp > 0 ? color : '#777';
+    ctx.fillRect(pos.x * sx - 4, (pos.y - 4) * sx - 4, 8, 8);
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(pos.x * sx - 4, (pos.y - 4) * sx - 4, 8, 8);
+  }
+  for (const s of soldiers) {
+    if (s.dying) continue;
+    if (s.side !== 'player' && !isSeenByPlayer(s.x, s.y, sight)) continue;
+    ctx.fillStyle = s.side === 'player' ? MINIMAP_COLORS.player : MINIMAP_COLORS.enemy;
+    ctx.fillRect(s.x * sx - 1.5, s.y * sx - 1.5, 3, 3);
+  }
+
+  // Frame for what the main view currently shows.
+  const bf = document.getElementById('battlefield');
+  const plane = document.getElementById('battlefieldPlane');
+  if (plane.clientWidth) {
+    const k = w / plane.clientWidth; // minimap px per board px
+    ctx.strokeStyle = MINIMAP_COLORS.view;
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(bf.scrollLeft * k, bf.scrollTop * k, bf.clientWidth * k, bf.clientHeight * k);
+  }
 }
 
 // ---------- Fog of war (see SOLDIER_SIGHT etc. in config.js) ----------
@@ -235,6 +304,14 @@ function renderSoldiers() {
 // scenery (SCENERY, config.js) once.
 function placeBoard() {
   const plane = document.getElementById('battlefieldPlane');
+  // The window onto the board shows VIEW_W x VIEW_H units (minus whatever
+  // the scrollbars take); the board inside it is WORLD_W/VIEW_W windows wide.
+  document.getElementById('battlefield').style.aspectRatio = `${VIEW_W} / ${VIEW_H}`;
+  // Minimap canvas: fixed 200px wide, the board's own proportions (the CSS
+  // display size matches, so one canvas pixel = one screen pixel).
+  const minimap = document.getElementById('minimap');
+  minimap.width = 200;
+  minimap.height = Math.round(200 * WORLD_H / WORLD_W);
   plane.style.width = `${WORLD_W / VIEW_W * 100}%`;
   plane.style.aspectRatio = `${WORLD_W} / ${WORLD_H}`;
   plane.style.setProperty('--world-w', WORLD_W);

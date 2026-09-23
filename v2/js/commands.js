@@ -206,18 +206,34 @@ function onBoardMouseDown(e) {
 document.getElementById('battlefield').addEventListener('mousedown', onBoardMouseDown);
 document.getElementById('battlefield').addEventListener('contextmenu', onBoardRightClick);
 
+// ---------- Moving the view ----------
+// Scrolls the main view so board point (x, y) is in its middle (as far as
+// the board's edges allow -- the browser clamps scrollLeft/scrollTop).
+function scrollBoardTo(x, y) {
+  const bf = document.getElementById('battlefield');
+  const plane = document.getElementById('battlefieldPlane');
+  const pxPerUnit = plane.clientWidth / WORLD_W;
+  bf.scrollLeft = x * pxPerUnit - bf.clientWidth / 2;
+  bf.scrollTop = y * pxPerUnit - bf.clientHeight / 2;
+}
+
 // ---------- Keyboard map scrolling: number-pad arrows ----------
-// The number-pad 4/6 keys scroll the board left/right, while the regular
-// arrow keys keep doing what they always did inside the exercise. Only with
-// NumLock OFF: then those keys report e.key 'ArrowLeft'/'ArrowRight' but
-// e.code 'Numpad4'/'Numpad6', which is how they're told apart from the
-// regular arrows. With NumLock ON they're plain digits and are left alone,
-// since kids type answers on the number pad.
+// The number-pad 4/6/8/2 keys scroll the board left/right/up/down, while the
+// regular arrow keys keep doing what they always did inside the exercise.
+// Only with NumLock OFF: then those keys report e.key 'ArrowLeft' etc. but
+// e.code 'Numpad4' etc., which is how they're told apart from the regular
+// arrows. With NumLock ON they're plain digits and are left alone, since
+// kids type answers on the number pad.
 // Scrolls smoothly for as long as the key is held (not in keyboard-repeat
 // jumps). Listens in the capture phase and stops the event there, so the
 // exercise's own arrow-key handlers (main.js) never see these keys at all.
 const KEY_SCROLL_PX_PER_SEC = 700;
-const NUMPAD_SCROLL_DIR = { Numpad4: -1, Numpad6: 1 };
+const NUMPAD_SCROLL_DIR = {
+  Numpad4: { key: 'ArrowLeft', dx: -1, dy: 0 },
+  Numpad6: { key: 'ArrowRight', dx: 1, dy: 0 },
+  Numpad8: { key: 'ArrowUp', dx: 0, dy: -1 },
+  Numpad2: { key: 'ArrowDown', dx: 0, dy: 1 }
+};
 const heldScrollKeys = new Set();
 let keyScrollLastTime = null;
 
@@ -225,15 +241,19 @@ function keyScrollFrame(now) {
   if (!heldScrollKeys.size) { keyScrollLastTime = null; return; }
   const dt = keyScrollLastTime == null ? 16 : now - keyScrollLastTime;
   keyScrollLastTime = now;
-  let dir = 0;
-  for (const code of heldScrollKeys) dir += NUMPAD_SCROLL_DIR[code];
-  document.getElementById('battlefield').scrollLeft += dir * KEY_SCROLL_PX_PER_SEC * dt / 1000;
+  let dx = 0;
+  let dy = 0;
+  for (const code of heldScrollKeys) { dx += NUMPAD_SCROLL_DIR[code].dx; dy += NUMPAD_SCROLL_DIR[code].dy; }
+  const bf = document.getElementById('battlefield');
+  const step = KEY_SCROLL_PX_PER_SEC * dt / 1000;
+  bf.scrollLeft += dx * step;
+  bf.scrollTop += dy * step;
   requestAnimationFrame(keyScrollFrame);
 }
 
 window.addEventListener('keydown', (e) => {
-  if (!(e.code in NUMPAD_SCROLL_DIR)) return;
-  if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return; // NumLock on: a digit
+  const dir = NUMPAD_SCROLL_DIR[e.code];
+  if (!dir || e.key !== dir.key) return; // not a number-pad arrow, or NumLock on (a digit)
   e.preventDefault();
   e.stopPropagation();
   if (!isBattleInteractive()) return;
@@ -247,3 +267,34 @@ window.addEventListener('keyup', (e) => {
 
 // A key released while the window was in the background never sends keyup.
 window.addEventListener('blur', () => heldScrollKeys.clear());
+
+// ---------- Minimap: click or drag to move the view ----------
+// Drawn by renderMinimap() (render.js). Pressing anywhere on it centers the
+// main view on that spot, and dragging keeps it following the mouse.
+function minimapToBoard(e) {
+  const r = document.getElementById('minimap').getBoundingClientRect();
+  return {
+    x: Math.max(0, Math.min(WORLD_W, (e.clientX - r.left) / r.width * WORLD_W)),
+    y: Math.max(0, Math.min(WORLD_H, (e.clientY - r.top) / r.height * WORLD_H))
+  };
+}
+
+function onMinimapDrag(e) {
+  const p = minimapToBoard(e);
+  scrollBoardTo(p.x, p.y);
+  renderMinimap();
+}
+
+function onMinimapUp() {
+  document.removeEventListener('mousemove', onMinimapDrag);
+  document.removeEventListener('mouseup', onMinimapUp);
+}
+
+document.getElementById('minimap').addEventListener('mousedown', (e) => {
+  e.preventDefault(); // keep keyboard focus in the answer box, like the board does
+  if (e.button !== 0 || !isBattleInteractive()) return;
+  onMinimapDrag(e);
+  document.addEventListener('mousemove', onMinimapDrag);
+  document.addEventListener('mouseup', onMinimapUp);
+});
+document.getElementById('minimap').addEventListener('contextmenu', (e) => e.preventDefault());
