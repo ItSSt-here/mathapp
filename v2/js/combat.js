@@ -82,6 +82,22 @@ function setupMines() {
   mines = MINE_SITES.map((site, i) => ({
     id: i, x: site.x, y: site.y, owner: null, captureSide: null, captureMs: 0
   }));
+  // Neutral guards (purple, their own 'neutral' side): stand in front of
+  // their mine, attack anyone of either side who comes within
+  // MINE_GUARD_LEASH of their post, and are never replaced. Not in the
+  // no-enemy study mode.
+  if (isStudyMode()) return;
+  mines.forEach((m, i) => {
+    for (const offset of MINE_GUARD_OFFSETS.slice(0, MINE_SITES[i].guards)) {
+      const post = { x: m.x + offset.x, y: m.y + offset.y };
+      const g = spawnSoldier('neutral', 'mineKeeper', post.x, post.y, post, MINE_GUARD_LEASH);
+      g.mineId = m.id;
+    }
+  });
+}
+
+function mineKeepersLeft(m) {
+  return soldiers.filter(s => s.role === 'mineKeeper' && !s.dying && s.mineId === m.id).length;
 }
 
 function mineCount(side) {
@@ -96,10 +112,13 @@ function tickMines(livingSoldiers) {
     let players = 0;
     let computers = 0;
     for (const s of livingSoldiers) {
-      if (Math.hypot(s.x - m.x, s.y - m.y) > MINE_RANGE) continue;
+      if (s.side === 'neutral' || Math.hypot(s.x - m.x, s.y - m.y) > MINE_RANGE) continue;
       if (s.side === 'player') players++; else computers++;
     }
-    const side = players && !computers ? 'player' : (computers && !players ? 'computer' : null);
+    // Nobody can take a mine while any of its neutral guards still stands.
+    const guarded = mineKeepersLeft(m) > 0;
+    const side = guarded ? null
+      : (players && !computers ? 'player' : (computers && !players ? 'computer' : null));
     if (side && side !== m.owner) {
       if (m.captureSide !== side) { m.captureSide = side; m.captureMs = 0; }
       m.captureMs += TICK_MS;
@@ -146,11 +165,12 @@ function tickEnemyAI() {
 
   const gathering = soldiers.filter(s => s.role === 'raider' && !s.dying && !s.order);
   if (gathering.length >= enemySquadSize) {
-    // A mine worth taking: not already the enemy's, and not already being
-    // guarded by an earlier enemy squad. Nearest to the enemy castle first.
+    // A mine worth taking: not already the enemy's, not already being
+    // guarded by an earlier enemy squad, and with no more neutral guards
+    // left than this squad has soldiers. Nearest to the enemy castle first.
     const guarded = new Set(soldiers.filter(s => s.role === 'mineGuard' && !s.dying).map(s => s.mineId));
     const targets = mines
-      .filter(m => m.owner !== 'computer' && !guarded.has(m.id))
+      .filter(m => m.owner !== 'computer' && !guarded.has(m.id) && mineKeepersLeft(m) <= gathering.length)
       .sort((a, b) => Math.hypot(a.x - COMPUTER_CASTLE_POS.x, a.y - COMPUTER_CASTLE_POS.y)
                     - Math.hypot(b.x - COMPUTER_CASTLE_POS.x, b.y - COMPUTER_CASTLE_POS.y));
     const mine = targets.length && Math.random() < ENEMY_MINE_RAID_CHANCE ? targets[0] : null;
@@ -283,6 +303,7 @@ function updateSoldier(s, opponents) {
     stepToward(s, s.home.x, s.home.y);
     return;
   }
+  if (s.side === 'neutral') return; // mine guards have no castle to attack
 
   // Idle, but the enemy castle is in sight (AGGRO_RANGE, same as for enemy
   // soldiers): walk up to its nearest wall and besiege it. Without this, a
@@ -327,14 +348,15 @@ function tick() {
   tickEnemyAI();
 
   const livingSoldiers = soldiers.filter(s => !s.dying);
-  const players = livingSoldiers.filter(s => s.side === 'player');
-  const enemies = livingSoldiers.filter(s => s.side === 'computer');
+  // Three sides now (player, computer, and the neutral gold-mine guards):
+  // everyone not on your side is an opponent.
+  const opponentsOf = (s, pool) => pool.filter(o => o.side !== s.side);
 
-  // Melee pairing: every soldier (both sides, computed independently)
+  // Melee pairing: every soldier (every side, computed independently)
   // fights its nearest opponent within actual contact range.
   const opponentOf = new Map();
   for (const s of livingSoldiers) {
-    const opp = nearestOpponent(s, s.side === 'player' ? enemies : players, ENGAGE_RANGE);
+    const opp = nearestOpponent(s, opponentsOf(s, livingSoldiers), ENGAGE_RANGE);
     if (opp) opponentOf.set(s.id, opp);
   }
 
@@ -368,8 +390,6 @@ function tick() {
   });
 
   const stillLiving = livingSoldiers.filter(s => !s.dying);
-  const livingPlayers = stillLiving.filter(s => s.side === 'player');
-  const livingEnemies = stillLiving.filter(s => s.side === 'computer');
 
   for (const s of stillLiving) {
     s.attacking = false;
@@ -380,7 +400,7 @@ function tick() {
       faceTarget(s, opp.x, opp.y);
       continue;
     }
-    updateSoldier(s, s.side === 'player' ? livingEnemies : livingPlayers);
+    updateSoldier(s, opponentsOf(s, stillLiving));
     if (!s.attacking) s.atkCooldown = 0; // so the next contact strikes immediately
   }
 

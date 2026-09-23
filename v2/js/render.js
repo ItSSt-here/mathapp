@@ -48,7 +48,7 @@ function preloadCastleSprites() {
 function preloadSoldierSprites() {
   const container = document.getElementById('spritePreload');
   for (const url of [soldierSheetUrl('player', 'warrior'), soldierSheetUrl('computer', 'warrior'),
-                     soldierSheetUrl('player', 'dead')]) {
+                     soldierSheetUrl('neutral', 'warrior'), soldierSheetUrl('player', 'dead')]) {
     const wrap = document.createElement('div');
     wrap.className = 'soldier';
     wrap.style.width = '64px'; // outside the board, --world-w (its normal sizing) doesn't apply
@@ -64,7 +64,8 @@ function preloadSoldierSprites() {
 // skull sheet is shared by both sides.
 function soldierSheetUrl(side, sheet) {
   if (sheet === 'dead') return 'assets/sprites/warrior/dead.png';
-  return `assets/sprites/warrior/${side === 'player' ? 'blue' : 'red'}.png`;
+  const color = { player: 'blue', computer: 'red', neutral: 'purple' }[side];
+  return `assets/sprites/warrior/${color}.png`;
 }
 
 // CSS for showing soldier s's current frame out of its sprite sheet:
@@ -125,7 +126,7 @@ function renderMines() {
 // your soldiers, enemy soldiers only where you can currently see them, and
 // a white frame for the part of the board the main view is showing.
 const MINIMAP_COLORS = {
-  grass: '#6f9e3f', tree: '#2f5d3a', player: '#3aa0ff', enemy: '#ff4a3c', view: '#ffffff'
+  grass: '#6f9e3f', tree: '#2f5d3a', player: '#3aa0ff', enemy: '#ff4a3c', neutral: '#c060ff', view: '#ffffff'
 };
 let minimapFogCanvas = null; // offscreen, reused every frame
 
@@ -182,7 +183,8 @@ function renderMinimap() {
   for (const s of soldiers) {
     if (s.dying) continue;
     if (s.side !== 'player' && !isSeenByPlayer(s.x, s.y, sight)) continue;
-    ctx.fillStyle = s.side === 'player' ? MINIMAP_COLORS.player : MINIMAP_COLORS.enemy;
+    ctx.fillStyle = s.side === 'player' ? MINIMAP_COLORS.player
+      : (s.side === 'neutral' ? MINIMAP_COLORS.neutral : MINIMAP_COLORS.enemy);
     ctx.fillRect(s.x * sx - 1.5, s.y * sx - 1.5, 3, 3);
   }
 

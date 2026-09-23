@@ -198,11 +198,18 @@ const ENEMY_SQUAD_MAX = 3;
 // (markCorrect(), exercise-core.js) -- so mines make every exercise worth
 // more. Each mine the enemy holds makes its new soldiers come out
 // ENEMY_MINE_SPAWN_SPEEDUP faster, so leaving the mines to it has a price.
+// Every mine starts with `guards` neutral guards (purple warriors, their own
+// side): nobody can capture a mine while any of its guards still stands, so
+// taking one means building an army first. They stand at MINE_GUARD_OFFSETS
+// around the mine, attack anyone of either side who comes within
+// MINE_GUARD_LEASH of their post, and are never replaced once killed.
 const MINE_SITES = [
-  { x: 100, y: 22 },
-  { x: 62, y: 88 },
-  { x: 138, y: 88 }
+  { x: 100, y: 22, guards: 3 },
+  { x: 62, y: 88, guards: 2 },
+  { x: 138, y: 88, guards: 2 }
 ];
+const MINE_GUARD_OFFSETS = [{ x: -6, y: 4 }, { x: 6, y: 4 }, { x: 0, y: 7 }];
+const MINE_GUARD_LEASH = 12;
 const MINE_RANGE = 8;
 const MINE_CAPTURE_MS = 3000;
 const MINE_BONUS = 3;

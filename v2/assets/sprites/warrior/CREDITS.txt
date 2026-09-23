@@ -6,6 +6,7 @@ released under CC0 1.0 (public domain) -- no attribution required, credited anyw
 Files (unmodified, only renamed):
   blue.png  <- Factions/Knights/Troops/Warrior/Blue/Warrior_Blue.png
   red.png   <- Factions/Knights/Troops/Warrior/Red/Warrior_Red.png
+  purple.png <- Factions/Knights/Troops/Warrior/Purple/Warrior_Purple.png (neutral gold-mine guards)
   dead.png  <- Factions/Knights/Troops/Dead/Dead.png
 
 Sheet layout (used as CSS sprite sheets, see SOLDIER_ANIMS in js/config.js):
