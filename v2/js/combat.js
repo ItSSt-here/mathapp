@@ -8,7 +8,7 @@
 //      kept, not cleared, so the soldier resumes it once the fight is over)
 //   3. an order (player's right-click, or a raider squad's attack) -> follow it
 //   4. a home spot (guard post / raider gathering spot) -> walk back to it
-//   5. standing next to the enemy castle -> besiege it
+//   5. the enemy castle within AGGRO_RANGE -> walk up to it and besiege it
 //   6. otherwise stand still
 // The fields that make the three kinds of soldier differ are just data:
 //   s.order -- null, a point {x, y}, or {x, y, castle: true} (walk to the
@@ -220,7 +220,19 @@ function updateSoldier(s, opponents) {
     return;
   }
 
-  if (atEnemyCastle) besiege(s, enemyCastle);
+  // Idle, but the enemy castle is in sight (AGGRO_RANGE, same as for enemy
+  // soldiers): walk up to its nearest wall and besiege it. Without this, a
+  // soldier moved near the castle but stopping just out of CASTLE_REACH
+  // would stand there doing nothing.
+  const castleDist = castleDistance(s, enemyCastle);
+  if (castleDist <= CASTLE_REACH) {
+    besiege(s, enemyCastle);
+  } else if (castleDist <= AGGRO_RANGE) {
+    const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+    stepToward(s,
+      clamp(s.x, enemyCastle.x - CASTLE_HALF_W, enemyCastle.x + CASTLE_HALF_W),
+      clamp(s.y, enemyCastle.y - CASTLE_DEPTH, enemyCastle.y));
+  }
 }
 
 // Nudges overlapping soldiers apart so a group stays readable as separate
