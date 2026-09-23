@@ -19,8 +19,7 @@ const SWAP_QUESTION_COST = 15;
 // would make it useless for comparing rounds in the parent-facing log.
 const MAX_COINS = 100;
 const SWAP_REVEAL_MS = 2000;
-const DEATH_FADE_MS = 5000;   // how long a fallen soldier lies there before disappearing
-const FADE_DURATION_MS = 1000; // fades out over the last second before removal
+const DEATH_FADE_MS = 5000;   // how long a fallen soldier's skull lies there before disappearing
 
 // Weak-pool: replay-recently-missed-questions mechanic (toggle: the
 // weakPoolCheckbox on exDifficultyOverlay, see index.html). A pool entry
@@ -38,23 +37,39 @@ const WEAK_POOL_SWAP_COUNTDOWN = 2;
 const WEAK_POOL_DRAW_CHANCE = 0.5;
 const WEAK_POOL_MAX_SIZE = 4;
 
-// Soldier sprite animation: each pose has 25 frames
-// (assets/sprites/knight/<color>/<pose>/1..25.png) -- see
-// [[project_2d_board_v2]] in memory for where this AutoSprite "Knight" CC0
-// pack (25-frame walk/idle/run sheets, sliced+recolored offline) came from
-// and its known gaps. Neither 'attack' nor 'dead' has real unique source
-// art: 'attack' reuses the 'run' frames (closer energy to "striking" than
-// idle or walk), 'dead' reuses 'idle' (calmest option to freeze on while the
-// death fade-out, computed separately in render.js, plays). Swap these once
-// real attack/death art exists.
+// Soldier art: Pixel Frog's "Tiny Swords" (older CC0 release -- see
+// assets/sprites/warrior/CREDITS.txt), used as CSS sprite sheets: one image
+// per sheet, and render.js shows one frame of it at a time via
+// background-position. Each animation is a list of [column, row] frames.
 // Advanced on its own faster interval (see animTick() in combat.js) rather
-// than the TICK_MS combat/movement loop -- some poses have a couple of
-// near-identical "settle" frames, and at TICK_MS's pace those would stretch
-// out long enough to look like the soldier sliding without moving its legs.
-// 'dying' plays once and holds its last frame instead of looping.
-const SPRITE_FRAME_COUNT = 25;
-const ANIM_TICK_MS = 90;
-const POSE_TO_SPRITE_FOLDER = { walking: 'walk', idle: 'idle', attacking: 'attack', dying: 'dead' };
+// than the TICK_MS combat/movement loop, so animation stays smooth.
+const ANIM_TICK_MS = 90; // the art is drawn for ~10fps
+const SOLDIER_SHEETS = {
+  // 6 cols x 8 rows of 192px frames, per team color (blue = player, red = enemy)
+  warrior: { cols: 6, rows: 8 },
+  // 7 cols x 2 rows of 128px frames: skull pops out (0-9), then sinks away (10-13)
+  dead: { cols: 7, rows: 2 }
+};
+function sheetRows(rows, cols) {
+  const frames = [];
+  for (const row of rows) for (let col = 0; col < cols; col++) frames.push([col, row]);
+  return frames;
+}
+const SOLDIER_ANIMS = {
+  idle:        { sheet: 'warrior', frames: sheetRows([0], 6) },
+  walking:     { sheet: 'warrior', frames: sheetRows([1], 6) },
+  // Two swings per animation (12 frames ~= STRIKE_INTERVAL_MS), in whichever
+  // of 3 directions the target is (s.attackDir, combat.js). Sideways swings
+  // face right and get mirrored for left like every other pose.
+  attack_side: { sheet: 'warrior', frames: sheetRows([2, 3], 6) },
+  attack_down: { sheet: 'warrior', frames: sheetRows([4, 5], 6) },
+  attack_up:   { sheet: 'warrior', frames: sheetRows([6, 7], 6) },
+  dying:       { sheet: 'dead', frames: sheetRows([0, 1], 7) }
+};
+// The skull holds on this frame (lying on the ground) until the last
+// DEATH_SINK_MS of DEATH_FADE_MS, then plays its sinking-away frames.
+const DEATH_HOLD_FRAME = 9;
+const DEATH_SINK_MS = 500;
 
 // Castle art: 3 pre-drawn HP-based damage stages per side (assets/castle/<side>/).
 const CASTLE_DAMAGE_STAGES = ['1-intact', '2-damaged', '3-severe'];

@@ -44,8 +44,9 @@ function spawnSoldier(side, role, x, y, home, leash) {
     moving: false,
     faceLeft: side === 'player', // each side starts out facing the other
     facingDeg: side === 'player' ? 180 : 0,
+    attackDir: 'side', // 'side' | 'up' | 'down' -- which attack animation to play
     pose: 'idle',
-    animPose: 'idle',
+    anim: 'idle',      // key into SOLDIER_ANIMS (config.js), see soldierAnimKey()
     frameIndex: 0
   };
   clampToBoard(s);
@@ -140,9 +141,24 @@ function stepToward(s, tx, ty) {
   s.moving = true;
 }
 
+// Turns to face a target point and picks which of the 3 attack animations
+// (sideways / up / down) fits the direction it's in.
+function faceTarget(s, tx, ty) {
+  const dx = tx - s.x;
+  const dy = ty - s.y;
+  if (Math.abs(dy) > Math.abs(dx) * 1.2) {
+    s.attackDir = dy < 0 ? 'up' : 'down';
+  } else {
+    s.attackDir = 'side';
+  }
+  if (Math.abs(dx) > 0.01) s.faceLeft = dx < 0;
+}
+
 function besiege(s, castlePos) {
   s.attacking = true;
-  s.faceLeft = castlePos.x < s.x;
+  // Aim at the castle wall's middle height rather than its base point,
+  // so soldiers in front of it swing sideways instead of "up".
+  faceTarget(s, castlePos.x, castlePos.y - 6);
   if (s.atkCooldown <= 0) {
     const dmg = strikeDamage();
     if (s.side === 'player') {
@@ -272,7 +288,7 @@ function tick() {
     const opp = opponentOf.get(s.id);
     if (opp && opp.hp > 0) {
       s.attacking = true;
-      s.faceLeft = opp.x < s.x;
+      faceTarget(s, opp.x, opp.y);
       continue;
     }
     updateSoldier(s, s.side === 'player' ? livingEnemies : livingPlayers);
@@ -281,18 +297,18 @@ function tick() {
 
   separateSoldiers(stillLiving);
 
-  // Record which pose each soldier is in; actual frame advancement happens
-  // on its own faster clock (see animTick() below) so combat/movement pacing
-  // (TICK_MS) and sprite animation pacing (ANIM_TICK_MS) can differ. Reset
-  // the frame here too (not just in animTick) so a pose change never briefly
-  // shows a stale frame number carried over from the previous pose.
+  // Record which pose/animation each soldier is in; actual frame advancement
+  // happens on its own faster clock (see animTick() below) so combat/movement
+  // pacing (TICK_MS) and sprite animation pacing (ANIM_TICK_MS) can differ.
+  // Switching animation (including just the attack direction) restarts it
+  // from its first frame.
   for (const s of soldiers) {
-    const pose = s.dying ? 'dying' : (s.attacking ? 'attacking' : (s.moving ? 'walking' : 'idle'));
-    if (pose !== s.pose) {
+    s.pose = s.dying ? 'dying' : (s.attacking ? 'attacking' : (s.moving ? 'walking' : 'idle'));
+    const anim = soldierAnimKey(s);
+    if (anim !== s.anim) {
+      s.anim = anim;
       s.frameIndex = 0;
-      s.animPose = pose;
     }
-    s.pose = pose;
   }
 
   render();
@@ -304,22 +320,29 @@ function tick() {
   }
 }
 
+function soldierAnimKey(s) {
+  if (s.pose === 'dying') return 'dying';
+  if (s.pose === 'attacking') return `attack_${s.attackDir}`;
+  return s.pose; // 'walking' | 'idle'
+}
+
 // Advances each soldier's sprite frame by exactly one step, strictly in
-// order (never skipping around), resetting to frame 0 whenever its pose has
-// changed since the last check. Runs on its own faster interval (see
-// startGame() in main.js) so the animation itself can be smoother/quicker
-// than the combat/movement tick that decides *which* pose a soldier is in.
+// order. Runs on its own faster interval (see startGame() in main.js) so the
+// animation itself can be smoother/quicker than the combat/movement tick
+// that decides *which* animation a soldier is in. Every animation loops
+// except dying: the skull pops out, lies still on DEATH_HOLD_FRAME, and only
+// plays its sinking-away frames during the last DEATH_SINK_MS before the
+// soldier is removed.
 function animTick() {
   if (gameOver) return;
 
   for (const s of soldiers) {
-    if (s.pose !== s.animPose) {
-      s.animPose = s.pose;
-      s.frameIndex = 0;
-    } else if (s.pose === 'dying') {
-      s.frameIndex = Math.min(SPRITE_FRAME_COUNT - 1, s.frameIndex + 1);
+    const count = SOLDIER_ANIMS[s.anim].frames.length;
+    if (s.anim === 'dying') {
+      const cap = s.deathTimer <= DEATH_SINK_MS ? count - 1 : DEATH_HOLD_FRAME;
+      s.frameIndex = Math.min(cap, s.frameIndex + 1);
     } else {
-      s.frameIndex = (s.frameIndex + 1) % SPRITE_FRAME_COUNT;
+      s.frameIndex = (s.frameIndex + 1) % count;
     }
   }
 

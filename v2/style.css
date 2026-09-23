@@ -1407,18 +1407,18 @@ hr {
      castles', so this layer must not create one of its own. */
 }
 
-/* ---------- Soldier figures (sprite-based, see assets/sprites/knight) ---------- */
+/* ---------- Soldier figures (sprite sheets, see assets/sprites/warrior) ---------- */
 .soldier {
   position: absolute;
-  /* The whole square sprite frame, sized in % of the board so it scales
-     with it. The visible knight is only about half the frame's height --
-     keep commands.js's SOLDIER_HIT_* clickable-area constants roughly
-     matching the visible figure if this size changes. */
+  /* One whole square 192px sprite frame, sized in board units so it scales
+     with the board. The visible warrior is only about half the frame
+     (x 33-73%, y 23-70%) -- keep commands.js's SOLDIER_HIT_* clickable-area
+     constants roughly matching it if this size changes. */
   width: calc(100% * 11 / var(--world-w)); /* 11 board units */
   aspect-ratio: 1;
-  /* left/top (render.js) are the soldier's FEET, which sit ~73% down the
-     source frame -- hang the frame from that point. */
-  transform: translate(-50%, -73%);
+  /* left/top (render.js) are the soldier's FEET, which sit ~69% down the
+     frame (measured from the art) -- hang the frame from that point. */
+  transform: translate(-50%, -69%);
   transition: left 0.2s linear, top 0.2s linear;
   pointer-events: none;
 }
@@ -1429,7 +1429,7 @@ hr {
   content: '';
   position: absolute;
   left: 50%;
-  top: 73%;
+  top: 69%;
   width: 40%;
   height: 13%;
   transform: translate(-50%, -50%);
@@ -1438,23 +1438,28 @@ hr {
   z-index: -1;
 }
 
+/* Shows one frame of a sprite sheet: background-image/size/position are set
+   per frame by render.js (soldierFrameStyle()). */
 .soldier-figure {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
+  position: absolute;
+  inset: 0;
+  background-repeat: no-repeat;
 }
 
 /* Sprite frames face right by default; mirrored whenever the soldier is
    heading/facing left (s.faceLeft, combat.js). */
 .soldier.face-left .soldier-figure { transform: scaleX(-1); }
 
-/* Dying: opacity fade is computed in JS from the death timer and applied
-   inline every render (see render() in render.js) since soldiersLayer's
-   innerHTML is rebuilt every tick -- the fall/topple itself is just the
-   'dead' sprite frames playing out. */
-.soldier.dying {
-  pointer-events: none;
+/* Dying: the skull sheet's frames are 128px vs the warrior's 192px, so its
+   figure is 2/3 the size, placed so the skull's shadow (77% down its own
+   frame) lands where the warrior's feet were (69% down the soldier box):
+   top = 69% - 77% x 2/3 ~= 18%. */
+.soldier.dying .soldier-figure {
+  inset: auto;
+  left: 16.67%;
+  top: 18%;
+  width: 66.67%;
+  height: 66.67%;
 }
 
 .soldier.dying .soldier-hp {
@@ -1844,11 +1849,12 @@ hr {
 /* Per-soldier HP bar */
 .soldier-hp {
   position: absolute;
-  /* The source art (see assets/sprites/knight/CREDITS.txt) has a lot of
-     built-in headroom -- the plume starts ~22% down its own square frame --
-     so this sits just above the real head, not the (mostly empty) box top.
-     In % so it follows .soldier as the board scales. */
+  /* The sprite frame has a lot of built-in headroom -- the plume starts
+     ~23% down it (assets/sprites/warrior) -- so this sits just above the
+     real head, not the (mostly empty) box top. In % so it follows .soldier
+     as the board scales. */
   top: 17%;
+  z-index: 1; /* above .soldier-figure, which is absolutely positioned */
   left: 50%;
   transform: translateX(-50%);
   width: 30%;

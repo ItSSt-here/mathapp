@@ -24,42 +24,47 @@ function preloadCastleSprites() {
   }
 }
 
-// Warms up every soldier sprite frame (both colors, every pose) by actually
+// Warms up the three soldier sprite sheets (blue, red, skull) by actually
 // laying them out and painting them off-screen as soon as the page loads,
-// using the exact same markup (.soldier/.soldier-figure, including the
-// player side's mirroring) that the real battlefield uses. Fetching and
-// decoding the bytes alone (e.g. via `new Image()`) isn't enough -- an
-// element that's never inserted into the page never gets painted, so the
-// browser still pays that first-paint cost live the first time a soldier
-// actually enters a given pose. That first paint is what showed up as a
-// brief flicker right after spawning, stopping, or engaging.
+// using the same .soldier/.soldier-figure markup the battlefield uses.
+// Fetching the bytes alone isn't enough -- an element that's never painted
+// still pays its first-paint cost live, which shows up as a brief flicker
+// the first time a soldier appears or dies.
 function preloadSoldierSprites() {
   const container = document.getElementById('spritePreload');
-  const sideClassForColor = { blue: 'player face-left', red: 'enemy' };
-
-  for (const color of ['blue', 'red']) {
-    for (const folder of Object.values(POSE_TO_SPRITE_FOLDER)) {
-      for (let i = 1; i <= SPRITE_FRAME_COUNT; i++) {
-        const wrap = document.createElement('div');
-        wrap.className = `soldier ${sideClassForColor[color]}`;
-        const img = document.createElement('img');
-        img.className = 'soldier-figure';
-        img.src = `assets/sprites/knight/${color}/${folder}/${i}.png`;
-        wrap.appendChild(img);
-        container.appendChild(wrap);
-      }
-    }
+  for (const url of [soldierSheetUrl('player', 'warrior'), soldierSheetUrl('computer', 'warrior'),
+                     soldierSheetUrl('player', 'dead')]) {
+    const wrap = document.createElement('div');
+    wrap.className = 'soldier';
+    wrap.style.width = '64px'; // outside the board, --world-w (its normal sizing) doesn't apply
+    const fig = document.createElement('div');
+    fig.className = 'soldier-figure';
+    fig.style.backgroundImage = `url('${url}')`;
+    wrap.appendChild(fig);
+    container.appendChild(wrap);
   }
 }
 
-// Picks the current sprite frame for a soldier: its side selects the color
-// variant (blue/red, pre-tinted offline -- see assets/sprites/knight), and
-// its pose selects the animation folder. s.frameIndex is advanced strictly
-// one-by-one per tick in tick() (see combat.js), so this just reads it.
-function soldierFrameSrc(s) {
-  const color = s.side === 'player' ? 'blue' : 'red';
-  const folder = POSE_TO_SPRITE_FOLDER[s.pose] || 'walk';
-  return `assets/sprites/knight/${color}/${folder}/${s.frameIndex + 1}.png`;
+// Team color picks the warrior sheet (blue = player, red = enemy); the
+// skull sheet is shared by both sides.
+function soldierSheetUrl(side, sheet) {
+  if (sheet === 'dead') return 'assets/sprites/warrior/dead.png';
+  return `assets/sprites/warrior/${side === 'player' ? 'blue' : 'red'}.png`;
+}
+
+// CSS for showing soldier s's current frame out of its sprite sheet:
+// background-size scales the whole sheet so exactly one frame fills the
+// element, and background-position (in %, where 0% = first column/row and
+// 100% = last) picks which frame.
+function soldierFrameStyle(s) {
+  const anim = SOLDIER_ANIMS[s.anim];
+  const sheet = SOLDIER_SHEETS[anim.sheet];
+  const [col, row] = anim.frames[Math.min(s.frameIndex, anim.frames.length - 1)];
+  return {
+    image: `url('${soldierSheetUrl(s.side, anim.sheet)}')`,
+    size: `${sheet.cols * 100}% ${sheet.rows * 100}%`,
+    position: `${col / (sheet.cols - 1) * 100}% ${row / (sheet.rows - 1) * 100}%`
+  };
 }
 
 function render() {
@@ -165,13 +170,12 @@ function renderSoldiers() {
       const hpFill = document.createElement('div');
       hpFill.className = 'soldier-hp-fill';
       hpBar.appendChild(hpFill);
-      const img = document.createElement('img');
-      img.className = 'soldier-figure';
-      img.alt = '';
+      const fig = document.createElement('div');
+      fig.className = 'soldier-figure';
       wrap.appendChild(hpBar);
-      wrap.appendChild(img);
+      wrap.appendChild(fig);
       soldiersLayer.appendChild(wrap);
-      refs = { wrap, hpFill, img };
+      refs = { wrap, hpFill, fig, frameKey: '' };
       soldierElements.set(s.id, refs);
     }
 
@@ -188,25 +192,17 @@ function renderSoldiers() {
     const hidden = s.side !== 'player' && !isSeenByPlayer(s.x, s.y, sight);
     refs.wrap.style.visibility = hidden ? 'hidden' : '';
 
-    // The fade-out is recomputed from the death timer on every render rather
-    // than played as a CSS animation, since it needs to survive this element
-    // being reused across many ticks. The fall/topple itself is handled by
-    // the 'dead' sprite frames, not computed here.
-    if (s.dying) {
-      const elapsed = DEATH_FADE_MS - s.deathTimer;
-      const fadeElapsed = elapsed - (DEATH_FADE_MS - FADE_DURATION_MS);
-      refs.wrap.style.opacity = fadeElapsed > 0 ? Math.max(0, 1 - fadeElapsed / FADE_DURATION_MS) : 1;
-    } else {
-      refs.wrap.style.opacity = '';
-    }
-
     refs.hpFill.style.width = `${Math.max(0, s.hp) / SOLDIER_HP * 100}%`;
 
-    // Only touch `src` when the frame actually changed, so the browser isn't
-    // asked to redecode/repaint the same image every tick.
-    const newSrc = soldierFrameSrc(s);
-    if (!refs.img.src.endsWith(newSrc)) {
-      refs.img.src = newSrc;
+    // Only touch the background when the frame actually changed, so the
+    // browser isn't asked to repaint the same frame every tick.
+    const frameKey = `${s.anim}:${s.frameIndex}`;
+    if (refs.frameKey !== frameKey) {
+      refs.frameKey = frameKey;
+      const f = soldierFrameStyle(s);
+      refs.fig.style.backgroundImage = f.image;
+      refs.fig.style.backgroundSize = f.size;
+      refs.fig.style.backgroundPosition = f.position;
     }
   }
 

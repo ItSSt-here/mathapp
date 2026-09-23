@@ -1,0 +1,14 @@
+Soldier art: "Tiny Swords" by Pixel Frog
+https://pixelfrog-assets.itch.io/tiny-swords
+Taken from the pack's "TS_old version_CC0 Licensed" download (Tiny Swords Update 010),
+released under CC0 1.0 (public domain) -- no attribution required, credited anyway.
+
+Files (unmodified, only renamed):
+  blue.png  <- Factions/Knights/Troops/Warrior/Blue/Warrior_Blue.png
+  red.png   <- Factions/Knights/Troops/Warrior/Red/Warrior_Red.png
+  dead.png  <- Factions/Knights/Troops/Dead/Dead.png
+
+Sheet layout (used as CSS sprite sheets, see SOLDIER_ANIMS in js/config.js):
+  blue/red: 6 columns x 8 rows of 192x192 frames, facing right.
+    row 0 idle, row 1 run, rows 2-3 attack sideways, rows 4-5 attack down, rows 6-7 attack up.
+  dead: 7 columns x 2 rows of 128x128 frames (14 frames: skull pops out, lies, sinks away).
